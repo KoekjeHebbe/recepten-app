@@ -1,9 +1,12 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import { useWeekMenu } from '../store/weekmenu'
+import { useAuth } from '../store/auth'
 import { DAGEN } from '../types'
 
 export default function Nav() {
   const { menu } = useWeekMenu()
+  const { isIngelogd, gebruiker, logout } = useAuth()
+  const navigate = useNavigate()
   const totalItems = DAGEN.reduce((sum, dag) => sum + menu[dag].length, 0)
 
   return (
@@ -26,11 +29,7 @@ export default function Nav() {
           to="/"
           end
           className={({ isActive }) =>
-            `text-sm font-medium px-3 py-1.5 rounded-full transition-all btn-magnetic ${
-              isActive
-                ? 'bg-olive-700 text-cream'
-                : 'text-olive-700 hover:bg-olive-700/8'
-            }`
+            `text-sm font-medium px-3 py-1.5 rounded-full transition-all btn-magnetic ${isActive ? 'bg-olive-700 text-cream' : 'text-olive-700 hover:bg-olive-700/8'}`
           }
         >
           Recepten
@@ -39,11 +38,7 @@ export default function Nav() {
         <NavLink
           to="/weekmenu"
           className={({ isActive }) =>
-            `text-sm font-medium px-3 py-1.5 rounded-full transition-all btn-magnetic relative ${
-              isActive
-                ? 'bg-olive-700 text-cream'
-                : 'text-olive-700 hover:bg-olive-700/8'
-            }`
+            `text-sm font-medium px-3 py-1.5 rounded-full transition-all btn-magnetic relative ${isActive ? 'bg-olive-700 text-cream' : 'text-olive-700 hover:bg-olive-700/8'}`
           }
         >
           Weekmenu
@@ -57,11 +52,7 @@ export default function Nav() {
         <NavLink
           to="/boodschappen"
           className={({ isActive }) =>
-            `text-sm font-medium px-3 py-1.5 rounded-full transition-all btn-magnetic ${
-              isActive
-                ? 'bg-olive-700 text-cream'
-                : 'text-olive-700 hover:bg-olive-700/8'
-            }`
+            `text-sm font-medium px-3 py-1.5 rounded-full transition-all btn-magnetic ${isActive ? 'bg-olive-700 text-cream' : 'text-olive-700 hover:bg-olive-700/8'}`
           }
         >
           Boodschappen
@@ -69,19 +60,34 @@ export default function Nav() {
 
         <div className="w-px h-4 bg-olive-700/10 mx-1" />
 
-        <NavLink
-          to="/recept/nieuw"
-          className={({ isActive }) =>
-            `text-sm font-semibold px-3 py-1.5 rounded-full transition-all btn-magnetic ${
-              isActive
-                ? 'bg-terracotta-600 text-white'
-                : 'bg-terracotta-600/10 text-terracotta-600 hover:bg-terracotta-600 hover:text-white'
-            }`
-          }
-          title="Recept toevoegen"
-        >
-          + Recept
-        </NavLink>
+        {isIngelogd ? (
+          <>
+            <NavLink
+              to="/recept/nieuw"
+              className={({ isActive }) =>
+                `text-sm font-semibold px-3 py-1.5 rounded-full transition-all btn-magnetic ${isActive ? 'bg-terracotta-600 text-white' : 'bg-terracotta-600/10 text-terracotta-600 hover:bg-terracotta-600 hover:text-white'}`
+              }
+            >
+              + Recept
+            </NavLink>
+            <button
+              onClick={() => { logout(); navigate('/') }}
+              title={`Uitloggen (${gebruiker?.naam})`}
+              className="text-sm px-3 py-1.5 rounded-full text-olive-700/40 hover:text-olive-700 hover:bg-olive-700/8 transition-all btn-magnetic"
+            >
+              {gebruiker?.naam?.split(' ')[0]} ↩
+            </button>
+          </>
+        ) : (
+          <NavLink
+            to="/login"
+            className={({ isActive }) =>
+              `text-sm font-semibold px-3 py-1.5 rounded-full transition-all btn-magnetic ${isActive ? 'bg-olive-700 text-cream' : 'text-olive-700/50 hover:text-olive-700 hover:bg-olive-700/8'}`
+            }
+          >
+            Inloggen
+          </NavLink>
+        )}
       </nav>
     </header>
   )
