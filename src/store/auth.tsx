@@ -12,7 +12,7 @@ interface AuthContext {
   isIngelogd: boolean
   laden: boolean
   login: (email: string, wachtwoord: string) => Promise<void>
-  registreer: (naam: string, email: string, wachtwoord: string) => Promise<void>
+  registreer: (naam: string, email: string, wachtwoord: string, uitnodigingscode: string) => Promise<void>
   logout: () => void
 }
 
@@ -37,8 +37,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setGebruiker(res.gebruiker)
   }
 
-  async function registreer(naam: string, email: string, wachtwoord: string) {
-    const res = await api.post<{ token: string; gebruiker: Gebruiker }>('/auth/registreer', { naam, email, wachtwoord })
+  async function registreer(naam: string, email: string, wachtwoord: string, uitnodigingscode: string) {
+    const res = await api.post<{ token: string; gebruiker: Gebruiker }>('/auth/registreer', { naam, email, wachtwoord, uitnodigingscode })
     localStorage.setItem('recepten-token', res.token)
     setGebruiker(res.gebruiker)
   }

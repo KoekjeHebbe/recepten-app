@@ -9,6 +9,7 @@ export default function Login() {
   const [naam, setNaam] = useState('')
   const [email, setEmail] = useState('')
   const [wachtwoord, setWachtwoord] = useState('')
+  const [uitnodigingscode, setUitnodigingscode] = useState('')
   const [fout, setFout] = useState('')
   const [laden, setLaden] = useState(false)
 
@@ -20,7 +21,7 @@ export default function Login() {
       if (modus === 'login') {
         await login(email, wachtwoord)
       } else {
-        await registreer(naam, email, wachtwoord)
+        await registreer(naam, email, wachtwoord, uitnodigingscode)
       }
       navigate(-1)
     } catch (err) {
@@ -53,11 +54,18 @@ export default function Login() {
 
         <form onSubmit={verstuur} className="space-y-4">
           {modus === 'registreer' && (
-            <div>
-              <label className={labelCls}>Naam</label>
-              <input type="text" value={naam} onChange={e => setNaam(e.target.value)}
-                placeholder="Jouw naam" required className={inputCls} />
-            </div>
+            <>
+              <div>
+                <label className={labelCls}>Naam</label>
+                <input type="text" value={naam} onChange={e => setNaam(e.target.value)}
+                  placeholder="Jouw naam" required className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Uitnodigingscode</label>
+                <input type="text" value={uitnodigingscode} onChange={e => setUitnodigingscode(e.target.value)}
+                  placeholder="Geheime code" required className={inputCls} />
+              </div>
+            </>
           )}
           <div>
             <label className={labelCls}>E-mailadres</label>
