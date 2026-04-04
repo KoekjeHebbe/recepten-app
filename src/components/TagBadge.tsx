@@ -1,11 +1,11 @@
 const TAG_COLORS: Record<string, string> = {
-  diner: 'bg-terracotta-100 text-terracotta-700',
-  lunch: 'bg-amber-100 text-amber-700',
-  bijgerecht: 'bg-yellow-100 text-yellow-700',
-  tapas: 'bg-orange-100 text-orange-700',
-  ontbijt: 'bg-sky-100 text-sky-700',
-  snack: 'bg-purple-100 text-purple-700',
-  dessert: 'bg-pink-100 text-pink-700',
+  diner:      'bg-terracotta-100 text-terracotta-700 border-terracotta-200',
+  lunch:      'bg-amber-50 text-amber-700 border-amber-200',
+  bijgerecht: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+  tapas:      'bg-orange-50 text-orange-700 border-orange-200',
+  ontbijt:    'bg-sky-50 text-sky-700 border-sky-200',
+  snack:      'bg-purple-50 text-purple-700 border-purple-200',
+  dessert:    'bg-pink-50 text-pink-700 border-pink-200',
 }
 
 interface Props {
@@ -15,15 +15,17 @@ interface Props {
 }
 
 export default function TagBadge({ tag, onClick, active }: Props) {
-  const color = TAG_COLORS[tag] ?? 'bg-stone-100 text-stone-600'
+  const color = TAG_COLORS[tag] ?? 'bg-olive-50 text-olive-600 border-olive-100'
   const display = tag.replace(/_/g, ' ')
 
   if (onClick) {
     return (
       <button
         onClick={onClick}
-        className={`text-xs px-2 py-0.5 rounded-full font-medium transition-all border ${
-          active ? 'ring-2 ring-offset-1 ring-terracotta-500 ' + color : color + ' border-transparent'
+        className={`text-[11px] px-2.5 py-0.5 rounded-full font-semibold tracking-wide border transition-all btn-magnetic ${
+          active
+            ? 'bg-olive-700 text-cream border-olive-700 ring-2 ring-olive-700/20 ring-offset-1'
+            : color
         }`}
       >
         {display}
@@ -32,7 +34,7 @@ export default function TagBadge({ tag, onClick, active }: Props) {
   }
 
   return (
-    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${color}`}>
+    <span className={`text-[11px] px-2.5 py-0.5 rounded-full font-semibold tracking-wide border ${color}`}>
       {display}
     </span>
   )

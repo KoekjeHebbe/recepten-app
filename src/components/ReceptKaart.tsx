@@ -16,47 +16,54 @@ export default function ReceptKaart({ recept }: Props) {
   const overigeTags = recept.tags.filter(t => t !== 'recept' && t !== maaltijdTag)
 
   return (
-    <div className="relative block bg-white rounded-2xl shadow-sm hover:shadow-md transition-shadow border border-stone-100 overflow-hidden group">
+    <div className="recept-kaart relative rounded-4xl bg-white border border-olive-700/8 shadow-card card-lift overflow-hidden group">
       <Link to={`/recept/${recept.id}`} className="block">
-        {recept.afbeelding_url ? (
-          <img
-            src={recept.afbeelding_url}
-            alt={recept.titel}
-            className="w-full h-40 object-cover"
-            loading="lazy"
-          />
-        ) : (
-          <div className="w-full h-40 bg-stone-100 flex items-center justify-center text-stone-300 text-4xl">
-            🍽
-          </div>
-        )}
-        <div className="p-4">
-          <div className="flex items-start justify-between gap-2 mb-2">
-            <h2 className="font-semibold text-stone-800 leading-snug group-hover:text-terracotta-600 transition-colors line-clamp-2">
-              {recept.titel}
-            </h2>
-            {maaltijdTag && <TagBadge tag={maaltijdTag} />}
-          </div>
-          <div className="flex flex-wrap gap-1 mb-3">
-            {overigeTags.map(tag => (
+        <div className="relative overflow-hidden" style={{ borderRadius: '2rem 2rem 0 0' }}>
+          {recept.afbeelding_url ? (
+            <img
+              src={recept.afbeelding_url}
+              alt={recept.titel}
+              className="w-full h-44 object-cover transition-transform duration-500 group-hover:scale-105"
+              loading="lazy"
+            />
+          ) : (
+            <div className="w-full h-44 bg-olive-50 flex items-center justify-center text-olive-200 text-5xl">
+              🍽
+            </div>
+          )}
+          {maaltijdTag && (
+            <div className="absolute top-3 left-3">
+              <TagBadge tag={maaltijdTag} />
+            </div>
+          )}
+        </div>
+
+        <div className="p-5">
+          <h2 className="font-bold text-olive-700 leading-snug group-hover:text-terracotta-600 transition-colors line-clamp-2 mb-2 text-[15px]">
+            {recept.titel}
+          </h2>
+          <div className="flex flex-wrap gap-1 mb-4 min-h-[20px]">
+            {overigeTags.slice(0, 3).map(tag => (
               <TagBadge key={tag} tag={tag} />
             ))}
           </div>
-          <div className="flex items-center justify-between text-sm text-stone-500">
-            <span>👥 {recept.personen} pers.</span>
-            <span className="font-medium text-stone-700">
-              {recept.voedingswaarden.per_portie.calorieen}{recept.voedingswaarden.schatting ? ' ±' : ''} kcal
-              <span className="text-stone-400 font-normal"> /portie</span>
+          <div className="flex items-center justify-between text-xs text-olive-700/50 border-t border-olive-700/6 pt-3">
+            <span className="font-medium">👥 {recept.personen} pers.</span>
+            <span className="font-semibold text-olive-700/70">
+              {recept.voedingswaarden.per_portie.calorieen}
+              {recept.voedingswaarden.schatting ? ' ±' : ''} kcal
+              <span className="font-normal opacity-70"> /portie</span>
             </span>
           </div>
         </div>
       </Link>
+
       <button
         onClick={e => { e.preventDefault(); toggleFavoriet(recept.id) }}
-        className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center rounded-full bg-white/80 backdrop-blur-sm shadow-sm hover:scale-110 transition-transform"
+        className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-white/85 backdrop-blur-sm shadow-sm btn-magnetic"
         title={favoriet ? 'Verwijder uit favorieten' : 'Voeg toe aan favorieten'}
       >
-        {favoriet ? '❤️' : '🤍'}
+        <span className="text-base leading-none">{favoriet ? '❤️' : '🤍'}</span>
       </button>
     </div>
   )

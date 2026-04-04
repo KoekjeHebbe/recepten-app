@@ -14,9 +14,9 @@ export default function App() {
     <AangepasteReceptenProvider>
       <FavorietenProvider>
         <WeekMenuProvider>
-          <div className="min-h-screen flex flex-col">
+          <div className="min-h-screen">
             <Nav />
-            <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-6">
+            <main className="max-w-5xl mx-auto w-full px-4 pt-28 pb-16">
               <Routes>
                 <Route path="/" element={<ReceptenLijst />} />
                 <Route path="/recept/nieuw" element={<ReceptToevoegen />} />

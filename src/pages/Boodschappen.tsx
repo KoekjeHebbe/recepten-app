@@ -1,11 +1,9 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import receptenData from '../data/recepten.json'
 import type { Recept } from '../types'
 import { DAGEN } from '../types'
 import { useWeekMenu } from '../store/weekmenu'
-
-const recepten = receptenData as Recept[]
+import { useRecepten } from '../store/aangepaste-recepten'
 
 interface GegroepeerdeIngredient {
   naam: string
@@ -30,16 +28,14 @@ const CATEGORIE_VOLGORDE = [...WINKELINDELING.map(c => c.naam), 'Overig']
 function categoriseer(naam: string): string {
   const lower = naam.toLowerCase()
   for (const cat of WINKELINDELING) {
-    if (cat.keywords.some(kw => lower.includes(kw))) {
-      return cat.naam
-    }
+    if (cat.keywords.some(kw => lower.includes(kw))) return cat.naam
   }
   return 'Overig'
 }
 
-function groepeerIngredienten(ids: string[]): GegroepeerdeIngredient[] {
+function groepeerIngredienten(ids: string[], alleRecepten: Recept[]): GegroepeerdeIngredient[] {
   const geselecteerd = ids
-    .map(id => recepten.find(r => r.id === id))
+    .map(id => alleRecepten.find(r => r.id === id))
     .filter(Boolean) as Recept[]
 
   const map = new Map<string, GegroepeerdeIngredient>()
@@ -49,9 +45,7 @@ function groepeerIngredienten(ids: string[]): GegroepeerdeIngredient[] {
       const sleutel = ing.naam.toLowerCase().trim()
       if (map.has(sleutel)) {
         const bestaand = map.get(sleutel)!
-        if (ing.hoeveelheid) {
-          bestaand.hoeveelheden.push(ing.hoeveelheid)
-        }
+        if (ing.hoeveelheid) bestaand.hoeveelheden.push(ing.hoeveelheid)
       } else {
         map.set(sleutel, {
           naam: ing.naam,
@@ -76,7 +70,6 @@ function formatKeepLijst(items: GegroepeerdeIngredient[]): string {
   const voorraad = items.filter(i => i.voorraadkast)
   const lines: string[] = []
 
-  // Groepeer boodschappen per categorie
   const perCategorie = new Map<string, GegroepeerdeIngredient[]>()
   for (const item of boodschappen) {
     if (!perCategorie.has(item.categorie)) perCategorie.set(item.categorie, [])
@@ -107,6 +100,7 @@ function formatKeepLijst(items: GegroepeerdeIngredient[]): string {
 
 export default function Boodschappen() {
   const { menu } = useWeekMenu()
+  const { alleRecepten } = useRecepten()
   const [gekopieerd, setGekopieerd] = useState(false)
   const [voorraadTonen, setVoorraadTonen] = useState(false)
 
@@ -116,11 +110,10 @@ export default function Boodschappen() {
     return ids
   }, [menu])
 
-  const items = useMemo(() => groepeerIngredienten(alleIds), [alleIds])
+  const items = useMemo(() => groepeerIngredienten(alleIds, alleRecepten), [alleIds, alleRecepten])
   const boodschappen = items.filter(i => !i.voorraadkast)
   const voorraad = items.filter(i => i.voorraadkast)
 
-  // Groepeer voor weergave per categorie
   const boodschappenPerCategorie = useMemo(() => {
     const map = new Map<string, GegroepeerdeIngredient[]>()
     for (const item of boodschappen) {
@@ -134,8 +127,8 @@ export default function Boodschappen() {
 
   const betrokkenRecepten = useMemo(() => {
     const uniekeIds = [...new Set(alleIds)]
-    return uniekeIds.map(id => recepten.find(r => r.id === id)).filter(Boolean) as Recept[]
-  }, [alleIds])
+    return uniekeIds.map(id => alleRecepten.find(r => r.id === id)).filter(Boolean) as Recept[]
+  }, [alleIds, alleRecepten])
 
   async function kopieerNaarKeep() {
     const tekst = formatKeepLijst(items)
@@ -146,10 +139,10 @@ export default function Boodschappen() {
 
   if (alleIds.length === 0) {
     return (
-      <div className="text-center py-16 text-stone-400">
-        <p className="text-4xl mb-3">🛒</p>
-        <p className="mb-2">Je weekmenu is leeg.</p>
-        <Link to="/weekmenu" className="text-terracotta-600 underline text-sm">
+      <div className="text-center py-20 text-olive-700/40">
+        <p className="text-4xl mb-4">🛒</p>
+        <p className="mb-2 text-sm">Je weekmenu is leeg.</p>
+        <Link to="/weekmenu" className="text-terracotta-600 underline underline-offset-2 text-sm font-medium">
           Stel eerst een weekmenu in
         </Link>
       </div>
@@ -158,47 +151,53 @@ export default function Boodschappen() {
 
   return (
     <div className="max-w-lg mx-auto">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-bold text-stone-800">Boodschappenlijst</h1>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-5">
+        <h1 className="text-xl font-bold text-olive-700 tracking-tight">Boodschappenlijst</h1>
         <button
           onClick={kopieerNaarKeep}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all shadow-sm ${
+          className={`flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold transition-all btn-magnetic shadow-card ${
             gekopieerd
-              ? 'bg-olive-500 text-white'
-              : 'bg-terracotta-600 text-white hover:bg-terracotta-700'
+              ? 'bg-olive-700 text-cream'
+              : 'bg-terracotta-600 text-white'
           }`}
         >
           {gekopieerd ? '✓ Gekopieerd!' : '📋 Kopieer voor Keep'}
         </button>
       </div>
 
-      <div className="bg-white rounded-xl border border-stone-100 shadow-sm p-3 mb-4 flex flex-wrap gap-2">
+      {/* Betrokken recepten */}
+      <div className="rounded-3xl bg-white border border-olive-700/8 shadow-card p-3 mb-4 flex flex-wrap gap-1.5">
         {betrokkenRecepten.map(r => (
           <Link
             key={r.id}
             to={`/recept/${r.id}`}
-            className="text-xs bg-stone-50 hover:bg-stone-100 text-stone-600 px-2.5 py-1 rounded-lg transition-colors"
+            className="text-xs bg-cream hover:bg-olive-50 text-olive-700/60 hover:text-olive-700 px-3 py-1 rounded-full transition-all btn-magnetic border border-olive-700/6"
           >
             {r.titel}
           </Link>
         ))}
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-stone-100 p-5 mb-4">
-        <h2 className="font-semibold text-stone-700 mb-4 text-sm uppercase tracking-wide">
-          🛒 Boodschappen ({boodschappen.length})
-        </h2>
-        <div className="space-y-4">
+      {/* Boodschappen per categorie */}
+      <div className="rounded-4xl bg-white border border-olive-700/8 shadow-card p-6 mb-3">
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="font-semibold text-olive-700 text-sm uppercase tracking-widest">
+            Boodschappen
+          </h2>
+          <span className="text-xs text-olive-700/30 font-semibold tabular-nums">{boodschappen.length} items</span>
+        </div>
+        <div className="space-y-5">
           {boodschappenPerCategorie.map(({ cat, items: groep }) => (
             <div key={cat}>
-              <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-1.5">{cat}</p>
-              <ul className="space-y-1.5">
+              <p className="text-[10px] font-bold text-olive-700/35 uppercase tracking-widest mb-2">{cat}</p>
+              <ul className="space-y-2">
                 {groep.map((item, idx) => (
-                  <li key={idx} className="flex items-start gap-2.5 text-sm text-stone-700">
-                    <span className="mt-0.5 w-4 h-4 rounded border border-stone-300 flex-shrink-0" />
+                  <li key={idx} className="flex items-start gap-3 text-sm text-olive-700">
+                    <span className="mt-0.5 w-4 h-4 rounded border border-olive-700/15 flex-shrink-0" />
                     <span>
                       {item.hoeveelheden.length > 0 && (
-                        <span className="font-medium text-stone-500 mr-1">
+                        <span className="font-semibold text-olive-700/50 mr-1.5 tabular-nums">
                           {item.hoeveelheden.join(' + ')}
                         </span>
                       )}
@@ -212,23 +211,24 @@ export default function Boodschappen() {
         </div>
       </div>
 
+      {/* Voorraadkast toggle */}
       <button
         onClick={() => setVoorraadTonen(p => !p)}
-        className="w-full text-sm text-stone-500 hover:text-stone-700 mb-2 flex items-center gap-1.5"
+        className="w-full text-xs text-olive-700/40 hover:text-olive-700 mb-2 flex items-center gap-2 px-2 py-1 transition-colors btn-magnetic font-medium tracking-wide"
       >
-        <span className={`transition-transform ${voorraadTonen ? 'rotate-90' : ''}`}>▶</span>
+        <span className={`transition-transform duration-200 ${voorraadTonen ? 'rotate-90' : ''}`}>▶</span>
         Voorraadkast items ({voorraad.length})
       </button>
 
       {voorraadTonen && (
-        <div className="bg-stone-50 rounded-2xl border border-stone-100 p-5">
+        <div className="rounded-3xl bg-cream border border-olive-700/6 p-5">
           <ul className="space-y-2">
             {voorraad.map((item, idx) => (
-              <li key={idx} className="flex items-start gap-2.5 text-sm text-stone-500">
-                <span className="mt-0.5 w-4 h-4 rounded border border-stone-200 flex-shrink-0" />
+              <li key={idx} className="flex items-start gap-3 text-sm text-olive-700/50">
+                <span className="mt-0.5 w-4 h-4 rounded border border-olive-700/10 flex-shrink-0" />
                 <span>
                   {item.hoeveelheden.length > 0 && (
-                    <span className="font-medium mr-1">{item.hoeveelheden.join(' + ')}</span>
+                    <span className="font-semibold mr-1.5 tabular-nums">{item.hoeveelheden.join(' + ')}</span>
                   )}
                   {item.naam}
                 </span>

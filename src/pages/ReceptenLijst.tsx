@@ -1,9 +1,13 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
+import { useGSAP } from '@gsap/react'
+import gsap from 'gsap'
 import { useRecepten } from '../store/aangepaste-recepten'
 import { useFavorieten } from '../store/favorieten'
 import ReceptKaart from '../components/ReceptKaart'
 import TagBadge from '../components/TagBadge'
+
+gsap.registerPlugin()
 
 const FILTER_TAGS = ['diner', 'lunch', 'bijgerecht', 'tapas', 'kip', 'lamsvlees', 'garnalen', 'pasta', 'wrap', 'flatbread']
 
@@ -13,6 +17,7 @@ export default function ReceptenLijst() {
   const [zoek, setZoek] = useState('')
   const [actieveTags, setActieveTags] = useState<string[]>([])
   const [alleenFavorieten, setAlleenFavorieten] = useState(false)
+  const gridRef = useRef<HTMLDivElement>(null)
 
   function toggleTag(tag: string) {
     setActieveTags(prev =>
@@ -33,31 +38,47 @@ export default function ReceptenLijst() {
     })
   }, [zoek, actieveTags, alleenFavorieten, alleRecepten, favorieten])
 
+  useGSAP(() => {
+    if (!gridRef.current) return
+    const cards = gsap.utils.toArray<HTMLElement>('.recept-kaart', gridRef.current)
+    if (cards.length === 0) return
+    gsap.fromTo(
+      cards,
+      { y: 28, opacity: 0 },
+      { y: 0, opacity: 1, duration: 0.55, stagger: 0.08, ease: 'power3.out', clearProps: 'all' }
+    )
+  }, { scope: gridRef, dependencies: [gefilterd.length, alleenFavorieten, actieveTags.join(), zoek] })
+
   return (
     <div>
-      <div className="mb-4 flex gap-2">
-        <input
-          type="search"
-          placeholder="Zoek recept of ingredient..."
-          value={zoek}
-          onChange={e => setZoek(e.target.value)}
-          className="flex-1 px-4 py-2.5 rounded-xl border border-stone-200 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-terracotta-400 text-sm"
-        />
+      {/* Search + add */}
+      <div className="mb-5 flex gap-3">
+        <div className="relative flex-1">
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-olive-700/30 text-sm">⌕</span>
+          <input
+            type="search"
+            placeholder="Zoek recept of ingrediënt…"
+            value={zoek}
+            onChange={e => setZoek(e.target.value)}
+            className="w-full pl-9 pr-4 py-2.5 rounded-full border border-olive-700/10 bg-white shadow-card focus:outline-none focus:ring-2 focus:ring-terracotta-600/30 text-sm text-olive-700 placeholder:text-olive-700/30"
+          />
+        </div>
         <Link
           to="/recept/nieuw"
-          className="px-4 py-2.5 rounded-xl bg-terracotta-600 text-white text-sm font-medium shadow-sm hover:bg-terracotta-700 transition-colors whitespace-nowrap"
+          className="px-5 py-2.5 rounded-full bg-terracotta-600 text-white text-sm font-semibold shadow-card btn-magnetic whitespace-nowrap"
         >
           + Recept
         </Link>
       </div>
 
-      <div className="flex flex-wrap gap-2 mb-6">
+      {/* Filters */}
+      <div className="flex flex-wrap gap-2 mb-7">
         <button
           onClick={() => setAlleenFavorieten(p => !p)}
-          className={`text-xs px-3 py-1 rounded-full border transition-colors font-medium ${
+          className={`text-xs px-3 py-1.5 rounded-full border font-semibold tracking-wide transition-all btn-magnetic ${
             alleenFavorieten
-              ? 'bg-terracotta-50 border-terracotta-300 text-terracotta-700'
-              : 'bg-white border-stone-200 text-stone-500 hover:border-stone-300'
+              ? 'bg-terracotta-600 text-white border-terracotta-600'
+              : 'bg-white border-olive-700/10 text-olive-700/60 hover:border-olive-700/20'
           }`}
         >
           ❤️ Favorieten {favorieten.length > 0 && `(${favorieten.length})`}
@@ -73,7 +94,7 @@ export default function ReceptenLijst() {
         {(actieveTags.length > 0 || alleenFavorieten) && (
           <button
             onClick={() => { setActieveTags([]); setAlleenFavorieten(false) }}
-            className="text-xs px-2 py-0.5 rounded-full text-stone-500 hover:text-stone-700 underline"
+            className="text-xs px-2 py-1 rounded-full text-olive-700/40 hover:text-olive-700 underline underline-offset-2 transition-colors"
           >
             wis filters
           </button>
@@ -81,9 +102,9 @@ export default function ReceptenLijst() {
       </div>
 
       {gefilterd.length === 0 ? (
-        <p className="text-stone-500 text-center py-12">Geen recepten gevonden.</p>
+        <p className="text-olive-700/40 text-center py-16 text-sm">Geen recepten gevonden.</p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div ref={gridRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {gefilterd.map(r => (
             <ReceptKaart key={r.id} recept={r} />
           ))}
