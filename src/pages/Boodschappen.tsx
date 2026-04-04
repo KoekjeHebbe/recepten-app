@@ -11,6 +11,30 @@ interface GegroepeerdeIngredient {
   naam: string
   hoeveelheden: string[]
   voorraadkast: boolean
+  categorie: string
+}
+
+const WINKELINDELING: { naam: string; keywords: string[] }[] = [
+  { naam: 'Vlees', keywords: ['gehakt', 'kip', 'lam', 'varken', 'spek', 'chorizo', 'pancetta', 'worst', 'rib', 'shoarma', 'kebab', 'doner', 'filet', 'steak', 'biefstuk', 'bacon', 'entrecote'] },
+  { naam: 'Kuisproducten', keywords: [] },
+  { naam: 'Droge voeding', keywords: ['pasta', 'spaghetti', 'tagliatelle', 'orzo', 'rijst', 'bloem', 'brood', 'pita', 'flatbread', 'passata', 'bonen', 'linzen', 'tomatenpuree', 'tomatenblokjes', 'polenta', 'couscous', 'noten', 'pijnboom', 'rozijn', 'olijven', 'kapper', 'harissa', 'blik'] },
+  { naam: 'Drank', keywords: ['wijn', 'bier', 'bouillon', 'azijn'] },
+  { naam: 'Groenten', keywords: ['ajuin', 'ui', 'wortel', 'selder', 'knoflook', 'tomaat', 'paprika', 'courgette', 'aubergine', 'champignon', 'prei', 'spinazie', 'sla', 'rucola', 'peterselie', 'basilicum', 'munt', 'citroen', 'limoen', 'koriander', 'avocado', 'aardappel', 'patata', 'lente-ui', 'rode ui', 'chilipeper', 'peper'] },
+  { naam: 'Zuivel', keywords: ['kaas', 'room', 'boter', 'yoghurt', 'melk', 'hüttenkäse', 'mozzarella', 'halloumi', 'feta', 'parmezaan', 'pecorino', 'ei', 'eieren', 'mascarpone', 'crème'] },
+  { naam: 'Vis', keywords: ['forel', 'zalm', 'garnalen', 'gambas', 'shrimp', 'tonijn', 'ansjovis', 'inktvis', 'scampi', 'zeevruchten', 'vis'] },
+  { naam: 'Diepvries', keywords: ['diepvries'] },
+]
+
+const CATEGORIE_VOLGORDE = [...WINKELINDELING.map(c => c.naam), 'Overig']
+
+function categoriseer(naam: string): string {
+  const lower = naam.toLowerCase()
+  for (const cat of WINKELINDELING) {
+    if (cat.keywords.some(kw => lower.includes(kw))) {
+      return cat.naam
+    }
+  }
+  return 'Overig'
 }
 
 function groepeerIngredienten(ids: string[]): GegroepeerdeIngredient[] {
@@ -33,36 +57,52 @@ function groepeerIngredienten(ids: string[]): GegroepeerdeIngredient[] {
           naam: ing.naam,
           hoeveelheden: ing.hoeveelheid ? [ing.hoeveelheid] : [],
           voorraadkast: ing.voorraadkast,
+          categorie: categoriseer(ing.naam),
         })
       }
     }
   }
 
-  return Array.from(map.values()).sort((a, b) => a.naam.localeCompare(b.naam, 'nl'))
+  return Array.from(map.values()).sort((a, b) => {
+    const catA = CATEGORIE_VOLGORDE.indexOf(a.categorie)
+    const catB = CATEGORIE_VOLGORDE.indexOf(b.categorie)
+    if (catA !== catB) return catA - catB
+    return a.naam.localeCompare(b.naam, 'nl')
+  })
 }
 
 function formatKeepLijst(items: GegroepeerdeIngredient[]): string {
   const boodschappen = items.filter(i => !i.voorraadkast)
   const voorraad = items.filter(i => i.voorraadkast)
-
   const lines: string[] = []
 
-  lines.push('🛒 BOODSCHAPPEN')
-  boodschappen.forEach(item => {
-    const hv = item.hoeveelheden.length > 0 ? item.hoeveelheden.join(' + ') + ' ' : ''
-    lines.push(`☐ ${hv}${item.naam}`)
-  })
-
-  if (voorraad.length > 0) {
-    lines.push('')
-    lines.push('🏠 VOORRAADKAST (check)')
-    voorraad.forEach(item => {
-      const hv = item.hoeveelheden.length > 0 ? item.hoeveelheden.join(' + ') + ' ' : ''
-      lines.push(`☐ ${hv}${item.naam}`)
-    })
+  // Groepeer boodschappen per categorie
+  const perCategorie = new Map<string, GegroepeerdeIngredient[]>()
+  for (const item of boodschappen) {
+    if (!perCategorie.has(item.categorie)) perCategorie.set(item.categorie, [])
+    perCategorie.get(item.categorie)!.push(item)
   }
 
-  return lines.join('\n')
+  for (const cat of CATEGORIE_VOLGORDE) {
+    const groep = perCategorie.get(cat)
+    if (!groep || groep.length === 0) continue
+    lines.push(`— ${cat.toUpperCase()} —`)
+    for (const item of groep) {
+      const hv = item.hoeveelheden.length > 0 ? item.hoeveelheden.join(' + ') + ' ' : ''
+      lines.push(`${hv}${item.naam}`)
+    }
+    lines.push('')
+  }
+
+  if (voorraad.length > 0) {
+    lines.push('— VOORRAADKAST (check) —')
+    for (const item of voorraad) {
+      const hv = item.hoeveelheden.length > 0 ? item.hoeveelheden.join(' + ') + ' ' : ''
+      lines.push(`${hv}${item.naam}`)
+    }
+  }
+
+  return lines.join('\n').trim()
 }
 
 export default function Boodschappen() {
@@ -79,6 +119,18 @@ export default function Boodschappen() {
   const items = useMemo(() => groepeerIngredienten(alleIds), [alleIds])
   const boodschappen = items.filter(i => !i.voorraadkast)
   const voorraad = items.filter(i => i.voorraadkast)
+
+  // Groepeer voor weergave per categorie
+  const boodschappenPerCategorie = useMemo(() => {
+    const map = new Map<string, GegroepeerdeIngredient[]>()
+    for (const item of boodschappen) {
+      if (!map.has(item.categorie)) map.set(item.categorie, [])
+      map.get(item.categorie)!.push(item)
+    }
+    return CATEGORIE_VOLGORDE
+      .map(cat => ({ cat, items: map.get(cat) ?? [] }))
+      .filter(g => g.items.length > 0)
+  }, [boodschappen])
 
   const betrokkenRecepten = useMemo(() => {
     const uniekeIds = [...new Set(alleIds)]
@@ -133,24 +185,31 @@ export default function Boodschappen() {
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-stone-100 p-5 mb-4">
-        <h2 className="font-semibold text-stone-700 mb-3 text-sm uppercase tracking-wide">
+        <h2 className="font-semibold text-stone-700 mb-4 text-sm uppercase tracking-wide">
           🛒 Boodschappen ({boodschappen.length})
         </h2>
-        <ul className="space-y-2">
-          {boodschappen.map((item, idx) => (
-            <li key={idx} className="flex items-start gap-2.5 text-sm text-stone-700">
-              <span className="mt-0.5 w-4 h-4 rounded border border-stone-300 flex-shrink-0" />
-              <span>
-                {item.hoeveelheden.length > 0 && (
-                  <span className="font-medium text-stone-500 mr-1">
-                    {item.hoeveelheden.join(' + ')}
-                  </span>
-                )}
-                {item.naam}
-              </span>
-            </li>
+        <div className="space-y-4">
+          {boodschappenPerCategorie.map(({ cat, items: groep }) => (
+            <div key={cat}>
+              <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-1.5">{cat}</p>
+              <ul className="space-y-1.5">
+                {groep.map((item, idx) => (
+                  <li key={idx} className="flex items-start gap-2.5 text-sm text-stone-700">
+                    <span className="mt-0.5 w-4 h-4 rounded border border-stone-300 flex-shrink-0" />
+                    <span>
+                      {item.hoeveelheden.length > 0 && (
+                        <span className="font-medium text-stone-500 mr-1">
+                          {item.hoeveelheden.join(' + ')}
+                        </span>
+                      )}
+                      {item.naam}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           ))}
-        </ul>
+        </div>
       </div>
 
       <button
