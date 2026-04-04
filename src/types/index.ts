@@ -23,6 +23,7 @@ export interface Recept {
   datum: string
   personen: number
   bron_url: string | null
+  afbeelding_url: string | null
   tags: string[]
   ingredienten: Ingredient[]
   bereiding: string[]

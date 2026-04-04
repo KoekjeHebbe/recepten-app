@@ -45,7 +45,20 @@ export default function ReceptDetail() {
         ← Terug
       </button>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-stone-100 p-6 mb-4">
+      <div className="bg-white rounded-2xl shadow-sm border border-stone-100 overflow-hidden mb-4">
+        {recept.afbeelding_url ? (
+          <img
+            src={recept.afbeelding_url}
+            alt={recept.titel}
+            className="w-full h-56 object-cover"
+            loading="lazy"
+          />
+        ) : (
+          <div className="w-full h-32 bg-stone-100 flex items-center justify-center text-stone-300 text-5xl">
+            🍽
+          </div>
+        )}
+        <div className="p-6">
         <div className="flex items-start justify-between gap-4 mb-3">
           <h1 className="text-2xl font-bold text-stone-800 leading-tight">{recept.titel}</h1>
           <div className="relative">
@@ -102,6 +115,7 @@ export default function ReceptDetail() {
               Bron ↗
             </a>
           )}
+        </div>
         </div>
       </div>
 

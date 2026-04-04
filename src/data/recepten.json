@@ -5,27 +5,109 @@
     "datum": "2026-01-09",
     "personen": 4,
     "bron_url": "https://dagelijksekost.vrt.be/gerechten/spaghetti-bolognaise-0",
-    "tags": ["recept", "diner", "gemengd_gehakt", "pasta"],
+    "afbeelding_url": null,
+    "tags": [
+      "recept",
+      "diner",
+      "gemengd_gehakt",
+      "pasta"
+    ],
     "ingredienten": [
-      { "naam": "Olijfolie", "hoeveelheid": null, "voorraadkast": true },
-      { "naam": "Gedroogde kruiden (tijm, laurier, rozemarijn, oregano)", "hoeveelheid": null, "voorraadkast": true },
-      { "naam": "Peper", "hoeveelheid": null, "voorraadkast": true },
-      { "naam": "Zout", "hoeveelheid": null, "voorraadkast": true },
-      { "naam": "Gemengd gehakt", "hoeveelheid": "1 kg", "voorraadkast": false },
-      { "naam": "Spaghetti", "hoeveelheid": "500 g", "voorraadkast": false },
-      { "naam": "Pancetta", "hoeveelheid": "4 sneetjes (0,5 cm dik)", "voorraadkast": false },
-      { "naam": "Ajuin", "hoeveelheid": "1 stuk", "voorraadkast": false },
-      { "naam": "Wortels", "hoeveelheid": "2 stuks", "voorraadkast": false },
-      { "naam": "Selder", "hoeveelheid": "4 stengels", "voorraadkast": false },
-      { "naam": "Knoflook", "hoeveelheid": "3 teentjes", "voorraadkast": false },
-      { "naam": "Champignons", "hoeveelheid": "250 g", "voorraadkast": false },
-      { "naam": "Verse tomaten", "hoeveelheid": "3 stuks", "voorraadkast": false },
-      { "naam": "Tomaten passata", "hoeveelheid": "690 g", "voorraadkast": false },
-      { "naam": "Tomatenblokjes (blik)", "hoeveelheid": "400 g", "voorraadkast": false },
-      { "naam": "Tomatenpuree", "hoeveelheid": "100 g", "voorraadkast": false },
-      { "naam": "Rode wijn", "hoeveelheid": "100 ml", "voorraadkast": false },
-      { "naam": "Harissa", "hoeveelheid": "1 toefje", "voorraadkast": false },
-      { "naam": "Gemalen kaas", "hoeveelheid": null, "voorraadkast": false }
+      {
+        "naam": "Olijfolie",
+        "hoeveelheid": null,
+        "voorraadkast": true
+      },
+      {
+        "naam": "Gedroogde kruiden (tijm, laurier, rozemarijn, oregano)",
+        "hoeveelheid": null,
+        "voorraadkast": true
+      },
+      {
+        "naam": "Peper",
+        "hoeveelheid": null,
+        "voorraadkast": true
+      },
+      {
+        "naam": "Zout",
+        "hoeveelheid": null,
+        "voorraadkast": true
+      },
+      {
+        "naam": "Gemengd gehakt",
+        "hoeveelheid": "1 kg",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Spaghetti",
+        "hoeveelheid": "500 g",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Pancetta",
+        "hoeveelheid": "4 sneetjes (0,5 cm dik)",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Ajuin",
+        "hoeveelheid": "1 stuk",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Wortels",
+        "hoeveelheid": "2 stuks",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Selder",
+        "hoeveelheid": "4 stengels",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Knoflook",
+        "hoeveelheid": "3 teentjes",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Champignons",
+        "hoeveelheid": "250 g",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Verse tomaten",
+        "hoeveelheid": "3 stuks",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Tomaten passata",
+        "hoeveelheid": "690 g",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Tomatenblokjes (blik)",
+        "hoeveelheid": "400 g",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Tomatenpuree",
+        "hoeveelheid": "100 g",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Rode wijn",
+        "hoeveelheid": "100 ml",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Harissa",
+        "hoeveelheid": "1 toefje",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Gemalen kaas",
+        "hoeveelheid": null,
+        "voorraadkast": false
+      }
     ],
     "bereiding": [
       "Verwarm de oven voor op 160°C.",
@@ -48,8 +130,18 @@
       "Serveer met gemalen kaas."
     ],
     "voedingswaarden": {
-      "per_portie": { "calorieen": 1375, "koolhydraten": 112, "eiwitten": 65, "vetten": 61 },
-      "totaal": { "calorieen": 5500, "koolhydraten": 450, "eiwitten": 260, "vetten": 244 },
+      "per_portie": {
+        "calorieen": 1375,
+        "koolhydraten": 112,
+        "eiwitten": 65,
+        "vetten": 61
+      },
+      "totaal": {
+        "calorieen": 5500,
+        "koolhydraten": 450,
+        "eiwitten": 260,
+        "vetten": 244
+      },
       "schatting": true
     }
   },
@@ -59,20 +151,74 @@
     "datum": "2026-01-09",
     "personen": 4,
     "bron_url": "https://www.themediterraneandish.com/chorizo-pasta/",
-    "tags": ["recept", "diner", "chorizo", "pasta"],
+    "afbeelding_url": "https://www.themediterraneandish.com/wp-content/uploads/2023/03/Spanish-style-chorizo-pasta-recipe-15.jpg",
+    "tags": [
+      "recept",
+      "diner",
+      "chorizo",
+      "pasta"
+    ],
     "ingredienten": [
-      { "naam": "Extra vierge olijfolie", "hoeveelheid": "2 el", "voorraadkast": true },
-      { "naam": "Sherryazijn", "hoeveelheid": "1 el", "voorraadkast": true },
-      { "naam": "Zout", "hoeveelheid": null, "voorraadkast": true },
-      { "naam": "Versgemalen zwarte peper", "hoeveelheid": null, "voorraadkast": true },
-      { "naam": "Korte pasta (orecchiette of penne)", "hoeveelheid": "225 g", "voorraadkast": false },
-      { "naam": "Spaanse chorizo", "hoeveelheid": "115 g", "voorraadkast": false },
-      { "naam": "Gele ui", "hoeveelheid": "1 kleine", "voorraadkast": false },
-      { "naam": "Knoflook", "hoeveelheid": "2 teentjes", "voorraadkast": false },
-      { "naam": "Dubbel geconcentreerde tomatenpuree", "hoeveelheid": "2 el", "voorraadkast": false },
-      { "naam": "Geroosterde rode paprika (pot)", "hoeveelheid": "170 g", "voorraadkast": false },
-      { "naam": "Volwassen spinazie", "hoeveelheid": "285 g", "voorraadkast": false },
-      { "naam": "Manchego kaas (optioneel)", "hoeveelheid": "60 g", "voorraadkast": false }
+      {
+        "naam": "Extra vierge olijfolie",
+        "hoeveelheid": "2 el",
+        "voorraadkast": true
+      },
+      {
+        "naam": "Sherryazijn",
+        "hoeveelheid": "1 el",
+        "voorraadkast": true
+      },
+      {
+        "naam": "Zout",
+        "hoeveelheid": null,
+        "voorraadkast": true
+      },
+      {
+        "naam": "Versgemalen zwarte peper",
+        "hoeveelheid": null,
+        "voorraadkast": true
+      },
+      {
+        "naam": "Korte pasta (orecchiette of penne)",
+        "hoeveelheid": "225 g",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Spaanse chorizo",
+        "hoeveelheid": "115 g",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Gele ui",
+        "hoeveelheid": "1 kleine",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Knoflook",
+        "hoeveelheid": "2 teentjes",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Dubbel geconcentreerde tomatenpuree",
+        "hoeveelheid": "2 el",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Geroosterde rode paprika (pot)",
+        "hoeveelheid": "170 g",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Volwassen spinazie",
+        "hoeveelheid": "285 g",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Manchego kaas (optioneel)",
+        "hoeveelheid": "60 g",
+        "voorraadkast": false
+      }
     ],
     "bereiding": [
       "Breng een grote pan met flink gezouten water aan de kook. Voeg de pasta toe en kook al dente. Bewaar 240 ml pastawater voor je afgiet.",
@@ -82,8 +228,18 @@
       "Voeg de sherryazijn toe en breng op smaak met zout en peper. Verdeel over de borden en garneer eventueel met manchego."
     ],
     "voedingswaarden": {
-      "per_portie": { "calorieen": 398, "koolhydraten": 51, "eiwitten": 15, "vetten": 15 },
-      "totaal": { "calorieen": 1592, "koolhydraten": 204, "eiwitten": 60, "vetten": 60 },
+      "per_portie": {
+        "calorieen": 398,
+        "koolhydraten": 51,
+        "eiwitten": 15,
+        "vetten": 15
+      },
+      "totaal": {
+        "calorieen": 1592,
+        "koolhydraten": 204,
+        "eiwitten": 60,
+        "vetten": 60
+      },
       "schatting": false
     }
   },
@@ -93,17 +249,58 @@
     "datum": "2026-01-11",
     "personen": 6,
     "bron_url": "https://www.themediterraneandish.com/gambas-al-ajillo-spanish-shrimp/",
-    "tags": ["recept", "diner", "garnalen"],
+    "afbeelding_url": "https://www.themediterraneandish.com/wp-content/uploads/2020/11/gambas-al-ajillo-spanish-shrimp-recipe-7.jpg",
+    "tags": [
+      "recept",
+      "diner",
+      "garnalen"
+    ],
     "ingredienten": [
-      { "naam": "Extra vergine olijfolie", "hoeveelheid": "½ cup", "voorraadkast": true },
-      { "naam": "Chilivlokken", "hoeveelheid": "1 tl", "voorraadkast": true },
-      { "naam": "Paprikapoeder", "hoeveelheid": "1 tl", "voorraadkast": true },
-      { "naam": "Kosher zout", "hoeveelheid": null, "voorraadkast": true },
-      { "naam": "Grote garnalen (gepeld en ontdarmd)", "hoeveelheid": "450 g", "voorraadkast": false },
-      { "naam": "Knoflook", "hoeveelheid": "10 teentjes", "voorraadkast": false },
-      { "naam": "Droge sherry of droge witte wijn", "hoeveelheid": "2 el", "voorraadkast": false },
-      { "naam": "Citroen", "hoeveelheid": "½ stuk", "voorraadkast": false },
-      { "naam": "Verse peterselie", "hoeveelheid": "½ cup", "voorraadkast": false }
+      {
+        "naam": "Extra vergine olijfolie",
+        "hoeveelheid": "½ cup",
+        "voorraadkast": true
+      },
+      {
+        "naam": "Chilivlokken",
+        "hoeveelheid": "1 tl",
+        "voorraadkast": true
+      },
+      {
+        "naam": "Paprikapoeder",
+        "hoeveelheid": "1 tl",
+        "voorraadkast": true
+      },
+      {
+        "naam": "Kosher zout",
+        "hoeveelheid": null,
+        "voorraadkast": true
+      },
+      {
+        "naam": "Grote garnalen (gepeld en ontdarmd)",
+        "hoeveelheid": "450 g",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Knoflook",
+        "hoeveelheid": "10 teentjes",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Droge sherry of droge witte wijn",
+        "hoeveelheid": "2 el",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Citroen",
+        "hoeveelheid": "½ stuk",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Verse peterselie",
+        "hoeveelheid": "½ cup",
+        "voorraadkast": false
+      }
     ],
     "bereiding": [
       "Dep de garnalen droog en bestrooi met kosher zout. Zet apart.",
@@ -113,8 +310,18 @@
       "Doe de garnalen en de saus in een serveerschaal. Serveer met knapperig brood."
     ],
     "voedingswaarden": {
-      "per_portie": { "calorieen": 250, "koolhydraten": 2, "eiwitten": 16, "vetten": 19 },
-      "totaal": { "calorieen": 1500, "koolhydraten": 12, "eiwitten": 96, "vetten": 114 },
+      "per_portie": {
+        "calorieen": 250,
+        "koolhydraten": 2,
+        "eiwitten": 16,
+        "vetten": 19
+      },
+      "totaal": {
+        "calorieen": 1500,
+        "koolhydraten": 12,
+        "eiwitten": 96,
+        "vetten": 114
+      },
       "schatting": false
     }
   },
@@ -124,20 +331,74 @@
     "datum": "2026-01-09",
     "personen": 2,
     "bron_url": "https://culinaireambiance.com/nl/articles/time-to-bocca-zo-maakt-jelle-beeckman-de-famous-bocca-saus-na",
-    "tags": ["recept", "diner", "bacon", "pasta"],
+    "afbeelding_url": "https://cdn.culinaireambiance.com/storage/articles/10166/bocca_1741260203_resize_1400.png",
+    "tags": [
+      "recept",
+      "diner",
+      "bacon",
+      "pasta"
+    ],
     "ingredienten": [
-      { "naam": "Olie", "hoeveelheid": null, "voorraadkast": true },
-      { "naam": "Knoflookpoeder", "hoeveelheid": "1 el", "voorraadkast": true },
-      { "naam": "Tabasco", "hoeveelheid": "2 tl", "voorraadkast": true },
-      { "naam": "Maizena", "hoeveelheid": "2 tl", "voorraadkast": true },
-      { "naam": "Aromat smaakversterker (of ½ bouillonblokje rund)", "hoeveelheid": "1 tl", "voorraadkast": true },
-      { "naam": "Tomatenpuree", "hoeveelheid": "1 el", "voorraadkast": true },
-      { "naam": "Pasta (ongekookt)", "hoeveelheid": "200 g", "voorraadkast": false },
-      { "naam": "Ui", "hoeveelheid": "1 stuk", "voorraadkast": false },
-      { "naam": "Aubergine", "hoeveelheid": "1 stuk", "voorraadkast": false },
-      { "naam": "Magere room (10% vet)", "hoeveelheid": "250 ml", "voorraadkast": false },
-      { "naam": "Tomaten passata", "hoeveelheid": "400 ml", "voorraadkast": false },
-      { "naam": "Gerookte baconreepjes", "hoeveelheid": "200 g", "voorraadkast": false }
+      {
+        "naam": "Olie",
+        "hoeveelheid": null,
+        "voorraadkast": true
+      },
+      {
+        "naam": "Knoflookpoeder",
+        "hoeveelheid": "1 el",
+        "voorraadkast": true
+      },
+      {
+        "naam": "Tabasco",
+        "hoeveelheid": "2 tl",
+        "voorraadkast": true
+      },
+      {
+        "naam": "Maizena",
+        "hoeveelheid": "2 tl",
+        "voorraadkast": true
+      },
+      {
+        "naam": "Aromat smaakversterker (of ½ bouillonblokje rund)",
+        "hoeveelheid": "1 tl",
+        "voorraadkast": true
+      },
+      {
+        "naam": "Tomatenpuree",
+        "hoeveelheid": "1 el",
+        "voorraadkast": true
+      },
+      {
+        "naam": "Pasta (ongekookt)",
+        "hoeveelheid": "200 g",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Ui",
+        "hoeveelheid": "1 stuk",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Aubergine",
+        "hoeveelheid": "1 stuk",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Magere room (10% vet)",
+        "hoeveelheid": "250 ml",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Tomaten passata",
+        "hoeveelheid": "400 ml",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Gerookte baconreepjes",
+        "hoeveelheid": "200 g",
+        "voorraadkast": false
+      }
     ],
     "bereiding": [
       "Bak de ui en aubergineblokjes samen met knoflookpoeder en een snufje zout in een scheutje olie.",
@@ -151,8 +412,18 @@
       "Serveer de pasta met de saus. De saus is het lekkerst als ze een nacht in de koelkast heeft gestaan."
     ],
     "voedingswaarden": {
-      "per_portie": { "calorieen": 810, "koolhydraten": 103, "eiwitten": 41, "vetten": 25 },
-      "totaal": { "calorieen": 1620, "koolhydraten": 206, "eiwitten": 82, "vetten": 50 },
+      "per_portie": {
+        "calorieen": 810,
+        "koolhydraten": 103,
+        "eiwitten": 41,
+        "vetten": 25
+      },
+      "totaal": {
+        "calorieen": 1620,
+        "koolhydraten": 206,
+        "eiwitten": 82,
+        "vetten": 50
+      },
       "schatting": true
     }
   },
@@ -162,24 +433,93 @@
     "datum": "2026-01-09",
     "personen": 4,
     "bron_url": null,
-    "tags": ["recept", "diner", "rundvlees"],
+    "afbeelding_url": "https://upload.wikimedia.org/wikipedia/commons/2/25/Ribs_and_Polenta_%2815227410%29.jpg",
+    "tags": [
+      "recept",
+      "diner",
+      "rundvlees"
+    ],
     "ingredienten": [
-      { "naam": "Neutrale olie", "hoeveelheid": null, "voorraadkast": true },
-      { "naam": "Zout en peper", "hoeveelheid": null, "voorraadkast": true },
-      { "naam": "Boter", "hoeveelheid": "30 g", "voorraadkast": true },
-      { "naam": "Short ribs", "hoeveelheid": "4 stuks", "voorraadkast": false },
-      { "naam": "Wortels", "hoeveelheid": "2 stuks", "voorraadkast": false },
-      { "naam": "Selder", "hoeveelheid": "2 stengels", "voorraadkast": false },
-      { "naam": "Witte ui", "hoeveelheid": "1 stuk", "voorraadkast": false },
-      { "naam": "Rode wijn", "hoeveelheid": "½ fles", "voorraadkast": false },
-      { "naam": "Runderbouillon", "hoeveelheid": "300 ml", "voorraadkast": false },
-      { "naam": "Tijm en laurierblaadjes", "hoeveelheid": "1 takje tijm, 2 blaadjes", "voorraadkast": false },
-      { "naam": "Verse peterselie", "hoeveelheid": "50 g", "voorraadkast": false },
-      { "naam": "Citroenzest", "hoeveelheid": "10 g", "voorraadkast": false },
-      { "naam": "Knoflook", "hoeveelheid": "10 g", "voorraadkast": false },
-      { "naam": "Polenta", "hoeveelheid": "100 g", "voorraadkast": false },
-      { "naam": "Parmezaan", "hoeveelheid": "50 g", "voorraadkast": false },
-      { "naam": "Melk", "hoeveelheid": "100 ml", "voorraadkast": false }
+      {
+        "naam": "Neutrale olie",
+        "hoeveelheid": null,
+        "voorraadkast": true
+      },
+      {
+        "naam": "Zout en peper",
+        "hoeveelheid": null,
+        "voorraadkast": true
+      },
+      {
+        "naam": "Boter",
+        "hoeveelheid": "30 g",
+        "voorraadkast": true
+      },
+      {
+        "naam": "Short ribs",
+        "hoeveelheid": "4 stuks",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Wortels",
+        "hoeveelheid": "2 stuks",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Selder",
+        "hoeveelheid": "2 stengels",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Witte ui",
+        "hoeveelheid": "1 stuk",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Rode wijn",
+        "hoeveelheid": "½ fles",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Runderbouillon",
+        "hoeveelheid": "300 ml",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Tijm en laurierblaadjes",
+        "hoeveelheid": "1 takje tijm, 2 blaadjes",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Verse peterselie",
+        "hoeveelheid": "50 g",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Citroenzest",
+        "hoeveelheid": "10 g",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Knoflook",
+        "hoeveelheid": "10 g",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Polenta",
+        "hoeveelheid": "100 g",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Parmezaan",
+        "hoeveelheid": "50 g",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Melk",
+        "hoeveelheid": "100 ml",
+        "voorraadkast": false
+      }
     ],
     "bereiding": [
       "Bestrooi de short ribs royaal met zout. Voor het beste resultaat laat je ze een nacht op een rooster in de koelkast staan, maar dit is niet noodzakelijk.",
@@ -193,8 +533,18 @@
       "Roer polenta door kokend water en roer krachtig 2 minuten. Haal van het vuur, dek af en laat 10 minuten staan. Voeg boter en Parmezaan toe. Voeg al roerend geleidelijk melk toe tot een gladde consistentie. Breng op smaak met zout en peper."
     ],
     "voedingswaarden": {
-      "per_portie": { "calorieen": 1005, "koolhydraten": 30, "eiwitten": 45, "vetten": 80 },
-      "totaal": { "calorieen": 4020, "koolhydraten": 120, "eiwitten": 180, "vetten": 320 },
+      "per_portie": {
+        "calorieen": 1005,
+        "koolhydraten": 30,
+        "eiwitten": 45,
+        "vetten": 80
+      },
+      "totaal": {
+        "calorieen": 4020,
+        "koolhydraten": 120,
+        "eiwitten": 180,
+        "vetten": 320
+      },
       "schatting": true
     }
   },
@@ -204,14 +554,43 @@
     "datum": "2026-01-09",
     "personen": 4,
     "bron_url": null,
-    "tags": ["recept", "lunch", "forel"],
+    "afbeelding_url": "https://upload.wikimedia.org/wikipedia/commons/e/e9/Forellenfilet_Salat_Waldsch%C3%A4nke_Stadtsteinach.JPG",
+    "tags": [
+      "recept",
+      "lunch",
+      "forel"
+    ],
     "ingredienten": [
-      { "naam": "Zout en peper", "hoeveelheid": null, "voorraadkast": true },
-      { "naam": "Hüttenkäse", "hoeveelheid": "400 g", "voorraadkast": false },
-      { "naam": "Gerookte forel", "hoeveelheid": "250 g", "voorraadkast": false },
-      { "naam": "Basilicum (blaadjes)", "hoeveelheid": "15 g", "voorraadkast": false },
-      { "naam": "Cherrytomaten", "hoeveelheid": "500 g", "voorraadkast": false },
-      { "naam": "Walnoten", "hoeveelheid": "75 g", "voorraadkast": false }
+      {
+        "naam": "Zout en peper",
+        "hoeveelheid": null,
+        "voorraadkast": true
+      },
+      {
+        "naam": "Hüttenkäse",
+        "hoeveelheid": "400 g",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Gerookte forel",
+        "hoeveelheid": "250 g",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Basilicum (blaadjes)",
+        "hoeveelheid": "15 g",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Cherrytomaten",
+        "hoeveelheid": "500 g",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Walnoten",
+        "hoeveelheid": "75 g",
+        "voorraadkast": false
+      }
     ],
     "bereiding": [
       "Meng de hüttenkäse en de gerookte forel goed.",
@@ -219,8 +598,18 @@
       "Breng op smaak met zout en peper."
     ],
     "voedingswaarden": {
-      "per_portie": { "calorieen": 335, "koolhydraten": 10, "eiwitten": 31, "vetten": 18 },
-      "totaal": { "calorieen": 1340, "koolhydraten": 40, "eiwitten": 124, "vetten": 72 },
+      "per_portie": {
+        "calorieen": 335,
+        "koolhydraten": 10,
+        "eiwitten": 31,
+        "vetten": 18
+      },
+      "totaal": {
+        "calorieen": 1340,
+        "koolhydraten": 40,
+        "eiwitten": 124,
+        "vetten": 72
+      },
       "schatting": true
     }
   },
@@ -230,16 +619,53 @@
     "datum": "2026-01-09",
     "personen": 4,
     "bron_url": null,
-    "tags": ["recept", "bijgerecht", "kappertjes"],
+    "afbeelding_url": "https://upload.wikimedia.org/wikipedia/commons/e/e2/Horiatiki_salad.jpg",
+    "tags": [
+      "recept",
+      "bijgerecht",
+      "kappertjes"
+    ],
     "ingredienten": [
-      { "naam": "Olijfolie", "hoeveelheid": "6 el", "voorraadkast": true },
-      { "naam": "Rodewijnazijn", "hoeveelheid": "4 el", "voorraadkast": true },
-      { "naam": "Laurierblaadjes", "hoeveelheid": "2 stuks", "voorraadkast": true },
-      { "naam": "Zout en peper", "hoeveelheid": null, "voorraadkast": true },
-      { "naam": "Dessertwijn", "hoeveelheid": "250 ml", "voorraadkast": false },
-      { "naam": "Rode uien", "hoeveelheid": "4 stuks", "voorraadkast": false },
-      { "naam": "Kappertjes (gewassen en uitgelekt)", "hoeveelheid": "150 g", "voorraadkast": false },
-      { "naam": "Pitabroodjes", "hoeveelheid": "4 stuks", "voorraadkast": false }
+      {
+        "naam": "Olijfolie",
+        "hoeveelheid": "6 el",
+        "voorraadkast": true
+      },
+      {
+        "naam": "Rodewijnazijn",
+        "hoeveelheid": "4 el",
+        "voorraadkast": true
+      },
+      {
+        "naam": "Laurierblaadjes",
+        "hoeveelheid": "2 stuks",
+        "voorraadkast": true
+      },
+      {
+        "naam": "Zout en peper",
+        "hoeveelheid": null,
+        "voorraadkast": true
+      },
+      {
+        "naam": "Dessertwijn",
+        "hoeveelheid": "250 ml",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Rode uien",
+        "hoeveelheid": "4 stuks",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Kappertjes (gewassen en uitgelekt)",
+        "hoeveelheid": "150 g",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Pitabroodjes",
+        "hoeveelheid": "4 stuks",
+        "voorraadkast": false
+      }
     ],
     "bereiding": [
       "Verhit de olijfolie in een koekenpan op middelhoog vuur. Voeg de uien en laurierblaadjes toe en bak tot de uien glazig zijn. Voeg de rodewijnazijn toe, dek af en breng aan de kook. Haal de deksel van de pan en bak tot de uien lichtbruin zijn.",
@@ -247,8 +673,18 @@
       "Laat volledig afkoelen. Ideaal laat je het een dag staan zodat de smaken goed intrekken. Serveer met pitabroodjes."
     ],
     "voedingswaarden": {
-      "per_portie": { "calorieen": 495, "koolhydraten": 58, "eiwitten": 8, "vetten": 22 },
-      "totaal": { "calorieen": 1980, "koolhydraten": 232, "eiwitten": 32, "vetten": 88 },
+      "per_portie": {
+        "calorieen": 495,
+        "koolhydraten": 58,
+        "eiwitten": 8,
+        "vetten": 22
+      },
+      "totaal": {
+        "calorieen": 1980,
+        "koolhydraten": 232,
+        "eiwitten": 32,
+        "vetten": 88
+      },
       "schatting": true
     }
   },
@@ -258,27 +694,109 @@
     "datum": "2026-01-09",
     "personen": 2,
     "bron_url": null,
-    "tags": ["recept", "diner", "kip", "wrap"],
+    "afbeelding_url": "https://upload.wikimedia.org/wikipedia/commons/3/32/Chicken_Shawarma_%2894298%29.jpg",
+    "tags": [
+      "recept",
+      "diner",
+      "kip",
+      "wrap"
+    ],
     "ingredienten": [
-      { "naam": "Komijnpoeder", "hoeveelheid": "1 tl", "voorraadkast": true },
-      { "naam": "Paprikapoeder", "hoeveelheid": "1 tl", "voorraadkast": true },
-      { "naam": "Korianderpoeder", "hoeveelheid": "½ tl", "voorraadkast": true },
-      { "naam": "Kurkumapoeder", "hoeveelheid": "½ tl", "voorraadkast": true },
-      { "naam": "Kaneel", "hoeveelheid": "¼ tl", "voorraadkast": true },
-      { "naam": "Zout en zwarte peper", "hoeveelheid": null, "voorraadkast": true },
-      { "naam": "Olijfolie", "hoeveelheid": null, "voorraadkast": true },
-      { "naam": "Kippendijen (zonder bot/vel)", "hoeveelheid": "500 g", "voorraadkast": false },
-      { "naam": "Griekse yoghurt", "hoeveelheid": "1 grote beker", "voorraadkast": false },
-      { "naam": "Citroenen", "hoeveelheid": "3 stuks", "voorraadkast": false },
-      { "naam": "Knoflook", "hoeveelheid": "1 bol", "voorraadkast": false },
-      { "naam": "Rode paprika", "hoeveelheid": "1 stuk", "voorraadkast": false },
-      { "naam": "Rode pepers", "hoeveelheid": "1-2 stuks", "voorraadkast": false },
-      { "naam": "Verse peterselie", "hoeveelheid": null, "voorraadkast": false },
-      { "naam": "Verse dille", "hoeveelheid": null, "voorraadkast": false },
-      { "naam": "Komkommer", "hoeveelheid": "1 stuk", "voorraadkast": false },
-      { "naam": "Rode ui", "hoeveelheid": "1 stuk", "voorraadkast": false },
-      { "naam": "Sumak", "hoeveelheid": null, "voorraadkast": false },
-      { "naam": "Grote wraps of Libanees platbrood", "hoeveelheid": "2 stuks", "voorraadkast": false }
+      {
+        "naam": "Komijnpoeder",
+        "hoeveelheid": "1 tl",
+        "voorraadkast": true
+      },
+      {
+        "naam": "Paprikapoeder",
+        "hoeveelheid": "1 tl",
+        "voorraadkast": true
+      },
+      {
+        "naam": "Korianderpoeder",
+        "hoeveelheid": "½ tl",
+        "voorraadkast": true
+      },
+      {
+        "naam": "Kurkumapoeder",
+        "hoeveelheid": "½ tl",
+        "voorraadkast": true
+      },
+      {
+        "naam": "Kaneel",
+        "hoeveelheid": "¼ tl",
+        "voorraadkast": true
+      },
+      {
+        "naam": "Zout en zwarte peper",
+        "hoeveelheid": null,
+        "voorraadkast": true
+      },
+      {
+        "naam": "Olijfolie",
+        "hoeveelheid": null,
+        "voorraadkast": true
+      },
+      {
+        "naam": "Kippendijen (zonder bot/vel)",
+        "hoeveelheid": "500 g",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Griekse yoghurt",
+        "hoeveelheid": "1 grote beker",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Citroenen",
+        "hoeveelheid": "3 stuks",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Knoflook",
+        "hoeveelheid": "1 bol",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Rode paprika",
+        "hoeveelheid": "1 stuk",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Rode pepers",
+        "hoeveelheid": "1-2 stuks",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Verse peterselie",
+        "hoeveelheid": null,
+        "voorraadkast": false
+      },
+      {
+        "naam": "Verse dille",
+        "hoeveelheid": null,
+        "voorraadkast": false
+      },
+      {
+        "naam": "Komkommer",
+        "hoeveelheid": "1 stuk",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Rode ui",
+        "hoeveelheid": "1 stuk",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Sumak",
+        "hoeveelheid": null,
+        "voorraadkast": false
+      },
+      {
+        "naam": "Grote wraps of Libanees platbrood",
+        "hoeveelheid": "2 stuks",
+        "voorraadkast": false
+      }
     ],
     "bereiding": [
       "Snijd de kippendijen in zo dun mogelijke reepjes. Meng in een kom met 2 el Griekse yoghurt, 3 geperste teentjes knoflook, sap van ½ citroen en alle specerijen (komijn, paprika, koriander, kurkuma, kaneel, zout en peper). Laat marineren terwijl je de sauzen maakt, of een nacht van tevoren.",
@@ -290,8 +808,18 @@
       "Rol de wrap strak op met de uiteinden naar binnen gevouwen. Leg de rol terug in de hete pan (naad naar beneden) om het brood krokant en goudbruin te maken."
     ],
     "voedingswaarden": {
-      "per_portie": { "calorieen": 700, "koolhydraten": 40, "eiwitten": 55, "vetten": 20 },
-      "totaal": { "calorieen": 1400, "koolhydraten": 80, "eiwitten": 110, "vetten": 40 },
+      "per_portie": {
+        "calorieen": 700,
+        "koolhydraten": 40,
+        "eiwitten": 55,
+        "vetten": 20
+      },
+      "totaal": {
+        "calorieen": 1400,
+        "koolhydraten": 80,
+        "eiwitten": 110,
+        "vetten": 40
+      },
       "schatting": true
     }
   },
@@ -301,27 +829,109 @@
     "datum": "2026-01-09",
     "personen": 4,
     "bron_url": null,
-    "tags": ["recept", "diner", "lamsvlees", "wrap"],
+    "afbeelding_url": "https://upload.wikimedia.org/wikipedia/commons/f/f9/D%C3%B6ner_kebab.jpg",
+    "tags": [
+      "recept",
+      "diner",
+      "lamsvlees",
+      "wrap"
+    ],
     "ingredienten": [
-      { "naam": "Witte azijn", "hoeveelheid": null, "voorraadkast": true },
-      { "naam": "Olijfolie", "hoeveelheid": null, "voorraadkast": true },
-      { "naam": "Zonnebloemolie", "hoeveelheid": null, "voorraadkast": true },
-      { "naam": "Komijnpoeder", "hoeveelheid": null, "voorraadkast": true },
-      { "naam": "Korianderpoeder", "hoeveelheid": null, "voorraadkast": true },
-      { "naam": "Paprikapoeder", "hoeveelheid": null, "voorraadkast": true },
-      { "naam": "Gedroogde oregano", "hoeveelheid": null, "voorraadkast": true },
-      { "naam": "Zout en zwarte peper", "hoeveelheid": null, "voorraadkast": true },
-      { "naam": "Lamsgehakt", "hoeveelheid": "1 kg", "voorraadkast": false },
-      { "naam": "Grote uien", "hoeveelheid": "2 stuks", "voorraadkast": false },
-      { "naam": "Verse pepers (rood of groen)", "hoeveelheid": null, "voorraadkast": false },
-      { "naam": "Kikkererwten (blik of geweekt)", "hoeveelheid": "1 blik", "voorraadkast": false },
-      { "naam": "Tahini (sesampasta)", "hoeveelheid": null, "voorraadkast": false },
-      { "naam": "Knoflook", "hoeveelheid": "2-3 bollen", "voorraadkast": false },
-      { "naam": "Citroenen", "hoeveelheid": "4-5 stuks", "voorraadkast": false },
-      { "naam": "Rode kool", "hoeveelheid": "½ stuk", "voorraadkast": false },
-      { "naam": "Verse peterselie", "hoeveelheid": null, "voorraadkast": false },
-      { "naam": "Verse dille", "hoeveelheid": null, "voorraadkast": false },
-      { "naam": "Grote wraps of Libanees platbrood", "hoeveelheid": "4 stuks", "voorraadkast": false }
+      {
+        "naam": "Witte azijn",
+        "hoeveelheid": null,
+        "voorraadkast": true
+      },
+      {
+        "naam": "Olijfolie",
+        "hoeveelheid": null,
+        "voorraadkast": true
+      },
+      {
+        "naam": "Zonnebloemolie",
+        "hoeveelheid": null,
+        "voorraadkast": true
+      },
+      {
+        "naam": "Komijnpoeder",
+        "hoeveelheid": null,
+        "voorraadkast": true
+      },
+      {
+        "naam": "Korianderpoeder",
+        "hoeveelheid": null,
+        "voorraadkast": true
+      },
+      {
+        "naam": "Paprikapoeder",
+        "hoeveelheid": null,
+        "voorraadkast": true
+      },
+      {
+        "naam": "Gedroogde oregano",
+        "hoeveelheid": null,
+        "voorraadkast": true
+      },
+      {
+        "naam": "Zout en zwarte peper",
+        "hoeveelheid": null,
+        "voorraadkast": true
+      },
+      {
+        "naam": "Lamsgehakt",
+        "hoeveelheid": "1 kg",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Grote uien",
+        "hoeveelheid": "2 stuks",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Verse pepers (rood of groen)",
+        "hoeveelheid": null,
+        "voorraadkast": false
+      },
+      {
+        "naam": "Kikkererwten (blik of geweekt)",
+        "hoeveelheid": "1 blik",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Tahini (sesampasta)",
+        "hoeveelheid": null,
+        "voorraadkast": false
+      },
+      {
+        "naam": "Knoflook",
+        "hoeveelheid": "2-3 bollen",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Citroenen",
+        "hoeveelheid": "4-5 stuks",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Rode kool",
+        "hoeveelheid": "½ stuk",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Verse peterselie",
+        "hoeveelheid": null,
+        "voorraadkast": false
+      },
+      {
+        "naam": "Verse dille",
+        "hoeveelheid": null,
+        "voorraadkast": false
+      },
+      {
+        "naam": "Grote wraps of Libanees platbrood",
+        "hoeveelheid": "4 stuks",
+        "voorraadkast": false
+      }
     ],
     "bereiding": [
       "Shatta (kan 3 dagen vooraf): Snijd de pepers, bestrooi met zout en laat 3 dagen in een pot op het aanrecht staan om te fermenteren. Doe de gefermenteerde pepers in een blender, voeg een scheutje witte azijn en olijfolie toe en blend tot een grove saus. Voor een snelle versie sla je het fermenteren over.",
@@ -333,8 +943,18 @@
       "Smeer hummus en toum op een wrap. Leg het lamsvlees erop, schep er shatta en de frisse salade bij. Rol strak op en toast de buitenkant in de pan of contactgrill."
     ],
     "voedingswaarden": {
-      "per_portie": { "calorieen": 1000, "koolhydraten": 60, "eiwitten": 50, "vetten": 55 },
-      "totaal": { "calorieen": 4000, "koolhydraten": 240, "eiwitten": 200, "vetten": 220 },
+      "per_portie": {
+        "calorieen": 1000,
+        "koolhydraten": 60,
+        "eiwitten": 50,
+        "vetten": 55
+      },
+      "totaal": {
+        "calorieen": 4000,
+        "koolhydraten": 240,
+        "eiwitten": 200,
+        "vetten": 220
+      },
       "schatting": true
     }
   },
@@ -344,23 +964,89 @@
     "datum": "2026-01-06",
     "personen": 4,
     "bron_url": "https://biancaosbourne.com/2019/04/middle-eastern-chicken-flatbread",
-    "tags": ["recept", "diner", "kip", "flatbread"],
+    "afbeelding_url": "https://biancaosbourne.com/wp-content/uploads/2019/04/533C60E5-5FDD-414E-BB0B-644EC4D72DAD-scaled.jpg",
+    "tags": [
+      "recept",
+      "diner",
+      "kip",
+      "flatbread"
+    ],
     "ingredienten": [
-      { "naam": "Za'atar kruiden", "hoeveelheid": "1 tl", "voorraadkast": true },
-      { "naam": "Knoflookpoeder", "hoeveelheid": "½ tl", "voorraadkast": true },
-      { "naam": "Zout", "hoeveelheid": "2 tl", "voorraadkast": true },
-      { "naam": "Olijfolie", "hoeveelheid": "1 tl", "voorraadkast": true },
-      { "naam": "Suiker", "hoeveelheid": "½ tl", "voorraadkast": true },
-      { "naam": "Kippendijen (zonder bot/vel)", "hoeveelheid": "6 stuks", "voorraadkast": false },
-      { "naam": "Citroenzest", "hoeveelheid": "van ½ citroen", "voorraadkast": false },
-      { "naam": "Griekse yoghurt (volle)", "hoeveelheid": "225 g", "voorraadkast": false },
-      { "naam": "Verse munt", "hoeveelheid": "1 el", "voorraadkast": false },
-      { "naam": "Verse koriander", "hoeveelheid": "1 el", "voorraadkast": false },
-      { "naam": "Verse peterselie", "hoeveelheid": "1 el", "voorraadkast": false },
-      { "naam": "Citroen", "hoeveelheid": "½ stuk", "voorraadkast": false },
-      { "naam": "Knoflook", "hoeveelheid": "1 teentje", "voorraadkast": false },
-      { "naam": "Volkoren flatbreads", "hoeveelheid": "4 stuks", "voorraadkast": false },
-      { "naam": "Komkommer", "hoeveelheid": "½ stuk", "voorraadkast": false }
+      {
+        "naam": "Za'atar kruiden",
+        "hoeveelheid": "1 tl",
+        "voorraadkast": true
+      },
+      {
+        "naam": "Knoflookpoeder",
+        "hoeveelheid": "½ tl",
+        "voorraadkast": true
+      },
+      {
+        "naam": "Zout",
+        "hoeveelheid": "2 tl",
+        "voorraadkast": true
+      },
+      {
+        "naam": "Olijfolie",
+        "hoeveelheid": "1 tl",
+        "voorraadkast": true
+      },
+      {
+        "naam": "Suiker",
+        "hoeveelheid": "½ tl",
+        "voorraadkast": true
+      },
+      {
+        "naam": "Kippendijen (zonder bot/vel)",
+        "hoeveelheid": "6 stuks",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Citroenzest",
+        "hoeveelheid": "van ½ citroen",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Griekse yoghurt (volle)",
+        "hoeveelheid": "225 g",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Verse munt",
+        "hoeveelheid": "1 el",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Verse koriander",
+        "hoeveelheid": "1 el",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Verse peterselie",
+        "hoeveelheid": "1 el",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Citroen",
+        "hoeveelheid": "½ stuk",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Knoflook",
+        "hoeveelheid": "1 teentje",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Volkoren flatbreads",
+        "hoeveelheid": "4 stuks",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Komkommer",
+        "hoeveelheid": "½ stuk",
+        "voorraadkast": false
+      }
     ],
     "bereiding": [
       "Verwarm de oven voor op 210°C.",
@@ -370,8 +1056,18 @@
       "Verwarm de flatbreads kort. Smeer een flinke laag saus op elke flatbread. Leg de kip erop (eventueel in stukjes gesneden), gevolgd door verse kruiden en komkommer. Sluit af met nog meer saus."
     ],
     "voedingswaarden": {
-      "per_portie": { "calorieen": 520, "koolhydraten": 38, "eiwitten": 40, "vetten": 22 },
-      "totaal": { "calorieen": 2080, "koolhydraten": 152, "eiwitten": 160, "vetten": 88 },
+      "per_portie": {
+        "calorieen": 520,
+        "koolhydraten": 38,
+        "eiwitten": 40,
+        "vetten": 22
+      },
+      "totaal": {
+        "calorieen": 2080,
+        "koolhydraten": 152,
+        "eiwitten": 160,
+        "vetten": 88
+      },
       "schatting": true
     }
   },
@@ -381,15 +1077,49 @@
     "datum": "2026-01-06",
     "personen": 10,
     "bron_url": null,
-    "tags": ["recept", "bijgerecht", "tapas", "aardappel"],
+    "afbeelding_url": "https://upload.wikimedia.org/wikipedia/commons/3/31/Patatas_bravas_single_closeup.gk.jpg",
+    "tags": [
+      "recept",
+      "bijgerecht",
+      "tapas",
+      "aardappel"
+    ],
     "ingredienten": [
-      { "naam": "Kipkruiden", "hoeveelheid": "4 el", "voorraadkast": true },
-      { "naam": "Olie (zonnebloem- of olijfolie)", "hoeveelheid": "6 el", "voorraadkast": true },
-      { "naam": "Vastkokende aardappelen", "hoeveelheid": "1,2 kg", "voorraadkast": false },
-      { "naam": "Grote rode paprika's", "hoeveelheid": "4 stuks", "voorraadkast": false },
-      { "naam": "Parmezaanse kaas", "hoeveelheid": "100 g", "voorraadkast": false },
-      { "naam": "Volle room", "hoeveelheid": "200 ml", "voorraadkast": false },
-      { "naam": "Feta", "hoeveelheid": "50 g", "voorraadkast": false }
+      {
+        "naam": "Kipkruiden",
+        "hoeveelheid": "4 el",
+        "voorraadkast": true
+      },
+      {
+        "naam": "Olie (zonnebloem- of olijfolie)",
+        "hoeveelheid": "6 el",
+        "voorraadkast": true
+      },
+      {
+        "naam": "Vastkokende aardappelen",
+        "hoeveelheid": "1,2 kg",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Grote rode paprika's",
+        "hoeveelheid": "4 stuks",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Parmezaanse kaas",
+        "hoeveelheid": "100 g",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Volle room",
+        "hoeveelheid": "200 ml",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Feta",
+        "hoeveelheid": "50 g",
+        "voorraadkast": false
+      }
     ],
     "bereiding": [
       "Verwarm de oven voor op 180°C.",
@@ -401,8 +1131,18 @@
       "Doe de geroosterde aardappelen in een mooie kom. Giet de saus erover en werk af met verkruimelde feta."
     ],
     "voedingswaarden": {
-      "per_portie": { "calorieen": 325, "koolhydraten": 27, "eiwitten": 8, "vetten": 20 },
-      "totaal": { "calorieen": 3250, "koolhydraten": 270, "eiwitten": 80, "vetten": 200 },
+      "per_portie": {
+        "calorieen": 325,
+        "koolhydraten": 27,
+        "eiwitten": 8,
+        "vetten": 20
+      },
+      "totaal": {
+        "calorieen": 3250,
+        "koolhydraten": 270,
+        "eiwitten": 80,
+        "vetten": 200
+      },
       "schatting": false
     }
   },
@@ -412,20 +1152,73 @@
     "datum": "2026-01-11",
     "personen": 4,
     "bron_url": "https://www.themediterraneandish.com/shrimp-fra-diavolo/",
-    "tags": ["recept", "diner", "garnalen"],
+    "afbeelding_url": "https://www.themediterraneandish.com/wp-content/uploads/2021/12/shrimp-fra-diavolo-recipe-5.jpg",
+    "tags": [
+      "recept",
+      "diner",
+      "garnalen"
+    ],
     "ingredienten": [
-      { "naam": "Extra vierge olijfolie", "hoeveelheid": "5 el", "voorraadkast": true },
-      { "naam": "Kosher zout", "hoeveelheid": null, "voorraadkast": true },
-      { "naam": "Rode pepervlokken", "hoeveelheid": "2 tl", "voorraadkast": true },
-      { "naam": "Zwarte peper", "hoeveelheid": null, "voorraadkast": true },
-      { "naam": "Gedroogde oregano", "hoeveelheid": "2 tl", "voorraadkast": true },
-      { "naam": "Grote garnalen (gepeld en ontdarmd)", "hoeveelheid": "450 g", "voorraadkast": false },
-      { "naam": "Gele ui", "hoeveelheid": "1 middelgrote", "voorraadkast": false },
-      { "naam": "Knoflook", "hoeveelheid": "5 teentjes", "voorraadkast": false },
-      { "naam": "Droge witte wijn", "hoeveelheid": "240 ml", "voorraadkast": false },
-      { "naam": "Fire-roasted tomatenblokjes (blik)", "hoeveelheid": "425 g", "voorraadkast": false },
-      { "naam": "Tomatenpuree", "hoeveelheid": "60 ml", "voorraadkast": false },
-      { "naam": "Verse peterselie", "hoeveelheid": "½ cup", "voorraadkast": false }
+      {
+        "naam": "Extra vierge olijfolie",
+        "hoeveelheid": "5 el",
+        "voorraadkast": true
+      },
+      {
+        "naam": "Kosher zout",
+        "hoeveelheid": null,
+        "voorraadkast": true
+      },
+      {
+        "naam": "Rode pepervlokken",
+        "hoeveelheid": "2 tl",
+        "voorraadkast": true
+      },
+      {
+        "naam": "Zwarte peper",
+        "hoeveelheid": null,
+        "voorraadkast": true
+      },
+      {
+        "naam": "Gedroogde oregano",
+        "hoeveelheid": "2 tl",
+        "voorraadkast": true
+      },
+      {
+        "naam": "Grote garnalen (gepeld en ontdarmd)",
+        "hoeveelheid": "450 g",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Gele ui",
+        "hoeveelheid": "1 middelgrote",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Knoflook",
+        "hoeveelheid": "5 teentjes",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Droge witte wijn",
+        "hoeveelheid": "240 ml",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Fire-roasted tomatenblokjes (blik)",
+        "hoeveelheid": "425 g",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Tomatenpuree",
+        "hoeveelheid": "60 ml",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Verse peterselie",
+        "hoeveelheid": "½ cup",
+        "voorraadkast": false
+      }
     ],
     "bereiding": [
       "Dep de garnalen droog en kruid met kosher zout en 1 tl rode pepervlokken.",
@@ -435,8 +1228,18 @@
       "Doe de garnalen terug in de pan. Laat nog 1 minuut koken of tot de garnalen roze en warm zijn. Maak af met verse peterselie. Serveer met knapperig brood, pasta of rijst."
     ],
     "voedingswaarden": {
-      "per_portie": { "calorieen": 194, "koolhydraten": 16, "eiwitten": 18, "vetten": 2 },
-      "totaal": { "calorieen": 776, "koolhydraten": 64, "eiwitten": 72, "vetten": 8 },
+      "per_portie": {
+        "calorieen": 194,
+        "koolhydraten": 16,
+        "eiwitten": 18,
+        "vetten": 2
+      },
+      "totaal": {
+        "calorieen": 776,
+        "koolhydraten": 64,
+        "eiwitten": 72,
+        "vetten": 8
+      },
       "schatting": false
     }
   },
@@ -446,23 +1249,89 @@
     "datum": "2026-01-09",
     "personen": 6,
     "bron_url": "https://www.themediterraneandish.com/youvetsi-greek-lamb-stew/",
-    "tags": ["recept", "diner", "lamsvlees", "orzo"],
+    "afbeelding_url": "https://www.themediterraneandish.com/wp-content/uploads/2021/09/Youvetsi-Greek-Lamb-Stew-7.jpg",
+    "tags": [
+      "recept",
+      "diner",
+      "lamsvlees",
+      "orzo"
+    ],
     "ingredienten": [
-      { "naam": "Extra vergine olijfolie", "hoeveelheid": "3 el", "voorraadkast": true },
-      { "naam": "Kosher zout en zwarte peper", "hoeveelheid": null, "voorraadkast": true },
-      { "naam": "Gedroogde oregano", "hoeveelheid": "1 tl", "voorraadkast": true },
-      { "naam": "Paprikapoeder", "hoeveelheid": "1 tl", "voorraadkast": true },
-      { "naam": "Gemalen kaneel", "hoeveelheid": "½ tl", "voorraadkast": true },
-      { "naam": "Nootmuskaat", "hoeveelheid": "½ tl", "voorraadkast": true },
-      { "naam": "Laurierblaadje", "hoeveelheid": "1 stuk", "voorraadkast": true },
-      { "naam": "Lamsvlees (schouder of bout, in stukjes)", "hoeveelheid": "450 g", "voorraadkast": false },
-      { "naam": "Grote uien", "hoeveelheid": "2 stuks", "voorraadkast": false },
-      { "naam": "Knoflook", "hoeveelheid": "4 teentjes", "voorraadkast": false },
-      { "naam": "Rode wijn", "hoeveelheid": "240 ml", "voorraadkast": false },
-      { "naam": "Hele San Marzano tomaten (blik)", "hoeveelheid": "794 g", "voorraadkast": false },
-      { "naam": "Orzo pasta", "hoeveelheid": "170 g", "voorraadkast": false },
-      { "naam": "Verse peterselie", "hoeveelheid": "½ cup", "voorraadkast": false },
-      { "naam": "Feta kaas (optioneel)", "hoeveelheid": null, "voorraadkast": false }
+      {
+        "naam": "Extra vergine olijfolie",
+        "hoeveelheid": "3 el",
+        "voorraadkast": true
+      },
+      {
+        "naam": "Kosher zout en zwarte peper",
+        "hoeveelheid": null,
+        "voorraadkast": true
+      },
+      {
+        "naam": "Gedroogde oregano",
+        "hoeveelheid": "1 tl",
+        "voorraadkast": true
+      },
+      {
+        "naam": "Paprikapoeder",
+        "hoeveelheid": "1 tl",
+        "voorraadkast": true
+      },
+      {
+        "naam": "Gemalen kaneel",
+        "hoeveelheid": "½ tl",
+        "voorraadkast": true
+      },
+      {
+        "naam": "Nootmuskaat",
+        "hoeveelheid": "½ tl",
+        "voorraadkast": true
+      },
+      {
+        "naam": "Laurierblaadje",
+        "hoeveelheid": "1 stuk",
+        "voorraadkast": true
+      },
+      {
+        "naam": "Lamsvlees (schouder of bout, in stukjes)",
+        "hoeveelheid": "450 g",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Grote uien",
+        "hoeveelheid": "2 stuks",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Knoflook",
+        "hoeveelheid": "4 teentjes",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Rode wijn",
+        "hoeveelheid": "240 ml",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Hele San Marzano tomaten (blik)",
+        "hoeveelheid": "794 g",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Orzo pasta",
+        "hoeveelheid": "170 g",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Verse peterselie",
+        "hoeveelheid": "½ cup",
+        "voorraadkast": false
+      },
+      {
+        "naam": "Feta kaas (optioneel)",
+        "hoeveelheid": null,
+        "voorraadkast": false
+      }
     ],
     "bereiding": [
       "Dep het lamsvlees droog en kruid met kosher zout en zwarte peper.",
@@ -473,8 +1342,18 @@
       "Garneer met peterselie en verkruimelde feta voor het serveren."
     ],
     "voedingswaarden": {
-      "per_portie": { "calorieen": 198, "koolhydraten": 21, "eiwitten": 13, "vetten": 3 },
-      "totaal": { "calorieen": 1188, "koolhydraten": 126, "eiwitten": 78, "vetten": 18 },
+      "per_portie": {
+        "calorieen": 198,
+        "koolhydraten": 21,
+        "eiwitten": 13,
+        "vetten": 3
+      },
+      "totaal": {
+        "calorieen": 1188,
+        "koolhydraten": 126,
+        "eiwitten": 78,
+        "vetten": 18
+      },
       "schatting": false
     }
   }

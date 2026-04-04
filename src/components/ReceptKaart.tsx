@@ -17,6 +17,18 @@ export default function ReceptKaart({ recept }: Props) {
       to={`/recept/${recept.id}`}
       className="block bg-white rounded-2xl shadow-sm hover:shadow-md transition-shadow border border-stone-100 overflow-hidden group"
     >
+      {recept.afbeelding_url ? (
+        <img
+          src={recept.afbeelding_url}
+          alt={recept.titel}
+          className="w-full h-40 object-cover"
+          loading="lazy"
+        />
+      ) : (
+        <div className="w-full h-40 bg-stone-100 flex items-center justify-center text-stone-300 text-4xl">
+          🍽
+        </div>
+      )}
       <div className="p-4">
         <div className="flex items-start justify-between gap-2 mb-2">
           <h2 className="font-semibold text-stone-800 leading-snug group-hover:text-terracotta-600 transition-colors line-clamp-2">

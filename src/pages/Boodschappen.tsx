@@ -25,7 +25,7 @@ function groepeerIngredienten(ids: string[]): GegroepeerdeIngredient[] {
       const sleutel = ing.naam.toLowerCase().trim()
       if (map.has(sleutel)) {
         const bestaand = map.get(sleutel)!
-        if (ing.hoeveelheid && !bestaand.hoeveelheden.includes(ing.hoeveelheid)) {
+        if (ing.hoeveelheid) {
           bestaand.hoeveelheden.push(ing.hoeveelheid)
         }
       } else {
@@ -73,7 +73,7 @@ export default function Boodschappen() {
   const alleIds = useMemo(() => {
     const ids: string[] = []
     DAGEN.forEach(dag => ids.push(...menu[dag]))
-    return [...new Set(ids)]
+    return ids
   }, [menu])
 
   const items = useMemo(() => groepeerIngredienten(alleIds), [alleIds])
@@ -81,7 +81,8 @@ export default function Boodschappen() {
   const voorraad = items.filter(i => i.voorraadkast)
 
   const betrokkenRecepten = useMemo(() => {
-    return alleIds.map(id => recepten.find(r => r.id === id)).filter(Boolean) as Recept[]
+    const uniekeIds = [...new Set(alleIds)]
+    return uniekeIds.map(id => recepten.find(r => r.id === id)).filter(Boolean) as Recept[]
   }, [alleIds])
 
   async function kopieerNaarKeep() {
