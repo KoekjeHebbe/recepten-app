@@ -12,7 +12,7 @@ export default function Nav() {
         <NavLink to="/" className="font-bold text-lg tracking-tight">
           🍽 Recepten
         </NavLink>
-        <div className="flex gap-1 text-sm font-medium">
+        <div className="flex gap-1 text-sm font-medium items-center">
           <NavLink
             to="/"
             end
@@ -42,6 +42,15 @@ export default function Nav() {
             }
           >
             Boodschappen
+          </NavLink>
+          <NavLink
+            to="/recept/nieuw"
+            className={({ isActive }) =>
+              `ml-1 px-3 py-1.5 rounded-lg transition-colors font-bold ${isActive ? 'bg-white/20' : 'hover:bg-white/10'}`
+            }
+            title="Recept toevoegen"
+          >
+            +
           </NavLink>
         </div>
       </div>
