@@ -161,10 +161,11 @@ export default function ReceptToevoegen() {
     setFout('')
     setLaden(true)
 
-    const cal = parseInt(calorieen) || 0
-    const kh = parseInt(koolhydraten) || 0
-    const eiw = parseInt(eiwitten) || 0
-    const vet = parseInt(vetten) || 0
+    const parseMacro = (s: string) => parseFloat(s.replace(',', '.')) || 0
+    const cal = parseMacro(calorieen)
+    const kh = parseMacro(koolhydraten)
+    const eiw = parseMacro(eiwitten)
+    const vet = parseMacro(vetten)
 
     const recept: Recept = {
       id: isBewerkModus ? id! : maakId(titel),
@@ -411,7 +412,8 @@ export default function ReceptToevoegen() {
           ].map(({ label, value, set }) => (
             <div key={label}>
               <label className={labelCls}>{label}</label>
-              <input type="number" min={0} value={value} onChange={e => set(e.target.value)}
+              <input type="text" inputMode="decimal" value={value}
+                onChange={e => set(e.target.value.replace(/[^0-9.,]/g, ''))}
                 placeholder="0"
                 className="w-full px-4 py-2.5 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25" />
             </div>

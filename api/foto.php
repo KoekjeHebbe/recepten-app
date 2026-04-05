@@ -4,7 +4,7 @@ cors();
 vereisLogin();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') error('Methode niet toegestaan', 405);
-if (!defined('ANTHROPIC_API_KEY') || !ANTHROPIC_API_KEY) error('Foto-import niet geconfigureerd op de server', 503);
+if (!defined('GOOGLE_API_KEY') || !GOOGLE_API_KEY) error('Foto-import niet geconfigureerd op de server', 503);
 
 $data = body();
 $base64 = $data['afbeelding'] ?? '';
@@ -12,8 +12,6 @@ $mediaType = $data['media_type'] ?? 'image/jpeg';
 
 if (!$base64) error('Geen afbeelding meegestuurd');
 if (!in_array($mediaType, ['image/jpeg', 'image/png', 'image/gif', 'image/webp'])) error('Ongeldig afbeeldingsformaat');
-
-// Max ~4MB na base64 decode
 if (strlen($base64) > 5_500_000) error('Afbeelding te groot (max ~4MB)');
 
 $prompt = <<<'PROMPT'
@@ -45,34 +43,33 @@ Regels:
 PROMPT;
 
 $payload = json_encode([
-    'model' => 'claude-haiku-4-5-20251001',
-    'max_tokens' => 2048,
-    'messages' => [[
-        'role' => 'user',
-        'content' => [
+    'contents' => [[
+        'parts' => [
             [
-                'type' => 'image',
-                'source' => [
-                    'type' => 'base64',
-                    'media_type' => $mediaType,
+                'inline_data' => [
+                    'mime_type' => $mediaType,
                     'data' => $base64,
                 ],
             ],
-            ['type' => 'text', 'text' => $prompt],
+            ['text' => $prompt],
         ],
     ]],
+    'generationConfig' => [
+        'temperature' => 0.1,
+        'maxOutputTokens' => 2048,
+    ],
 ]);
 
-$ch = curl_init('https://api.anthropic.com/v1/messages');
+$apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' . GOOGLE_API_KEY;
+
+$ch = curl_init($apiUrl);
 curl_setopt_array($ch, [
     CURLOPT_POST => true,
     CURLOPT_POSTFIELDS => $payload,
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_TIMEOUT => 30,
     CURLOPT_HTTPHEADER => [
-        'x-api-key: ' . ANTHROPIC_API_KEY,
-        'anthropic-version: 2023-06-01',
-        'content-type: application/json',
+        'Content-Type: application/json',
     ],
 ]);
 
@@ -83,15 +80,16 @@ curl_close($ch);
 if (!$antwoord) error('Kon de AI-service niet bereiken', 503);
 
 $antwoordData = json_decode($antwoord, true);
-if ($httpCode !== 200 || empty($antwoordData['content'][0]['text'])) {
+if ($httpCode !== 200) {
     $msg = $antwoordData['error']['message'] ?? 'Onbekende fout bij AI-service';
     error('AI-fout: ' . $msg, 502);
 }
 
-$tekst = trim($antwoordData['content'][0]['text']);
+$tekst = $antwoordData['candidates'][0]['content']['parts'][0]['text'] ?? '';
+if (!$tekst) error('Geen antwoord ontvangen van AI-service', 502);
 
 // Strip eventuele markdown code block
-$tekst = preg_replace('/^```(?:json)?\s*/i', '', $tekst);
+$tekst = preg_replace('/^```(?:json)?\s*/i', '', trim($tekst));
 $tekst = preg_replace('/\s*```$/i', '', $tekst);
 
 $recept = json_decode(trim($tekst), true);
@@ -105,11 +103,14 @@ if (!isset($recept['voedingswaarden']['totaal'])) {
     $pp = $recept['voedingswaarden']['per_portie'] ?? ['calorieen' => 0, 'koolhydraten' => 0, 'eiwitten' => 0, 'vetten' => 0];
     $p = $recept['personen'] ?? 4;
     $recept['voedingswaarden']['totaal'] = [
-        'calorieen' => ($pp['calorieen'] ?? 0) * $p,
-        'koolhydraten' => ($pp['koolhydraten'] ?? 0) * $p,
-        'eiwitten' => ($pp['eiwitten'] ?? 0) * $p,
-        'vetten' => ($pp['vetten'] ?? 0) * $p,
+        'calorieen'     => ($pp['calorieen'] ?? 0) * $p,
+        'koolhydraten'  => ($pp['koolhydraten'] ?? 0) * $p,
+        'eiwitten'      => ($pp['eiwitten'] ?? 0) * $p,
+        'vetten'        => ($pp['vetten'] ?? 0) * $p,
     ];
+}
+if (!isset($recept['voedingswaarden']['schatting'])) {
+    $recept['voedingswaarden']['schatting'] = true;
 }
 
 json($recept);

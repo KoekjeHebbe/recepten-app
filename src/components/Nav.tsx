@@ -18,9 +18,9 @@ export default function Nav() {
         <NavLink
           to="/"
           end
-          className="font-bold text-sm text-olive-700 px-3 py-1.5 rounded-full transition-colors hover:bg-olive-700/8 mr-1"
+          className="font-bold text-sm text-olive-700 px-3 py-1.5 rounded-full transition-colors hover:bg-olive-700/8 mr-1 font-serif italic tracking-tight"
         >
-          🍽
+          TNP
         </NavLink>
 
         <div className="w-px h-4 bg-olive-700/10 mr-1" />
