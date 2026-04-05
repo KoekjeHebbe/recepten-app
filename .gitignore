@@ -2,3 +2,8 @@ node_modules
 dist
 .DS_Store
 *.local
+
+# Geheimen en eenmalige scripts — nooit in de repo!
+api/secrets.php
+api/maak-account.php
+api/migreer.php
