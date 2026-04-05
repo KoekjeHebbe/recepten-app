@@ -1,5 +1,22 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { GripVertical, Copy, Check, ChevronDown } from 'lucide-react'
 import type { Recept } from '../types'
 import { DAGEN } from '../types'
 import { useWeekMenu } from '../store/weekmenu'
@@ -13,7 +30,10 @@ interface GegroepeerdeIngredient {
   categorie: string
 }
 
-const CATEGORIE_VOLGORDE = CATEGORIE_NAMEN
+interface CategoriGroep {
+  id: string
+  items: GegroepeerdeIngredient[]
+}
 
 function groepeerIngredienten(ids: string[], alleRecepten: Recept[]): GegroepeerdeIngredient[] {
   const geselecteerd = ids
@@ -40,29 +60,20 @@ function groepeerIngredienten(ids: string[], alleRecepten: Recept[]): Gegroepeer
   }
 
   return Array.from(map.values()).sort((a, b) => {
-    const catA = CATEGORIE_VOLGORDE.indexOf(a.categorie)
-    const catB = CATEGORIE_VOLGORDE.indexOf(b.categorie)
+    const catA = CATEGORIE_NAMEN.indexOf(a.categorie)
+    const catB = CATEGORIE_NAMEN.indexOf(b.categorie)
     if (catA !== catB) return catA - catB
     return a.naam.localeCompare(b.naam, 'nl')
   })
 }
 
-function formatKeepLijst(items: GegroepeerdeIngredient[]): string {
-  const boodschappen = items.filter(i => !i.voorraadkast)
-  const voorraad = items.filter(i => i.voorraadkast)
+function formatKeepLijst(groepen: CategoriGroep[], voorraad: GegroepeerdeIngredient[]): string {
   const lines: string[] = []
 
-  const perCategorie = new Map<string, GegroepeerdeIngredient[]>()
-  for (const item of boodschappen) {
-    if (!perCategorie.has(item.categorie)) perCategorie.set(item.categorie, [])
-    perCategorie.get(item.categorie)!.push(item)
-  }
-
-  for (const cat of CATEGORIE_VOLGORDE) {
-    const groep = perCategorie.get(cat)
-    if (!groep || groep.length === 0) continue
-    lines.push(`— ${cat.toUpperCase()} —`)
-    for (const item of groep) {
+  for (const groep of groepen) {
+    if (groep.items.length === 0) continue
+    lines.push(`— ${groep.id.toUpperCase()} —`)
+    for (const item of groep.items) {
       const hv = item.hoeveelheden.length > 0 ? item.hoeveelheden.join(' + ') + ' ' : ''
       lines.push(`${hv}${item.naam}`)
     }
@@ -78,6 +89,64 @@ function formatKeepLijst(items: GegroepeerdeIngredient[]): string {
   }
 
   return lines.join('\n').trim()
+}
+
+// Sorteerbare categorie-rij
+function SortabeleCategorie({ groep }: { groep: CategoriGroep }) {
+  const [open, setOpen] = useState(true)
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: groep.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+  }
+
+  return (
+    <div ref={setNodeRef} style={style} className="mb-4">
+      <div className="flex items-center gap-2 mb-2">
+        {/* Grip handle */}
+        <button
+          {...attributes}
+          {...listeners}
+          className="text-olive-700/20 hover:text-olive-700/50 cursor-grab active:cursor-grabbing touch-none flex-shrink-0"
+          tabIndex={-1}
+        >
+          <GripVertical size={15} />
+        </button>
+
+        <button
+          onClick={() => setOpen(p => !p)}
+          className="flex items-center gap-1.5 flex-1 text-left"
+        >
+          <p className="text-[10px] font-bold text-olive-700/40 uppercase tracking-widest">{groep.id}</p>
+          <span className="text-[10px] text-olive-700/25 font-semibold">({groep.items.length})</span>
+          <ChevronDown
+            size={12}
+            className={`text-olive-700/25 ml-auto transition-transform duration-200 ${open ? '' : '-rotate-90'}`}
+          />
+        </button>
+      </div>
+
+      {open && (
+        <ul className="space-y-2 pl-5">
+          {groep.items.map((item, idx) => (
+            <li key={idx} className="flex items-start gap-3 text-sm text-olive-700">
+              <span className="mt-0.5 w-4 h-4 rounded border border-olive-700/15 flex-shrink-0" />
+              <span>
+                {item.hoeveelheden.length > 0 && (
+                  <span className="font-semibold text-olive-700/50 mr-1.5 tabular-nums">
+                    {item.hoeveelheden.join(' + ')}
+                  </span>
+                )}
+                {item.naam}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
 }
 
 export default function Boodschappen() {
@@ -96,24 +165,45 @@ export default function Boodschappen() {
   const boodschappen = items.filter(i => !i.voorraadkast)
   const voorraad = items.filter(i => i.voorraadkast)
 
-  const boodschappenPerCategorie = useMemo(() => {
-    const map = new Map<string, GegroepeerdeIngredient[]>()
-    for (const item of boodschappen) {
-      if (!map.has(item.categorie)) map.set(item.categorie, [])
-      map.get(item.categorie)!.push(item)
-    }
-    return CATEGORIE_VOLGORDE
-      .map(cat => ({ cat, items: map.get(cat) ?? [] }))
-      .filter(g => g.items.length > 0)
-  }, [boodschappen])
+  const [volgorde, setVolgorde] = useState<string[]>([])
+
+  // Reset volgorde als weekmenu wijzigt
+  const actieveVolgorde = useMemo(() => {
+    const aanwezig = [...new Set(boodschappen.map(i => i.categorie))]
+    const opgeslagen = volgorde.filter(c => aanwezig.includes(c))
+    const nieuw = aanwezig.filter(c => !opgeslagen.includes(c))
+    return [...opgeslagen, ...nieuw]
+  }, [boodschappen, volgorde])
+
+  const groepen: CategoriGroep[] = useMemo(() =>
+    actieveVolgorde.map(cat => ({
+      id: cat,
+      items: boodschappen.filter(i => i.categorie === cat),
+    })).filter(g => g.items.length > 0),
+    [actieveVolgorde, boodschappen]
+  )
 
   const betrokkenRecepten = useMemo(() => {
     const uniekeIds = [...new Set(alleIds)]
     return uniekeIds.map(id => alleRecepten.find(r => r.id === id)).filter(Boolean) as Recept[]
   }, [alleIds, alleRecepten])
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } })
+  )
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const oudIndex = groepen.findIndex(g => g.id === active.id)
+    const nieuwIndex = groepen.findIndex(g => g.id === over.id)
+    const nieuweVolgorde = arrayMove(groepen, oudIndex, nieuwIndex).map(g => g.id)
+    setVolgorde(nieuweVolgorde)
+  }
+
   async function kopieerNaarKeep() {
-    const tekst = formatKeepLijst(items)
+    const tekst = formatKeepLijst(groepen, voorraad)
     await navigator.clipboard.writeText(tekst)
     setGekopieerd(true)
     setTimeout(() => setGekopieerd(false), 2500)
@@ -139,12 +229,11 @@ export default function Boodschappen() {
         <button
           onClick={kopieerNaarKeep}
           className={`flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold transition-all btn-magnetic shadow-card ${
-            gekopieerd
-              ? 'bg-olive-700 text-cream'
-              : 'bg-terracotta-600 text-white'
+            gekopieerd ? 'bg-olive-700 text-cream' : 'bg-terracotta-600 text-white'
           }`}
         >
-          {gekopieerd ? '✓ Gekopieerd!' : '📋 Kopieer voor Keep'}
+          {gekopieerd ? <Check size={14} /> : <Copy size={14} />}
+          {gekopieerd ? 'Gekopieerd!' : 'Kopieer voor Keep'}
         </button>
       </div>
 
@@ -161,36 +250,20 @@ export default function Boodschappen() {
         ))}
       </div>
 
-      {/* Boodschappen per categorie */}
+      {/* Boodschappen — versleepbare categorieën */}
       <div className="rounded-4xl bg-white border border-olive-700/8 shadow-card p-6 mb-3">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="font-semibold text-olive-700 text-sm uppercase tracking-widest">
-            Boodschappen
-          </h2>
+          <h2 className="font-semibold text-olive-700 text-sm uppercase tracking-widest">Boodschappen</h2>
           <span className="text-xs text-olive-700/30 font-semibold tabular-nums">{boodschappen.length} items</span>
         </div>
-        <div className="space-y-5">
-          {boodschappenPerCategorie.map(({ cat, items: groep }) => (
-            <div key={cat}>
-              <p className="text-[10px] font-bold text-olive-700/35 uppercase tracking-widest mb-2">{cat}</p>
-              <ul className="space-y-2">
-                {groep.map((item, idx) => (
-                  <li key={idx} className="flex items-start gap-3 text-sm text-olive-700">
-                    <span className="mt-0.5 w-4 h-4 rounded border border-olive-700/15 flex-shrink-0" />
-                    <span>
-                      {item.hoeveelheden.length > 0 && (
-                        <span className="font-semibold text-olive-700/50 mr-1.5 tabular-nums">
-                          {item.hoeveelheden.join(' + ')}
-                        </span>
-                      )}
-                      {item.naam}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
+
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={groepen.map(g => g.id)} strategy={verticalListSortingStrategy}>
+            {groepen.map(groep => (
+              <SortabeleCategorie key={groep.id} groep={groep} />
+            ))}
+          </SortableContext>
+        </DndContext>
       </div>
 
       {/* Voorraadkast toggle */}
@@ -198,7 +271,7 @@ export default function Boodschappen() {
         onClick={() => setVoorraadTonen(p => !p)}
         className="w-full text-xs text-olive-700/40 hover:text-olive-700 mb-2 flex items-center gap-2 px-2 py-1 transition-colors btn-magnetic font-medium tracking-wide"
       >
-        <span className={`transition-transform duration-200 ${voorraadTonen ? 'rotate-90' : ''}`}>▶</span>
+        <ChevronDown size={13} className={`transition-transform duration-200 ${voorraadTonen ? '' : '-rotate-90'}`} />
         Voorraadkast items ({voorraad.length})
       </button>
 
