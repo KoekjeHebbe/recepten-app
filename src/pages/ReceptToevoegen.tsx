@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
+import { Link2, Loader2, ChevronLeft } from 'lucide-react'
 import type { Recept, Ingredient } from '../types'
 import { useRecepten, maakId } from '../store/aangepaste-recepten'
 import { useAuth } from '../store/auth'
+import { api } from '../api/client'
 
 const BESCHIKBARE_TAGS = ['diner', 'lunch', 'bijgerecht', 'tapas', 'ontbijt', 'snack', 'dessert',
   'kip', 'lamsvlees', 'garnalen', 'pasta', 'wrap', 'flatbread', 'gemengd_gehakt', 'vegetarisch', 'vis']
@@ -34,6 +36,9 @@ export default function ReceptToevoegen() {
   const [schatting, setSchatting] = useState(true)
   const [fout, setFout] = useState('')
   const [laden, setLaden] = useState(false)
+  const [importUrl, setImportUrl] = useState('')
+  const [importLaden, setImportLaden] = useState(false)
+  const [importFout, setImportFout] = useState('')
 
   // Vul formulier in bij bewerkingsmodus
   useEffect(() => {
@@ -62,6 +67,36 @@ export default function ReceptToevoegen() {
         </Link>
       </div>
     )
+  }
+
+  async function importeerViaUrl() {
+    if (!importUrl.trim()) return
+    setImportFout('')
+    setImportLaden(true)
+    try {
+      const res = await api.post<Recept & { voedingswaarden: Recept['voedingswaarden'] }>('/importeer', { url: importUrl.trim() })
+      setTitel(res.titel || '')
+      setPersonen(res.personen || 4)
+      setBronUrl(res.bron_url ?? importUrl.trim())
+      setAfbeeldingUrl(res.afbeelding_url ?? '')
+      setGeselecteerdeTags(res.tags?.filter((t: string) => t !== 'recept') ?? [])
+      if (res.ingredienten?.length) {
+        setIngredienten(res.ingredienten.map((i: Ingredient) => ({ ...i, _key: Math.random() })))
+      }
+      if (res.bereiding?.length) setBereiding(res.bereiding)
+      const vw = res.voedingswaarden?.per_portie
+      if (vw) {
+        setCalorieen(String(vw.calorieen || ''))
+        setKoolhydraten(String(vw.koolhydraten || ''))
+        setEiwitten(String(vw.eiwitten || ''))
+        setVetten(String(vw.vetten || ''))
+      }
+      setImportUrl('')
+    } catch (err) {
+      setImportFout(err instanceof Error ? err.message : 'Importeren mislukt')
+    } finally {
+      setImportLaden(false)
+    }
   }
 
   function toggleTag(tag: string) {
@@ -131,13 +166,46 @@ export default function ReceptToevoegen() {
   return (
     <div className="max-w-2xl mx-auto">
       <button onClick={() => navigate(-1)}
-        className="text-sm text-olive-700/40 hover:text-olive-700 mb-5 flex items-center gap-1.5 transition-colors btn-magnetic">
-        ← Terug
+        className="text-sm text-olive-700/40 hover:text-olive-700 mb-5 flex items-center gap-1 transition-colors btn-magnetic">
+        <ChevronLeft size={16} /> Terug
       </button>
 
       <h1 className="text-2xl font-bold text-olive-700 tracking-tight mb-7">
         {isBewerkModus ? 'Recept bewerken' : 'Recept toevoegen'}
       </h1>
+
+      {/* URL Import — alleen bij nieuw recept */}
+      {!isBewerkModus && (
+        <div className="rounded-4xl bg-white border border-olive-700/8 shadow-card p-7 mb-4">
+          <h2 className="font-semibold text-olive-700 text-sm uppercase tracking-widest mb-1">Importeer via URL</h2>
+          <p className="text-xs text-olive-700/40 mb-4">Plak een link naar een recept en we vullen het formulier automatisch in.</p>
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Link2 size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-olive-700/30" />
+              <input
+                type="url"
+                value={importUrl}
+                onChange={e => setImportUrl(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && importeerViaUrl()}
+                placeholder="https://..."
+                className="w-full pl-9 pr-4 py-2.5 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 placeholder:text-olive-700/25 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25 transition-all"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={importeerViaUrl}
+              disabled={importLaden || !importUrl.trim()}
+              className="px-4 py-2.5 rounded-2xl bg-olive-700 text-cream text-sm font-semibold btn-magnetic transition-all disabled:opacity-40 flex items-center gap-1.5"
+            >
+              {importLaden ? <Loader2 size={14} className="animate-spin" /> : null}
+              {importLaden ? 'Bezig…' : 'Importeer'}
+            </button>
+          </div>
+          {importFout && (
+            <p className="mt-2.5 text-xs text-terracotta-600">{importFout}</p>
+          )}
+        </div>
+      )}
 
       {fout && (
         <div className="mb-5 px-5 py-3.5 bg-terracotta-50 border border-terracotta-200 rounded-3xl text-sm text-terracotta-700 font-medium">

@@ -2,12 +2,14 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useState, useRef } from 'react'
 import { useGSAP } from '@gsap/react'
 import gsap from 'gsap'
+import { Heart, CalendarDays, Users, ChevronLeft, ExternalLink, Pencil, Check, X } from 'lucide-react'
 import type { Recept, Dag } from '../types'
 import { DAGEN } from '../types'
 import TagBadge from '../components/TagBadge'
 import { useWeekMenu } from '../store/weekmenu'
 import { useFavorieten } from '../store/favorieten'
 import { useRecepten } from '../store/aangepaste-recepten'
+import { useAuth } from '../store/auth'
 
 gsap.registerPlugin()
 
@@ -32,6 +34,7 @@ export default function ReceptDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { alleRecepten } = useRecepten()
+  const { gebruiker } = useAuth()
   const recept = alleRecepten.find((r: Recept) => r.id === id)
   const { menu, addToDay, removeFromDay } = useWeekMenu()
   const { isFavoriet, toggleFavoriet } = useFavorieten()
@@ -63,6 +66,7 @@ export default function ReceptDetail() {
   const favoriet = isFavoriet(recept.id)
   const dagenMetRecept = DAGEN.filter(dag => menu[dag].includes(recept.id))
   const vw = recept.voedingswaarden
+  const isEigenaar = !!gebruiker
 
   function handleToggleDay(dag: Dag) {
     if (menu[dag].includes(recept!.id)) {
@@ -74,17 +78,27 @@ export default function ReceptDetail() {
 
   return (
     <div ref={containerRef} className="max-w-2xl mx-auto">
-      <button
-        onClick={() => navigate(-1)}
-        className="anim-in text-sm text-olive-700/50 hover:text-olive-700 mb-5 flex items-center gap-1.5 transition-colors btn-magnetic"
-      >
-        ← Terug
-      </button>
+      <div className="anim-in flex items-center justify-between mb-5">
+        <button
+          onClick={() => navigate(-1)}
+          className="text-sm text-olive-700/50 hover:text-olive-700 flex items-center gap-1 transition-colors btn-magnetic"
+        >
+          <ChevronLeft size={16} /> Terug
+        </button>
+        {isEigenaar && (
+          <Link
+            to={`/recept/${recept.id}/bewerken`}
+            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border border-olive-700/15 text-olive-700/50 hover:text-olive-700 hover:border-olive-700/30 transition-all btn-magnetic"
+          >
+            <Pencil size={12} /> Bewerken
+          </Link>
+        )}
+      </div>
 
-      {/* Hero card */}
-      <div className="anim-in rounded-4xl bg-white border border-olive-700/8 shadow-card overflow-hidden mb-4">
+      {/* Hero card — geen overflow-hidden zodat de dag-picker niet geclipped wordt */}
+      <div className="anim-in rounded-4xl bg-white border border-olive-700/8 shadow-card mb-4">
         {recept.afbeelding_url ? (
-          <div className="relative overflow-hidden h-64">
+          <div className="relative overflow-hidden h-64 rounded-t-4xl">
             <img
               src={recept.afbeelding_url}
               alt={recept.titel}
@@ -94,7 +108,7 @@ export default function ReceptDetail() {
             <div className="absolute inset-0 bg-gradient-to-t from-olive-900/40 to-transparent" />
           </div>
         ) : (
-          <div className="w-full h-36 bg-olive-50 flex items-center justify-center text-olive-200 text-6xl">
+          <div className="w-full h-36 bg-olive-50 flex items-center justify-center text-olive-200 text-6xl rounded-t-4xl">
             🍽
           </div>
         )}
@@ -102,26 +116,33 @@ export default function ReceptDetail() {
           <div className="flex items-start justify-between gap-4 mb-4">
             <h1 className="font-serif text-2xl font-bold text-olive-700 leading-tight">{recept.titel}</h1>
             <div className="flex items-center gap-2 flex-shrink-0">
+              {/* Favoriet */}
               <button
                 onClick={() => toggleFavoriet(recept.id)}
-                className="text-xl btn-magnetic"
+                className="w-9 h-9 rounded-full border border-olive-700/15 hover:border-terracotta-300 flex items-center justify-center transition-all btn-magnetic"
                 title={favoriet ? 'Verwijder uit favorieten' : 'Voeg toe aan favorieten'}
               >
-                {favoriet ? '❤️' : '🤍'}
+                <Heart
+                  size={16}
+                  className={favoriet ? 'text-terracotta-600 fill-terracotta-600' : 'text-olive-700/30'}
+                />
               </button>
+
+              {/* Weekmenu picker */}
               <div className="relative">
                 <button
                   onClick={() => setDagPickerOpen(p => !p)}
-                  className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full transition-all btn-magnetic border ${
+                  className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-full transition-all btn-magnetic border ${
                     dagenMetRecept.length > 0
                       ? 'bg-olive-700 text-cream border-olive-700'
                       : 'bg-cream border-olive-700/15 text-olive-700 hover:bg-olive-700/8'
                   }`}
                 >
-                  📅 {dagenMetRecept.length > 0 ? dagenMetRecept.map(d => d.slice(0, 2)).join(', ') : 'Voeg toe'}
+                  <CalendarDays size={13} />
+                  {dagenMetRecept.length > 0 ? dagenMetRecept.map(d => d.slice(0, 2)).join(', ') : 'Voeg toe'}
                 </button>
                 {dagPickerOpen && (
-                  <div className="absolute right-0 top-full mt-2 bg-white rounded-3xl shadow-card-hover border border-olive-700/8 z-10 min-w-[168px] py-2 overflow-hidden">
+                  <div className="absolute right-0 top-full mt-2 bg-white rounded-3xl shadow-card-hover border border-olive-700/8 z-50 min-w-[168px] py-2">
                     {DAGEN.map(dag => (
                       <button
                         key={dag}
@@ -131,15 +152,15 @@ export default function ReceptDetail() {
                         }`}
                       >
                         <span className="capitalize">{dag}</span>
-                        {menu[dag].includes(recept.id) && <span className="text-terracotta-600 text-xs">✓</span>}
+                        {menu[dag].includes(recept.id) && <Check size={12} className="text-terracotta-600" />}
                       </button>
                     ))}
                     <div className="border-t border-olive-700/6 mt-1 pt-1">
                       <button
                         onClick={() => setDagPickerOpen(false)}
-                        className="w-full text-left px-4 py-2 text-xs text-olive-700/40 hover:bg-cream transition-colors"
+                        className="w-full text-left px-4 py-2 text-xs text-olive-700/40 hover:bg-cream transition-colors flex items-center gap-1.5"
                       >
-                        Sluiten
+                        <X size={10} /> Sluiten
                       </button>
                     </div>
                   </div>
@@ -156,7 +177,7 @@ export default function ReceptDetail() {
 
           <div className="flex items-center gap-4 text-sm text-olive-700/60 flex-wrap">
             <div className="flex items-center gap-2">
-              <span className="text-base">👥</span>
+              <Users size={15} className="text-olive-700/40" />
               <button
                 onClick={() => setPersonen(Math.max(1, aantalPersonen - 1))}
                 className="w-6 h-6 rounded-full bg-cream border border-olive-700/10 hover:bg-olive-700/8 flex items-center justify-center font-bold text-olive-700 text-sm transition-all btn-magnetic"
@@ -175,8 +196,8 @@ export default function ReceptDetail() {
             </div>
             {recept.bron_url && (
               <a href={recept.bron_url} target="_blank" rel="noopener noreferrer"
-                className="text-terracotta-600 hover:underline text-xs font-medium ml-auto transition-colors">
-                Bron ↗
+                className="flex items-center gap-1 text-terracotta-600 hover:underline text-xs font-medium ml-auto transition-colors">
+                Bron <ExternalLink size={11} />
               </a>
             )}
           </div>
