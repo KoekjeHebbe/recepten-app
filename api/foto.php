@@ -86,12 +86,28 @@ if ($httpCode !== 200) {
     error('AI-fout: ' . $msg, 502);
 }
 
-$tekst = $antwoordData['candidates'][0]['content']['parts'][0]['text'] ?? '';
+// Pak de eerste non-thought part (Gemini 2.5 kan thinking-tokens teruggeven)
+$parts = $antwoordData['candidates'][0]['content']['parts'] ?? [];
+$tekst = '';
+foreach ($parts as $part) {
+    if (!empty($part['text']) && empty($part['thought'])) {
+        $tekst = $part['text'];
+        break;
+    }
+}
 if (!$tekst) error('Geen antwoord ontvangen van AI-service', 502);
 
-// Strip eventuele markdown code block
-$tekst = preg_replace('/^```(?:json)?\s*/i', '', trim($tekst));
-$tekst = preg_replace('/\s*```$/i', '', $tekst);
+// Extraheer JSON — zoek eerste { tot laatste }
+$tekst = trim($tekst);
+$start = strpos($tekst, '{');
+$einde = strrpos($tekst, '}');
+if ($start !== false && $einde !== false && $einde > $start) {
+    $tekst = substr($tekst, $start, $einde - $start + 1);
+} else {
+    // Fallback: strip markdown code blocks
+    $tekst = preg_replace('/^```(?:json)?\s*/i', '', $tekst);
+    $tekst = preg_replace('/\s*```$/i', '', $tekst);
+}
 
 $recept = json_decode(trim($tekst), true);
 if (!$recept || empty($recept['titel'])) error('Kon geen recept herkennen in de afbeelding. Probeer een duidelijkere foto.', 422);
