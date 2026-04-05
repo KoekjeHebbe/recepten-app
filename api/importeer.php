@@ -27,7 +27,7 @@ $html = @file_get_contents($url, false, $context);
 if (!$html) error('Kon de pagina niet laden. Controleer de URL.', 422);
 
 // Zoek JSON-LD Recipe schema
-preg_match_all('/<script[^>]+type=["\']application\/ld\+json["\'][^>]*>(.*?)<\/script>/si', $html, $matches);
+preg_match_all('/<script[^>]+type=["\']?application\/ld\+json["\']?[^>]*>(.*?)<\/script>/si', $html, $matches);
 
 $schemaRecept = null;
 foreach ($matches[1] as $jsonString) {
