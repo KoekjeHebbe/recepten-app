@@ -7,8 +7,9 @@ import { useAuth } from '../store/auth'
 import { api } from '../api/client'
 import { CATEGORIE_NAMEN, categoriseer } from '../lib/categorieen'
 
-const BESCHIKBARE_TAGS = ['diner', 'lunch', 'bijgerecht', 'tapas', 'ontbijt', 'snack', 'dessert',
-  'kip', 'lamsvlees', 'garnalen', 'pasta', 'wrap', 'flatbread', 'gemengd_gehakt', 'vegetarisch', 'vis']
+const MAALTIJD_TYPES = ['diner', 'lunch', 'bijgerecht', 'tapas', 'ontbijt', 'snack', 'dessert']
+const BESCHIKBARE_TAGS = ['kip', 'lamsvlees', 'rund', 'varken', 'vis', 'garnalen', 'vegetarisch', 'vegan',
+  'pasta', 'rijst', 'soep', 'salade', 'wrap', 'flatbread', 'gemengd_gehakt', 'low_carb', 'snel']
 
 type IngredientRij = Ingredient & { _key: number; _manuelleCategorie?: boolean }
 
@@ -29,7 +30,9 @@ export default function ReceptToevoegen() {
   const [personen, setPersonen] = useState(4)
   const [bronUrl, setBronUrl] = useState('')
   const [afbeeldingUrl, setAfbeeldingUrl] = useState('')
+  const [geselecteerdeMaaltijd, setGeselecteerdeMaaltijd] = useState<string[]>([])
   const [geselecteerdeTags, setGeselecteerdeTags] = useState<string[]>([])
+  const [nieuwTag, setNieuwTag] = useState('')
   const [ingredienten, setIngredienten] = useState<IngredientRij[]>([leegIngredient()])
   const [bereiding, setBereiding] = useState([''])
   const [calorieen, setCalorieen] = useState('')
@@ -54,7 +57,9 @@ export default function ReceptToevoegen() {
     setPersonen(bestaandRecept.personen)
     setBronUrl(bestaandRecept.bron_url ?? '')
     setAfbeeldingUrl(bestaandRecept.afbeelding_url ?? '')
-    setGeselecteerdeTags(bestaandRecept.tags.filter(t => t !== 'recept'))
+    const tagsZonderRecept = bestaandRecept.tags.filter(t => t !== 'recept')
+    setGeselecteerdeMaaltijd(tagsZonderRecept.filter(t => MAALTIJD_TYPES.includes(t)))
+    setGeselecteerdeTags(tagsZonderRecept.filter(t => !MAALTIJD_TYPES.includes(t)))
     setIngredienten(bestaandRecept.ingredienten.map(i => ({ ...i, _key: Math.random(), categorie: i.categorie || categoriseer(i.naam), _manuelleCategorie: !!i.categorie })))
     setBereiding(bestaandRecept.bereiding)
     setCalorieen(String(bestaandRecept.voedingswaarden.per_portie.calorieen || ''))
@@ -98,7 +103,9 @@ export default function ReceptToevoegen() {
       setPersonen(res.personen || 4)
       setBronUrl('')
       setAfbeeldingUrl('')
-      setGeselecteerdeTags(res.tags?.filter((t: string) => t !== 'recept') ?? [])
+      const importTags = (res.tags ?? []).filter((t: string) => t !== 'recept')
+      setGeselecteerdeMaaltijd(importTags.filter((t: string) => MAALTIJD_TYPES.includes(t)))
+      setGeselecteerdeTags(importTags.filter((t: string) => !MAALTIJD_TYPES.includes(t)))
       if (res.ingredienten?.length) setIngredienten(res.ingredienten.map((i: Ingredient) => ({ ...i, _key: Math.random(), categorie: i.categorie || categoriseer(i.naam), _manuelleCategorie: !!i.categorie })))
       if (res.bereiding?.length) setBereiding(res.bereiding)
       const vw = res.voedingswaarden?.per_portie
@@ -127,7 +134,9 @@ export default function ReceptToevoegen() {
       setPersonen(res.personen || 4)
       setBronUrl(res.bron_url ?? importUrl.trim())
       setAfbeeldingUrl(res.afbeelding_url ?? '')
-      setGeselecteerdeTags(res.tags?.filter((t: string) => t !== 'recept') ?? [])
+      const importTags = (res.tags ?? []).filter((t: string) => t !== 'recept')
+      setGeselecteerdeMaaltijd(importTags.filter((t: string) => MAALTIJD_TYPES.includes(t)))
+      setGeselecteerdeTags(importTags.filter((t: string) => !MAALTIJD_TYPES.includes(t)))
       if (res.ingredienten?.length) {
         setIngredienten(res.ingredienten.map((i: Ingredient) => ({ ...i, _key: Math.random(), _manuelleCategorie: !!i.categorie })))
       }
@@ -147,10 +156,23 @@ export default function ReceptToevoegen() {
     }
   }
 
+  function toggleMaaltijd(tag: string) {
+    setGeselecteerdeMaaltijd(prev =>
+      prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+    )
+  }
+
   function toggleTag(tag: string) {
     setGeselecteerdeTags(prev =>
       prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
     )
+  }
+
+  function voegCustomTagToe() {
+    const tag = nieuwTag.trim().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '')
+    if (!tag || geselecteerdeTags.includes(tag) || BESCHIKBARE_TAGS.includes(tag)) { setNieuwTag(''); return }
+    setGeselecteerdeTags(prev => [...prev, tag])
+    setNieuwTag('')
   }
 
   function updateIngredient(idx: number, veld: keyof Ingredient, waarde: string | boolean | null) {
@@ -192,7 +214,7 @@ export default function ReceptToevoegen() {
       personen,
       bron_url: bronUrl.trim() || null,
       afbeelding_url: afbeeldingUrl.trim() || null,
-      tags: ['recept', ...geselecteerdeTags],
+      tags: ['recept', ...geselecteerdeMaaltijd, ...geselecteerdeTags],
       ingredienten: ingredienten
         .filter(i => i.naam.trim())
         .map(({ naam, hoeveelheid, voorraadkast, categorie }) => ({
@@ -341,9 +363,27 @@ export default function ReceptToevoegen() {
           <input type="url" value={afbeeldingUrl} onChange={e => setAfbeeldingUrl(e.target.value)}
             placeholder="https://..." className={inputCls} />
         </div>
+        {/* Maaltijdtype */}
+        <div>
+          <label className={labelCls}>Maaltijdtype</label>
+          <div className="flex flex-wrap gap-2">
+            {MAALTIJD_TYPES.map(tag => (
+              <button key={tag} type="button" onClick={() => toggleMaaltijd(tag)}
+                className={`text-[11px] px-3 py-1 rounded-full border font-semibold tracking-wide transition-all btn-magnetic ${
+                  geselecteerdeMaaltijd.includes(tag)
+                    ? 'bg-terracotta-600 text-white border-terracotta-600'
+                    : 'bg-cream border-olive-700/10 text-olive-700/50 hover:border-olive-700/20'
+                }`}>
+                {tag}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Tags */}
         <div>
           <label className={labelCls}>Tags</label>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 mb-2">
             {BESCHIKBARE_TAGS.map(tag => (
               <button key={tag} type="button" onClick={() => toggleTag(tag)}
                 className={`text-[11px] px-3 py-1 rounded-full border font-semibold tracking-wide transition-all btn-magnetic ${
@@ -354,6 +394,30 @@ export default function ReceptToevoegen() {
                 {tag.replace(/_/g, ' ')}
               </button>
             ))}
+            {/* Custom tags (toegevoegd door gebruiker) */}
+            {geselecteerdeTags.filter(t => !BESCHIKBARE_TAGS.includes(t)).map(tag => (
+              <button key={tag} type="button" onClick={() => toggleTag(tag)}
+                className="text-[11px] px-3 py-1 rounded-full border font-semibold tracking-wide transition-all btn-magnetic bg-olive-700 text-cream border-olive-700 flex items-center gap-1">
+                {tag.replace(/_/g, ' ')}
+                <X size={10} />
+              </button>
+            ))}
+          </div>
+          {/* Eigen tag toevoegen */}
+          <div className="flex gap-2 mt-1">
+            <input
+              type="text"
+              value={nieuwTag}
+              onChange={e => setNieuwTag(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), voegCustomTagToe())}
+              placeholder="Eigen tag toevoegen…"
+              className="flex-1 px-3 py-2 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 placeholder:text-olive-700/25 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25"
+            />
+            <button type="button" onClick={voegCustomTagToe}
+              disabled={!nieuwTag.trim()}
+              className="px-3 py-2 rounded-2xl border border-olive-700/10 text-sm text-olive-700/50 hover:text-olive-700 hover:border-olive-700/20 transition-all disabled:opacity-30">
+              +
+            </button>
           </div>
         </div>
       </div>
