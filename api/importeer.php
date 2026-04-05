@@ -91,13 +91,58 @@ foreach ((array) ($schemaRecept['recipeInstructions'] ?? []) as $stap) {
 }
 
 // --- Voedingswaarden ---
+function parseMacro(mixed $waarde): float {
+    if (!$waarde) return 0;
+    $s = str_replace(',', '.', (string) $waarde);
+    // Extraheer eerste getal inclusief decimalen
+    if (preg_match('/(\d+(?:\.\d+)?)/', $s, $m)) return (float) $m[1];
+    return 0;
+}
+
 $cal = $kh = $eiw = $vet = 0;
+$heeftMacros = false;
 if (isset($schemaRecept['nutrition']) && is_array($schemaRecept['nutrition'])) {
     $n = $schemaRecept['nutrition'];
-    $cal = (int) preg_replace('/[^\d]/', '', (string) ($n['calories'] ?? '0'));
-    $kh  = (int) preg_replace('/[^\d]/', '', (string) ($n['carbohydrateContent'] ?? '0'));
-    $eiw = (int) preg_replace('/[^\d]/', '', (string) ($n['proteinContent'] ?? '0'));
-    $vet = (int) preg_replace('/[^\d]/', '', (string) ($n['fatContent'] ?? '0'));
+    $cal = parseMacro($n['calories'] ?? 0);
+    $kh  = parseMacro($n['carbohydrateContent'] ?? 0);
+    $eiw = parseMacro($n['proteinContent'] ?? 0);
+    $vet = parseMacro($n['fatContent'] ?? 0);
+    $heeftMacros = $cal > 0 || $kh > 0 || $eiw > 0 || $vet > 0;
+}
+
+// Als de website geen macros heeft: vraag Gemini om ze te berekenen
+if (!$heeftMacros && defined('GOOGLE_API_KEY') && GOOGLE_API_KEY) {
+    $ingLijst = implode(', ', array_map(fn($i) => $i['naam'], $ingredienten));
+    $vraag = "Bereken de voedingswaarden per portie voor $personen personen van dit recept: $ingLijst. Geef alleen JSON terug: {\"calorieen\": 0, \"koolhydraten\": 0, \"eiwitten\": 0, \"vetten\": 0}. Alle waarden als gehele getallen.";
+
+    $payload = json_encode([
+        'contents' => [['parts' => [['text' => $vraag]]]],
+        'generationConfig' => ['temperature' => 0.1, 'maxOutputTokens' => 100],
+    ]);
+    $apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' . GOOGLE_API_KEY;
+    $ch = curl_init($apiUrl);
+    curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => $payload, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 15, CURLOPT_HTTPHEADER => ['Content-Type: application/json']]);
+    $resp = curl_exec($ch);
+    curl_close($ch);
+
+    if ($resp) {
+        $respData = json_decode($resp, true);
+        $parts = $respData['candidates'][0]['content']['parts'] ?? [];
+        $tekst = '';
+        foreach ($parts as $part) {
+            if (!empty($part['text']) && empty($part['thought'])) { $tekst = $part['text']; break; }
+        }
+        $s = strpos($tekst, '{'); $e = strrpos($tekst, '}');
+        if ($s !== false && $e > $s) {
+            $macros = json_decode(substr($tekst, $s, $e - $s + 1), true);
+            if ($macros) {
+                $cal = parseMacro($macros['calorieen'] ?? 0);
+                $kh  = parseMacro($macros['koolhydraten'] ?? 0);
+                $eiw = parseMacro($macros['eiwitten'] ?? 0);
+                $vet = parseMacro($macros['vetten'] ?? 0);
+            }
+        }
+    }
 }
 
 json([
@@ -109,8 +154,8 @@ json([
     'ingredienten' => $ingredienten,
     'bereiding'    => $bereiding,
     'voedingswaarden' => [
-        'per_portie' => ['calorieen' => $cal, 'koolhydraten' => $kh, 'eiwitten' => $eiw, 'vetten' => $vet],
-        'totaal'     => ['calorieen' => $cal * $personen, 'koolhydraten' => $kh * $personen, 'eiwitten' => $eiw * $personen, 'vetten' => $vet * $personen],
-        'schatting'  => true,
+        'per_portie' => ['calorieen' => (int) round($cal), 'koolhydraten' => (int) round($kh), 'eiwitten' => (int) round($eiw), 'vetten' => (int) round($vet)],
+        'totaal'     => ['calorieen' => (int) round($cal * $personen), 'koolhydraten' => (int) round($kh * $personen), 'eiwitten' => (int) round($eiw * $personen), 'vetten' => (int) round($vet * $personen)],
+        'schatting'  => !$heeftMacros,
     ],
 ]);
