@@ -12,3 +12,6 @@ define('JWT_SECRET_FIXED', 'vervang_dit_met_64_hex_tekens');
 
 // Geheime code die nieuwe gebruikers nodig hebben om te registreren
 define('UITNODIGINGSCODE', 'vervang_dit_met_een_geheime_code');
+
+// Anthropic API key voor foto-import (maak aan op console.anthropic.com)
+define('ANTHROPIC_API_KEY', 'sk-ant-...');

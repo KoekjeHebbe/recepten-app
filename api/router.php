@@ -17,6 +17,7 @@ match($endpoint) {
     'recepten'   => require __DIR__ . '/recepten.php',
     'favorieten' => require __DIR__ . '/favorieten.php',
     'importeer'  => require __DIR__ . '/importeer.php',
+    'foto'       => require __DIR__ . '/foto.php',
     ''           => json(['status' => 'ok', 'versie' => '1.0']),
     default      => error('Endpoint niet gevonden', 404),
 };
