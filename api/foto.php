@@ -38,7 +38,8 @@ Regels:
 - voorraadkast = true voor: olie, azijn, zout, peper, kruiden, specerijen, bloem, suiker, boter
 - hoeveelheid altijd als string (bijv. "2 el", "500 g", "1 teen") of null als niet vermeld
 - bereiding: elke stap als aparte string, volledig uitgeschreven
-- voedingswaarden: schat op basis van ingrediënten als niet vermeld, zet schatting op true
+- voedingswaarden: als de foto macros vermeldt, gebruik die. Anders bereken zelf een realistische schatting op basis van de ingrediënten en hoeveelheden. Zet schatting altijd op true tenzij de foto expliciete voedingswaarden vermeldt.
+- calorieen, koolhydraten, eiwitten, vetten zijn altijd gehele getallen (afgerond)
 - Antwoord ALLEEN met de JSON, geen uitleg errond
 PROMPT;
 
@@ -60,7 +61,7 @@ $payload = json_encode([
     ],
 ]);
 
-$apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=' . GOOGLE_API_KEY;
+$apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' . GOOGLE_API_KEY;
 
 $ch = curl_init($apiUrl);
 curl_setopt_array($ch, [
