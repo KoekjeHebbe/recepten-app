@@ -4,6 +4,7 @@ import type { Recept } from '../types'
 import { DAGEN } from '../types'
 import { useWeekMenu } from '../store/weekmenu'
 import { useRecepten } from '../store/aangepaste-recepten'
+import { CATEGORIE_NAMEN, categoriseer } from '../lib/categorieen'
 
 interface GegroepeerdeIngredient {
   naam: string
@@ -12,26 +13,7 @@ interface GegroepeerdeIngredient {
   categorie: string
 }
 
-const WINKELINDELING: { naam: string; keywords: string[] }[] = [
-  { naam: 'Vlees', keywords: ['gehakt', 'kip', 'lam', 'varken', 'spek', 'chorizo', 'pancetta', 'worst', 'rib', 'shoarma', 'kebab', 'doner', 'filet', 'steak', 'biefstuk', 'bacon', 'entrecote'] },
-  { naam: 'Kuisproducten', keywords: [] },
-  { naam: 'Droge voeding', keywords: ['pasta', 'spaghetti', 'tagliatelle', 'orzo', 'rijst', 'bloem', 'brood', 'pita', 'flatbread', 'passata', 'bonen', 'linzen', 'tomatenpuree', 'tomatenblokjes', 'polenta', 'couscous', 'noten', 'pijnboom', 'rozijn', 'olijven', 'kapper', 'harissa', 'blik'] },
-  { naam: 'Drank', keywords: ['wijn', 'bier', 'bouillon', 'azijn'] },
-  { naam: 'Groenten', keywords: ['ajuin', 'ui', 'wortel', 'selder', 'knoflook', 'tomaat', 'paprika', 'courgette', 'aubergine', 'champignon', 'prei', 'spinazie', 'sla', 'rucola', 'peterselie', 'basilicum', 'munt', 'citroen', 'limoen', 'koriander', 'avocado', 'aardappel', 'patata', 'lente-ui', 'rode ui', 'chilipeper', 'peper'] },
-  { naam: 'Zuivel', keywords: ['kaas', 'room', 'boter', 'yoghurt', 'melk', 'hüttenkäse', 'mozzarella', 'halloumi', 'feta', 'parmezaan', 'pecorino', 'ei', 'eieren', 'mascarpone', 'crème'] },
-  { naam: 'Vis', keywords: ['forel', 'zalm', 'garnalen', 'gambas', 'shrimp', 'tonijn', 'ansjovis', 'inktvis', 'scampi', 'zeevruchten', 'vis'] },
-  { naam: 'Diepvries', keywords: ['diepvries'] },
-]
-
-const CATEGORIE_VOLGORDE = [...WINKELINDELING.map(c => c.naam), 'Overig']
-
-function categoriseer(naam: string): string {
-  const lower = naam.toLowerCase()
-  for (const cat of WINKELINDELING) {
-    if (cat.keywords.some(kw => lower.includes(kw))) return cat.naam
-  }
-  return 'Overig'
-}
+const CATEGORIE_VOLGORDE = CATEGORIE_NAMEN
 
 function groepeerIngredienten(ids: string[], alleRecepten: Recept[]): GegroepeerdeIngredient[] {
   const geselecteerd = ids
@@ -51,7 +33,7 @@ function groepeerIngredienten(ids: string[], alleRecepten: Recept[]): Gegroepeer
           naam: ing.naam,
           hoeveelheden: ing.hoeveelheid ? [ing.hoeveelheid] : [],
           voorraadkast: ing.voorraadkast,
-          categorie: categoriseer(ing.naam),
+          categorie: ing.categorie || categoriseer(ing.naam),
         })
       }
     }

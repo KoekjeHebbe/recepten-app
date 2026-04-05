@@ -5,11 +5,14 @@ import type { Recept, Ingredient } from '../types'
 import { useRecepten, maakId } from '../store/aangepaste-recepten'
 import { useAuth } from '../store/auth'
 import { api } from '../api/client'
+import { CATEGORIE_NAMEN, categoriseer } from '../lib/categorieen'
 
 const BESCHIKBARE_TAGS = ['diner', 'lunch', 'bijgerecht', 'tapas', 'ontbijt', 'snack', 'dessert',
   'kip', 'lamsvlees', 'garnalen', 'pasta', 'wrap', 'flatbread', 'gemengd_gehakt', 'vegetarisch', 'vis']
 
-function leegIngredient(): Ingredient & { _key: number } {
+type IngredientRij = Ingredient & { _key: number; _manuelleCategorie?: boolean }
+
+function leegIngredient(): IngredientRij {
   return { naam: '', hoeveelheid: null, voorraadkast: false, _key: Date.now() + Math.random() }
 }
 
@@ -27,7 +30,7 @@ export default function ReceptToevoegen() {
   const [bronUrl, setBronUrl] = useState('')
   const [afbeeldingUrl, setAfbeeldingUrl] = useState('')
   const [geselecteerdeTags, setGeselecteerdeTags] = useState<string[]>([])
-  const [ingredienten, setIngredienten] = useState([leegIngredient()])
+  const [ingredienten, setIngredienten] = useState<IngredientRij[]>([leegIngredient()])
   const [bereiding, setBereiding] = useState([''])
   const [calorieen, setCalorieen] = useState('')
   const [koolhydraten, setKoolhydraten] = useState('')
@@ -52,7 +55,7 @@ export default function ReceptToevoegen() {
     setBronUrl(bestaandRecept.bron_url ?? '')
     setAfbeeldingUrl(bestaandRecept.afbeelding_url ?? '')
     setGeselecteerdeTags(bestaandRecept.tags.filter(t => t !== 'recept'))
-    setIngredienten(bestaandRecept.ingredienten.map(i => ({ ...i, _key: Math.random() })))
+    setIngredienten(bestaandRecept.ingredienten.map(i => ({ ...i, _key: Math.random(), categorie: i.categorie || categoriseer(i.naam), _manuelleCategorie: !!i.categorie })))
     setBereiding(bestaandRecept.bereiding)
     setCalorieen(String(bestaandRecept.voedingswaarden.per_portie.calorieen || ''))
     setKoolhydraten(String(bestaandRecept.voedingswaarden.per_portie.koolhydraten || ''))
@@ -96,7 +99,7 @@ export default function ReceptToevoegen() {
       setBronUrl('')
       setAfbeeldingUrl('')
       setGeselecteerdeTags(res.tags?.filter((t: string) => t !== 'recept') ?? [])
-      if (res.ingredienten?.length) setIngredienten(res.ingredienten.map((i: Ingredient) => ({ ...i, _key: Math.random() })))
+      if (res.ingredienten?.length) setIngredienten(res.ingredienten.map((i: Ingredient) => ({ ...i, _key: Math.random(), categorie: i.categorie || categoriseer(i.naam), _manuelleCategorie: !!i.categorie })))
       if (res.bereiding?.length) setBereiding(res.bereiding)
       const vw = res.voedingswaarden?.per_portie
       if (vw) {
@@ -126,7 +129,7 @@ export default function ReceptToevoegen() {
       setAfbeeldingUrl(res.afbeelding_url ?? '')
       setGeselecteerdeTags(res.tags?.filter((t: string) => t !== 'recept') ?? [])
       if (res.ingredienten?.length) {
-        setIngredienten(res.ingredienten.map((i: Ingredient) => ({ ...i, _key: Math.random() })))
+        setIngredienten(res.ingredienten.map((i: Ingredient) => ({ ...i, _key: Math.random(), _manuelleCategorie: !!i.categorie })))
       }
       if (res.bereiding?.length) setBereiding(res.bereiding)
       const vw = res.voedingswaarden?.per_portie
@@ -151,7 +154,22 @@ export default function ReceptToevoegen() {
   }
 
   function updateIngredient(idx: number, veld: keyof Ingredient, waarde: string | boolean | null) {
-    setIngredienten(prev => prev.map((ing, i) => i === idx ? { ...ing, [veld]: waarde } : ing))
+    setIngredienten(prev => prev.map((ing, i) => {
+      if (i !== idx) return ing
+      const updated = { ...ing, [veld]: waarde }
+      // Auto-detect categorie bij naam-wijziging, tenzij al handmatig ingesteld
+      if (veld === 'naam' && typeof waarde === 'string' && !ing._manuelleCategorie) {
+        const gesuggereerd = categoriseer(waarde)
+        updated.categorie = gesuggereerd !== 'Overig' ? gesuggereerd : ing.categorie
+      }
+      return updated
+    }))
+  }
+
+  function setIngredientCategorie(idx: number, categorie: string) {
+    setIngredienten(prev => prev.map((ing, i) =>
+      i === idx ? { ...ing, categorie, _manuelleCategorie: true } : ing
+    ))
   }
 
   async function opslaan() {
@@ -177,10 +195,11 @@ export default function ReceptToevoegen() {
       tags: ['recept', ...geselecteerdeTags],
       ingredienten: ingredienten
         .filter(i => i.naam.trim())
-        .map(({ naam, hoeveelheid, voorraadkast }) => ({
+        .map(({ naam, hoeveelheid, voorraadkast, categorie }) => ({
           naam: naam.trim(),
           hoeveelheid: hoeveelheid?.trim() || null,
           voorraadkast,
+          categorie: categorie || categoriseer(naam.trim()),
         })),
       bereiding: bereiding.filter(s => s.trim()),
       voedingswaarden: {
@@ -343,26 +362,42 @@ export default function ReceptToevoegen() {
         <h2 className="font-semibold text-olive-700 text-sm uppercase tracking-widest mb-4">Ingrediënten</h2>
         <div className="space-y-2">
           {ingredienten.map((ing, idx) => (
-            <div key={ing._key} className="flex gap-2 items-center">
-              <input type="text" value={ing.naam}
-                onChange={e => updateIngredient(idx, 'naam', e.target.value)}
-                placeholder="Naam"
-                className="flex-1 px-3 py-2 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 placeholder:text-olive-700/25 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25" />
-              <input type="text" value={ing.hoeveelheid ?? ''}
-                onChange={e => updateIngredient(idx, 'hoeveelheid', e.target.value || null)}
-                placeholder="Hoeveel"
-                className="w-28 px-3 py-2 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 placeholder:text-olive-700/25 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25" />
-              <button type="button"
-                onClick={() => updateIngredient(idx, 'voorraadkast', !ing.voorraadkast)}
-                title="Voorraadkast"
-                className={`w-9 h-9 rounded-xl border text-sm transition-all btn-magnetic flex-shrink-0 flex items-center justify-center ${ing.voorraadkast ? 'bg-olive-50 border-olive-700/20' : 'bg-white border-olive-700/8 opacity-30'}`}>
-                🏠
-              </button>
-              {ingredienten.length > 1 && (
-                <button type="button" onClick={() => setIngredienten(prev => prev.filter((_, i) => i !== idx))}
-                  className="w-9 h-9 rounded-xl border border-olive-700/8 text-olive-700/25 hover:text-terracotta-600 hover:border-terracotta-200 text-sm transition-all btn-magnetic flex-shrink-0 flex items-center justify-center">
-                  ✕
+            <div key={ing._key} className="space-y-1">
+              <div className="flex gap-2 items-center">
+                <input type="text" value={ing.naam}
+                  onChange={e => updateIngredient(idx, 'naam', e.target.value)}
+                  placeholder="Naam"
+                  className="flex-1 px-3 py-2 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 placeholder:text-olive-700/25 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25" />
+                <input type="text" value={ing.hoeveelheid ?? ''}
+                  onChange={e => updateIngredient(idx, 'hoeveelheid', e.target.value || null)}
+                  placeholder="Hoeveel"
+                  className="w-28 px-3 py-2 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 placeholder:text-olive-700/25 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25" />
+                <button type="button"
+                  onClick={() => updateIngredient(idx, 'voorraadkast', !ing.voorraadkast)}
+                  title="Voorraadkast"
+                  className={`w-9 h-9 rounded-xl border text-sm transition-all btn-magnetic flex-shrink-0 flex items-center justify-center ${ing.voorraadkast ? 'bg-olive-50 border-olive-700/20' : 'bg-white border-olive-700/8 opacity-30'}`}>
+                  🏠
                 </button>
+                {ingredienten.length > 1 && (
+                  <button type="button" onClick={() => setIngredienten(prev => prev.filter((_, i) => i !== idx))}
+                    className="w-9 h-9 rounded-xl border border-olive-700/8 text-olive-700/25 hover:text-terracotta-600 hover:border-terracotta-200 text-sm transition-all btn-magnetic flex-shrink-0 flex items-center justify-center">
+                    ✕
+                  </button>
+                )}
+              </div>
+              {ing.naam.trim() && (
+                <div className="pl-1 flex items-center gap-1.5">
+                  <span className="text-[10px] text-olive-700/30 uppercase tracking-widest font-semibold">Categorie:</span>
+                  <select
+                    value={ing.categorie || 'Overig'}
+                    onChange={e => setIngredientCategorie(idx, e.target.value)}
+                    className="text-[11px] text-olive-700/60 bg-transparent border-none focus:outline-none cursor-pointer hover:text-olive-700 transition-colors font-medium"
+                  >
+                    {CATEGORIE_NAMEN.map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
               )}
             </div>
           ))}
