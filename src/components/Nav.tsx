@@ -64,6 +64,17 @@ export default function Nav() {
           Boodschappen
         </NavLink>
 
+        {isIngelogd && (
+          <NavLink
+            to="/extras"
+            className={({ isActive }) =>
+              `text-sm font-medium px-3 py-1.5 rounded-full transition-all btn-magnetic flex-shrink-0 ${isActive ? 'bg-olive-700 text-cream' : 'text-olive-700 hover:bg-olive-700/8'}`
+            }
+          >
+            Extras
+          </NavLink>
+        )}
+
         <div className="w-px h-4 bg-olive-700/10 mx-1 flex-shrink-0" />
 
         {isIngelogd ? (

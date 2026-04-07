@@ -3,6 +3,75 @@ require_once __DIR__ . '/config.php';
 cors();
 
 /**
+ * Normaliseer een ingrediëntstring en geef de SHA-256 cache-sleutel terug.
+ */
+function cacheSleutel(string $ingrStr): string {
+    return hash('sha256', strtolower(trim($ingrStr)));
+}
+
+/**
+ * Haal macros op voor alle ingrediënten met cache-laag:
+ * 1. Controleer de lokale DB-cache
+ * 2. Stuur alleen niet-gecachete ingrediënten naar Gemini
+ * 3. Sla nieuwe resultaten op in de cache
+ */
+function haalMacrosMetCache(array $ingredienten): array {
+    $count = count($ingredienten);
+    if ($count === 0) return [];
+
+    // Bouw ingrediëntstrings en hashes
+    $strings = [];
+    $hashes  = [];
+    foreach ($ingredienten as $ing) {
+        $str       = trim(($ing['hoeveelheid'] ?? '') . ' ' . $ing['naam']);
+        $strings[] = $str;
+        $hashes[]  = cacheSleutel($str);
+    }
+
+    // Haal gecachete macros op (één DB-query)
+    $placeholders = implode(',', array_fill(0, $count, '?'));
+    $stmt = db()->prepare("SELECT naam_hash, macros FROM ingredient_macros_cache WHERE naam_hash IN ($placeholders)");
+    $stmt->execute($hashes);
+    $gecached = [];
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $rij) {
+        $gecached[$rij['naam_hash']] = json_decode($rij['macros'], true);
+    }
+
+    // Welke ingrediënten zijn niet in de cache?
+    $nieuweIndexen = [];
+    for ($i = 0; $i < $count; $i++) {
+        if (!isset($gecached[$hashes[$i]])) $nieuweIndexen[] = $i;
+    }
+
+    // Roep Gemini aan voor de ontbrekende ingrediënten
+    $nieuweMacros = [];
+    if (!empty($nieuweIndexen)) {
+        $nieuweIngrs    = array_map(fn($i) => $ingredienten[$i], $nieuweIndexen);
+        $geminiResultaat = haalMacrosViaGemini($nieuweIngrs);
+
+        $insertStmt = db()->prepare(
+            'INSERT INTO ingredient_macros_cache (naam_hash, naam, macros)
+             VALUES (?, ?, ?)
+             ON DUPLICATE KEY UPDATE macros = VALUES(macros), naam = VALUES(naam), bijgewerkt_op = NOW()'
+        );
+        foreach ($nieuweIndexen as $pos => $origIdx) {
+            $macros = $geminiResultaat[$pos] ?? null;
+            $nieuweMacros[$origIdx] = $macros;
+            if ($macros) {
+                $insertStmt->execute([$hashes[$origIdx], $strings[$origIdx], json_encode($macros)]);
+            }
+        }
+    }
+
+    // Combineer gecachete + nieuwe resultaten in de originele volgorde
+    $resultaat = [];
+    for ($i = 0; $i < $count; $i++) {
+        $resultaat[] = $gecached[$hashes[$i]] ?? ($nieuweMacros[$i] ?? null);
+    }
+    return $resultaat;
+}
+
+/**
  * Haal macronutriënten op voor alle ingrediënten via Gemini (één API-call).
  * Geeft een array terug van evenveel elementen als $ingredienten:
  * elk element is {calorieen, koolhydraten, eiwitten, vetten} of null bij fout.
@@ -160,8 +229,8 @@ if ($methode === 'POST' && !$receptId) {
         $data['id'] = $id;
     }
 
-    // Haal macros op via Gemini voor alle ingrediënten in één call
-    $macrosLijst = haalMacrosViaGemini($data['ingredienten']);
+    // Haal macros op via cache → Gemini voor alle ingrediënten
+    $macrosLijst = haalMacrosMetCache($data['ingredienten']);
     foreach ($data['ingredienten'] as $i => &$ing) {
         $ing['macros_referentie'] = $macrosLijst[$i] ?? null;
     }
@@ -189,18 +258,13 @@ if ($methode === 'PUT' && $receptId) {
     // Zorg dat id niet verandert
     $data['id'] = $receptId;
 
-    // Herbereken macros enkel voor ingrediënten zonder macros_referentie (nieuw toegevoegde)
-    $nieuweIndexen = [];
-    foreach ($data['ingredienten'] as $i => $ing) {
-        if (!isset($ing['macros_referentie'])) $nieuweIndexen[] = $i;
+    // Herbereken macros via cache → Gemini voor alle ingrediënten
+    // (cache maakt dit goedkoop: gecachete ingrediënten kosten alleen een DB-lookup)
+    $macrosLijst = haalMacrosMetCache($data['ingredienten']);
+    foreach ($data['ingredienten'] as $i => &$ing) {
+        $ing['macros_referentie'] = $macrosLijst[$i] ?? null;
     }
-    if (!empty($nieuweIndexen)) {
-        $nieuweIngrs = array_map(fn($i) => $data['ingredienten'][$i], $nieuweIndexen);
-        $macrosLijst = haalMacrosViaGemini($nieuweIngrs);
-        foreach ($nieuweIndexen as $pos => $origIdx) {
-            $data['ingredienten'][$origIdx]['macros_referentie'] = $macrosLijst[$pos] ?? null;
-        }
-    }
+    unset($ing);
 
     herbereken_voedingswaarden($data);
 

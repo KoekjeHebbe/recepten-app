@@ -10,6 +10,7 @@ import ReceptToevoegen from './pages/ReceptToevoegen'
 import Weekmenu from './pages/Weekmenu'
 import Boodschappen from './pages/Boodschappen'
 import Login from './pages/Login'
+import Extras from './pages/Extras'
 
 export default function App() {
   return (
@@ -28,6 +29,7 @@ export default function App() {
                   <Route path="/recept/:id" element={<ReceptDetail />} />
                   <Route path="/weekmenu" element={<Weekmenu />} />
                   <Route path="/boodschappen" element={<Boodschappen />} />
+                  <Route path="/extras" element={<Extras />} />
                 </Routes>
               </main>
             </div>
