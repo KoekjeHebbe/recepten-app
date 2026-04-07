@@ -6,6 +6,8 @@ import { useRecepten, maakId } from '../store/aangepaste-recepten'
 import { useAuth } from '../store/auth'
 import { api } from '../api/client'
 import { CATEGORIE_NAMEN, categoriseer } from '../lib/categorieen'
+import { EENHEID_GROEPEN, parseerOudeHoeveelheid } from '../lib/eenheden'
+import type { Eenheid } from '../lib/eenheden'
 
 const MAALTIJD_TYPES = ['diner', 'lunch', 'bijgerecht', 'tapas', 'ontbijt', 'snack', 'dessert']
 const BESCHIKBARE_TAGS = ['kip', 'lamsvlees', 'rund', 'varken', 'vis', 'garnalen', 'vegetarisch', 'vegan',
@@ -14,7 +16,7 @@ const BESCHIKBARE_TAGS = ['kip', 'lamsvlees', 'rund', 'varken', 'vis', 'garnalen
 type IngredientRij = Ingredient & { _key: number; _manuelleCategorie?: boolean }
 
 function leegIngredient(): IngredientRij {
-  return { naam: '', hoeveelheid: null, voorraadkast: false, _key: Date.now() + Math.random() }
+  return { naam: '', hoeveelheid: null, eenheid: 'g', voorraadkast: false, _key: Date.now() + Math.random() }
 }
 
 export default function ReceptToevoegen() {
@@ -106,7 +108,10 @@ export default function ReceptToevoegen() {
       const importTags = (res.tags ?? []).filter((t: string) => t !== 'recept')
       setGeselecteerdeMaaltijd(importTags.filter((t: string) => MAALTIJD_TYPES.includes(t)))
       setGeselecteerdeTags(importTags.filter((t: string) => !MAALTIJD_TYPES.includes(t)))
-      if (res.ingredienten?.length) setIngredienten(res.ingredienten.map((i: Ingredient) => ({ ...i, _key: Math.random(), categorie: i.categorie || categoriseer(i.naam), _manuelleCategorie: !!i.categorie })))
+      if (res.ingredienten?.length) setIngredienten(res.ingredienten.map((i: Ingredient) => {
+        const parsed = typeof i.hoeveelheid === 'string' ? parseerOudeHoeveelheid(i.hoeveelheid) : null
+        return { ...i, _key: Math.random(), categorie: i.categorie || categoriseer(i.naam), _manuelleCategorie: !!i.categorie, hoeveelheid: parsed?.hoeveelheid ?? (typeof i.hoeveelheid === 'number' ? i.hoeveelheid : null), eenheid: i.eenheid ?? parsed?.eenheid ?? 'g' }
+      }))
       if (res.bereiding?.length) setBereiding(res.bereiding)
       const vw = res.voedingswaarden?.per_portie
       if (vw) {
@@ -138,7 +143,10 @@ export default function ReceptToevoegen() {
       setGeselecteerdeMaaltijd(importTags.filter((t: string) => MAALTIJD_TYPES.includes(t)))
       setGeselecteerdeTags(importTags.filter((t: string) => !MAALTIJD_TYPES.includes(t)))
       if (res.ingredienten?.length) {
-        setIngredienten(res.ingredienten.map((i: Ingredient) => ({ ...i, _key: Math.random(), _manuelleCategorie: !!i.categorie })))
+        setIngredienten(res.ingredienten.map((i: Ingredient) => {
+          const parsed = typeof i.hoeveelheid === 'string' ? parseerOudeHoeveelheid(i.hoeveelheid) : null
+          return { ...i, _key: Math.random(), _manuelleCategorie: !!i.categorie, hoeveelheid: parsed?.hoeveelheid ?? (typeof i.hoeveelheid === 'number' ? i.hoeveelheid : null), eenheid: i.eenheid ?? parsed?.eenheid ?? 'g' }
+        }))
       }
       if (res.bereiding?.length) setBereiding(res.bereiding)
       const vw = res.voedingswaarden?.per_portie
@@ -175,7 +183,7 @@ export default function ReceptToevoegen() {
     setNieuwTag('')
   }
 
-  function updateIngredient(idx: number, veld: keyof Ingredient, waarde: string | boolean | null) {
+  function updateIngredient(idx: number, veld: keyof Ingredient, waarde: string | number | boolean | null) {
     setIngredienten(prev => prev.map((ing, i) => {
       if (i !== idx) return ing
       const updated = { ...ing, [veld]: waarde }
@@ -185,6 +193,13 @@ export default function ReceptToevoegen() {
         updated.categorie = gesuggereerd !== 'Overig' ? gesuggereerd : ing.categorie
       }
       return updated
+    }))
+  }
+
+  function updateEenheid(idx: number, nieuweEenheid: Eenheid) {
+    setIngredienten(prev => prev.map((ing, i) => {
+      if (i !== idx) return ing
+      return { ...ing, eenheid: nieuweEenheid }
     }))
   }
 
@@ -217,9 +232,10 @@ export default function ReceptToevoegen() {
       tags: ['recept', ...geselecteerdeMaaltijd, ...geselecteerdeTags],
       ingredienten: ingredienten
         .filter(i => i.naam.trim())
-        .map(({ naam, hoeveelheid, voorraadkast, categorie }) => ({
+        .map(({ naam, hoeveelheid, eenheid, voorraadkast, categorie }) => ({
           naam: naam.trim(),
-          hoeveelheid: hoeveelheid?.trim() || null,
+          hoeveelheid: hoeveelheid !== null && hoeveelheid !== undefined ? Number(hoeveelheid) : null,
+          eenheid: eenheid ?? 'g',
           voorraadkast,
           categorie: categorie || categoriseer(naam.trim()),
         })),
@@ -432,10 +448,27 @@ export default function ReceptToevoegen() {
                   onChange={e => updateIngredient(idx, 'naam', e.target.value)}
                   placeholder="Naam"
                   className="flex-1 px-3 py-2 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 placeholder:text-olive-700/25 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25" />
-                <input type="text" value={ing.hoeveelheid ?? ''}
-                  onChange={e => updateIngredient(idx, 'hoeveelheid', e.target.value || null)}
-                  placeholder="Hoeveel"
-                  className="w-28 px-3 py-2 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 placeholder:text-olive-700/25 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25" />
+                <input
+                  type="number"
+                  min={0}
+                  step="any"
+                  value={ing.hoeveelheid ?? ''}
+                  onChange={e => updateIngredient(idx, 'hoeveelheid', e.target.value === '' ? null : parseFloat(e.target.value))}
+                  placeholder="0"
+                  className="w-20 px-3 py-2 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 text-right tabular-nums placeholder:text-olive-700/25 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25" />
+                <select
+                  value={ing.eenheid ?? 'g'}
+                  onChange={e => updateEenheid(idx, e.target.value as Eenheid)}
+                  className="w-24 px-2 py-2 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25 cursor-pointer"
+                >
+                  {EENHEID_GROEPEN.map(groep => (
+                    <optgroup key={groep.label} label={groep.label}>
+                      {groep.eenheden.map(e => (
+                        <option key={e} value={e}>{e === '' ? '—' : e}</option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
                 <button type="button"
                   onClick={() => updateIngredient(idx, 'voorraadkast', !ing.voorraadkast)}
                   title="Voorraadkast"

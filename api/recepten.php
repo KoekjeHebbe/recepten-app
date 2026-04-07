@@ -2,33 +2,61 @@
 require_once __DIR__ . '/config.php';
 cors();
 
-/**
- * Normaliseer een ingrediëntstring en geef de SHA-256 cache-sleutel terug.
- */
-function cacheSleutel(string $ingrStr): string {
-    return hash('sha256', strtolower(trim($ingrStr)));
+// ─── Eenheden & conversie ────────────────────────────────────────────────────
+
+$EENHEID_CANONICAL = [
+    'g' => 'g',  'kg' => 'g',
+    'ml' => 'ml', 'l' => 'ml', 'el' => 'ml', 'tl' => 'ml', 'kl' => 'ml', 'cup' => 'ml',
+    'stuk' => 'stuk', 'teen' => 'teen', 'plak' => 'plak',
+    'sneetje' => 'sneetje', 'handvol' => 'handvol', 'snufje' => 'snufje',
+];
+
+$NAAR_CANONICAL = [
+    'g' => 1.0,  'kg' => 1000.0,
+    'ml' => 1.0, 'l' => 1000.0, 'el' => 15.0, 'tl' => 5.0, 'kl' => 2.5, 'cup' => 240.0,
+    'stuk' => 1.0, 'teen' => 1.0, 'plak' => 1.0,
+    'sneetje' => 1.0, 'handvol' => 1.0, 'snufje' => 1.0,
+];
+
+function canonischeEenheid(string $eenheid): string {
+    global $EENHEID_CANONICAL;
+    return $EENHEID_CANONICAL[$eenheid] ?? $eenheid;
 }
 
+function naarCanonischeFactor(string $eenheid): float {
+    global $NAAR_CANONICAL;
+    return (float)($NAAR_CANONICAL[$eenheid] ?? 1.0);
+}
+
+// Voor g/ml: vraag Gemini om macros per 100 canonical units (betere precisie)
+// Voor stuks: vraag per 1 unit
+function referentieHoeveelheid(string $canonisch): float {
+    return in_array($canonisch, ['g', 'ml'], true) ? 100.0 : 1.0;
+}
+
+// Cache-sleutel: SHA-256 van "genormaliseerde naam|canonieke eenheid"
+function cacheSleutel(string $naam, string $eenheid): string {
+    $canonisch = canonischeEenheid($eenheid);
+    return hash('sha256', strtolower(trim($naam)) . '|' . $canonisch);
+}
+
+// ─── Cache-laag ──────────────────────────────────────────────────────────────
+
 /**
- * Haal macros op voor alle ingrediënten met cache-laag:
- * 1. Controleer de lokale DB-cache
- * 2. Stuur alleen niet-gecachete ingrediënten naar Gemini
- * 3. Sla nieuwe resultaten op in de cache
+ * Haal macros op voor alle ingrediënten met cache-laag.
+ * Cache-sleutel = naam + canonieke eenheid; waarden = macros per 1 canonieke eenheid.
+ * Alleen niet-gecachete ingrediënten gaan naar Gemini.
  */
 function haalMacrosMetCache(array $ingredienten): array {
     $count = count($ingredienten);
     if ($count === 0) return [];
 
-    // Bouw ingrediëntstrings en hashes
-    $strings = [];
-    $hashes  = [];
+    $hashes = [];
     foreach ($ingredienten as $ing) {
-        $str       = trim(($ing['hoeveelheid'] ?? '') . ' ' . $ing['naam']);
-        $strings[] = $str;
-        $hashes[]  = cacheSleutel($str);
+        $hashes[] = cacheSleutel($ing['naam'] ?? '', $ing['eenheid'] ?? '');
     }
 
-    // Haal gecachete macros op (één DB-query)
+    // DB-lookup
     $placeholders = implode(',', array_fill(0, $count, '?'));
     $stmt = db()->prepare("SELECT naam_hash, macros FROM ingredient_macros_cache WHERE naam_hash IN ($placeholders)");
     $stmt->execute($hashes);
@@ -37,16 +65,16 @@ function haalMacrosMetCache(array $ingredienten): array {
         $gecached[$rij['naam_hash']] = json_decode($rij['macros'], true);
     }
 
-    // Welke ingrediënten zijn niet in de cache?
+    // Welke missen nog?
     $nieuweIndexen = [];
     for ($i = 0; $i < $count; $i++) {
         if (!isset($gecached[$hashes[$i]])) $nieuweIndexen[] = $i;
     }
 
-    // Roep Gemini aan voor de ontbrekende ingrediënten
+    // Gemini voor de ontbrekende
     $nieuweMacros = [];
     if (!empty($nieuweIndexen)) {
-        $nieuweIngrs    = array_map(fn($i) => $ingredienten[$i], $nieuweIndexen);
+        $nieuweIngrs     = array_map(fn($i) => $ingredienten[$i], $nieuweIndexen);
         $geminiResultaat = haalMacrosViaGemini($nieuweIngrs);
 
         $insertStmt = db()->prepare(
@@ -58,12 +86,12 @@ function haalMacrosMetCache(array $ingredienten): array {
             $macros = $geminiResultaat[$pos] ?? null;
             $nieuweMacros[$origIdx] = $macros;
             if ($macros) {
-                $insertStmt->execute([$hashes[$origIdx], $strings[$origIdx], json_encode($macros)]);
+                $label = ($ingredienten[$origIdx]['naam'] ?? '') . ' (' . canonischeEenheid($ingredienten[$origIdx]['eenheid'] ?? '') . ')';
+                $insertStmt->execute([$hashes[$origIdx], $label, json_encode($macros)]);
             }
         }
     }
 
-    // Combineer gecachete + nieuwe resultaten in de originele volgorde
     $resultaat = [];
     for ($i = 0; $i < $count; $i++) {
         $resultaat[] = $gecached[$hashes[$i]] ?? ($nieuweMacros[$i] ?? null);
@@ -71,13 +99,11 @@ function haalMacrosMetCache(array $ingredienten): array {
     return $resultaat;
 }
 
+// ─── Gemini API ──────────────────────────────────────────────────────────────
+
 /**
- * Haal macronutriënten op voor alle ingrediënten via Gemini (één API-call).
- * Geeft een array terug van evenveel elementen als $ingredienten:
- * elk element is {calorieen, koolhydraten, eiwitten, vetten} of null bij fout.
- *
- * @param  array $ingredienten  Elk element heeft 'naam' en optioneel 'hoeveelheid'
- * @return array                Zelfde lengte als input
+ * Vraag Gemini om macros per 1 canonieke eenheid voor elk ingrediënt.
+ * Intern vraagt Gemini per 100g/100ml (of per 1 stuk) en deelt het resultaat.
  */
 function haalMacrosViaGemini(array $ingredienten): array {
     $count = count($ingredienten);
@@ -85,19 +111,23 @@ function haalMacrosViaGemini(array $ingredienten): array {
 
     if ($count === 0 || !defined('GOOGLE_API_KEY') || !GOOGLE_API_KEY) return $leeg;
 
-    // Bouw de ingrediëntenlijst op
-    $lijstRegels = [];
+    // Bouw de lijst op met referentiehoeveelheden
+    $lijstRegels  = [];
+    $refHoevs     = [];
     foreach ($ingredienten as $i => $ing) {
-        $str = trim(($ing['hoeveelheid'] ?? '') . ' ' . $ing['naam']);
-        $lijstRegels[] = ($i + 1) . '. ' . $str;
+        $eenheid   = $ing['eenheid'] ?? '';
+        $canonisch = canonischeEenheid($eenheid);
+        $ref       = referentieHoeveelheid($canonisch);
+        $refStr    = ($ref == 1.0) ? "1 $eenheid" : "$ref $canonisch";
+        $lijstRegels[] = ($i + 1) . '. ' . $refStr . ' ' . ($ing['naam'] ?? '');
+        $refHoevs[]    = $ref;
     }
-    $lijst = implode("\n", $lijstRegels);
 
-    $prompt = "Bereken de macronutriënten voor elk ingrediënt hieronder in de opgegeven hoeveelheid.\n"
-            . "Geef ALLEEN een JSON-array terug (geen uitleg, geen markdown), één object per ingrediënt in dezelfde volgorde:\n"
+    $prompt = "Bereken de macronutriënten voor elk ingrediënt in de opgegeven hoeveelheid.\n"
+            . "Geef ALLEEN een JSON-array (geen uitleg, geen markdown), één object per ingrediënt in dezelfde volgorde:\n"
             . "[{\"calorieen\":0,\"koolhydraten\":0,\"eiwitten\":0,\"vetten\":0}, ...]\n"
-            . "Alle waarden zijn gehele getallen (afgerond).\n\n"
-            . "Ingrediënten:\n" . $lijst;
+            . "Alle waarden als decimale getallen (max 4 decimalen).\n\n"
+            . "Ingrediënten:\n" . implode("\n", $lijstRegels);
 
     $payload = json_encode([
         'contents'         => [['parts' => [['text' => $prompt]]]],
@@ -125,7 +155,6 @@ function haalMacrosViaGemini(array $ingredienten): array {
         if (!empty($part['text']) && empty($part['thought'])) { $tekst = $part['text']; break; }
     }
 
-    // Extraheer de JSON-array uit de respons
     $s = strpos($tekst, '[');
     $e = strrpos($tekst, ']');
     if ($s === false || $e <= $s) return $leeg;
@@ -133,39 +162,46 @@ function haalMacrosViaGemini(array $ingredienten): array {
     $parsed = json_decode(substr($tekst, $s, $e - $s + 1), true);
     if (!is_array($parsed)) return $leeg;
 
-    // Zet om naar genormaliseerd formaat, vul ontbrekende rijen aan met null
+    // Deel door referentiehoeveelheid → macros per 1 canonieke eenheid
     $resultaat = [];
     for ($i = 0; $i < $count; $i++) {
-        $m = $parsed[$i] ?? null;
-        if (!is_array($m)) { $resultaat[] = null; continue; }
+        $m   = $parsed[$i] ?? null;
+        $ref = $refHoevs[$i] ?? 1.0;
+        if (!is_array($m) || $ref <= 0) { $resultaat[] = null; continue; }
         $resultaat[] = [
-            'calorieen'    => (int) round($m['calorieen']    ?? 0),
-            'koolhydraten' => (int) round($m['koolhydraten'] ?? 0),
-            'eiwitten'     => (int) round($m['eiwitten']     ?? 0),
-            'vetten'       => (int) round($m['vetten']       ?? 0),
+            'calorieen'    => round(((float)($m['calorieen']    ?? 0)) / $ref, 4),
+            'koolhydraten' => round(((float)($m['koolhydraten'] ?? 0)) / $ref, 4),
+            'eiwitten'     => round(((float)($m['eiwitten']     ?? 0)) / $ref, 4),
+            'vetten'       => round(((float)($m['vetten']       ?? 0)) / $ref, 4),
         ];
     }
     return $resultaat;
 }
 
+// ─── Voedingswaarden herberekenen ────────────────────────────────────────────
+
 /**
- * Herbereken voedingswaarden.totaal en voedingswaarden.per_portie
- * op basis van de macros_referentie van de individuele ingrediënten.
- * Doet niets als geen enkel ingrediënt macros_referentie heeft.
+ * Herbereken voedingswaarden op basis van macros_referentie per ingrediënt.
+ * Formule: hoeveelheid × canonical_factor × macros_per_canonical_unit
  */
 function herbereken_voedingswaarden(array &$data): void {
     $ingredienten = $data['ingredienten'] ?? [];
     $personen     = max(1, (int)($data['personen'] ?? 1));
 
-    $totaal      = ['calorieen' => 0, 'koolhydraten' => 0, 'eiwitten' => 0, 'vetten' => 0];
+    $totaal      = ['calorieen' => 0.0, 'koolhydraten' => 0.0, 'eiwitten' => 0.0, 'vetten' => 0.0];
     $heeftMacros = false;
 
     foreach ($ingredienten as $ing) {
-        $macros = $ing['macros_referentie'] ?? null;
-        if (!$macros) continue;
-        $heeftMacros = true;
+        $macros      = $ing['macros_referentie'] ?? null;
+        $hoeveelheid = isset($ing['hoeveelheid']) ? (float)$ing['hoeveelheid'] : null;
+        if (!$macros || $hoeveelheid === null || $hoeveelheid <= 0) continue;
+
+        $canonischFactor = naarCanonischeFactor($ing['eenheid'] ?? '');
+        $canonical       = $hoeveelheid * $canonischFactor;
+        $heeftMacros     = true;
+
         foreach (['calorieen', 'koolhydraten', 'eiwitten', 'vetten'] as $key) {
-            $totaal[$key] += (float)($macros[$key] ?? 0);
+            $totaal[$key] += (float)($macros[$key] ?? 0) * $canonical;
         }
     }
 

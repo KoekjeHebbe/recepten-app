@@ -1,9 +1,10 @@
 export interface Ingredient {
   naam: string
-  hoeveelheid: string | null
+  hoeveelheid: number | null   // getal (bijv. 200)
+  eenheid: string              // eenheid (bijv. 'g', 'el', 'stuk', '' voor vrij)
   voorraadkast: boolean
   categorie?: string
-  macros_referentie?: Macros | null
+  macros_referentie?: Macros | null  // macros per 1 canonieke eenheid (float)
 }
 
 export interface Macros {

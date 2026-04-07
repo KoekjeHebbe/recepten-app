@@ -4,6 +4,8 @@ import { useGSAP } from '@gsap/react'
 import gsap from 'gsap'
 import { Heart, CalendarDays, Users, ChevronLeft, ExternalLink, Pencil, Check, X } from 'lucide-react'
 import type { Recept, Dag } from '../types'
+import { NAAR_CANONICAL, STAP, formateerHoeveelheid } from '../lib/eenheden'
+import type { Eenheid } from '../lib/eenheden'
 import { DAGEN } from '../types'
 import TagBadge from '../components/TagBadge'
 import { useWeekMenu } from '../store/weekmenu'
@@ -13,21 +15,18 @@ import { useAuth } from '../store/auth'
 
 gsap.registerPlugin()
 
-function schaalHoeveelheid(hoeveelheid: string | null, factor: number): string | null {
-  if (!hoeveelheid || factor === 1) return hoeveelheid
-  const match = hoeveelheid.match(/^(\d+(?:[.,]\d+)?)([\s\S]*)$/)
-  if (!match) return hoeveelheid
-  const getal = parseFloat(match[1].replace(',', '.'))
-  const rest = match[2]
-  const geschaald = Math.round(getal * factor * 10) / 10
-  const geformatteerd = Number.isInteger(geschaald)
-    ? String(geschaald)
-    : geschaald.toFixed(1).replace('.', ',')
-  return `${geformatteerd}${rest}`
-}
-
 function schaalMacro(waarde: number, factor: number): number {
   return Math.round(waarde * factor)
+}
+
+// Bereken de weergegeven hoeveelheid (base × factor × aanpassing)
+function displayHoeveelheid(
+  base: number | null,
+  factor: number,
+  aanpassing: number   // multiplier, standaard 1
+): number | null {
+  if (base === null || base === undefined) return null
+  return base * factor * aanpassing
 }
 
 export default function ReceptDetail() {
@@ -46,37 +45,37 @@ export default function ReceptDetail() {
   const [aanpassingMultipliers, setAanpassingMultipliers] = useState<Record<number, number>>({})
   const macrosTabelRef = useRef<HTMLTableElement>(null)
 
-  // Bereken totale macro's dynamisch vanuit macros_referentie per ingrediënt
+  // Bereken totale macro's dynamisch:
+  // hoeveelheid × factor × aanpassing × canonical_factor × macros_per_canonical
   const berekendeTotalen = useMemo(() => {
     if (!recept) return null
     const ingrs = recept.ingredienten
     if (!ingrs.some(i => i.macros_referentie)) return null
 
-    const aantalP  = personen ?? recept.personen
-    const f        = aantalP / recept.personen
+    const aantalP = personen ?? recept.personen
+    const f       = aantalP / recept.personen
     let cal = 0, kh = 0, eiwit = 0, vet = 0
 
     ingrs.forEach((ing, idx) => {
-      if (!ing.macros_referentie) return
-      const m = f * (aanpassingMultipliers[idx] ?? 1)
-      cal   += ing.macros_referentie.calorieen    * m
-      kh    += ing.macros_referentie.koolhydraten * m
-      eiwit += ing.macros_referentie.eiwitten     * m
-      vet   += ing.macros_referentie.vetten       * m
+      if (!ing.macros_referentie || ing.hoeveelheid === null) return
+      const aanpassing      = aanpassingMultipliers[idx] ?? 1
+      const displayed       = ing.hoeveelheid * f * aanpassing
+      const canonicalAmount = displayed * (NAAR_CANONICAL[ing.eenheid as Eenheid] ?? 1)
+      const m               = ing.macros_referentie
+      cal   += m.calorieen    * canonicalAmount
+      kh    += m.koolhydraten * canonicalAmount
+      eiwit += m.eiwitten     * canonicalAmount
+      vet   += m.vetten       * canonicalAmount
     })
 
     return {
       totaal: {
-        calorieen:    Math.round(cal),
-        koolhydraten: Math.round(kh),
-        eiwitten:     Math.round(eiwit),
-        vetten:       Math.round(vet),
+        calorieen: Math.round(cal), koolhydraten: Math.round(kh),
+        eiwitten:  Math.round(eiwit), vetten: Math.round(vet),
       },
       per_portie: {
-        calorieen:    Math.round(cal   / aantalP),
-        koolhydraten: Math.round(kh    / aantalP),
-        eiwitten:     Math.round(eiwit / aantalP),
-        vetten:       Math.round(vet   / aantalP),
+        calorieen: Math.round(cal / aantalP), koolhydraten: Math.round(kh / aantalP),
+        eiwitten:  Math.round(eiwit / aantalP), vetten: Math.round(vet / aantalP),
       },
     }
   }, [recept, aanpassingMultipliers, personen])
@@ -120,15 +119,26 @@ export default function ReceptDetail() {
   // Ingrediënten met hun originele index (voor aanpassingMultipliers)
   const ingredientenMetIndex = recept.ingredienten.map((ing, idx) => ({ ...ing, _idx: idx }))
 
-  // Toon +/- controls enkel voor ingrediënten met macros_referentie én een getal in de hoeveelheid
+  // Toon +/- controls enkel voor ingrediënten met macros_referentie én een getal
   const kanTweaken = (ing: typeof ingredientenMetIndex[number]) =>
-    !!ing.macros_referentie && !!ing.hoeveelheid && /^\d/.test(ing.hoeveelheid)
+    !!ing.macros_referentie && ing.hoeveelheid !== null && ing.hoeveelheid !== undefined
 
-  const setMultiplier = (idx: number, delta: number) =>
-    setAanpassingMultipliers(prev => ({
-      ...prev,
-      [idx]: Math.max(0.25, (prev[idx] ?? 1) + delta),
-    }))
+  // Pas multiplier aan zodat displayed hoeveelheid verandert met één stapgrootte
+  const stapInMultiplier = (ing: typeof ingredientenMetIndex[number]) => {
+    const base = ing.hoeveelheid ?? 1
+    const stap = STAP[ing.eenheid as Eenheid] ?? 1
+    return stap / (base * factor)   // één stap = één eenheid-stap in display
+  }
+
+  const setMultiplier = (idx: number, ing: typeof ingredientenMetIndex[number], delta: 1 | -1) => {
+    const stap = stapInMultiplier(ing)
+    setAanpassingMultipliers(prev => {
+      const huidig = prev[idx] ?? 1
+      const nieuw  = huidig + delta * stap
+      const min    = stap * 0.5 // minimaal een halve stap
+      return { ...prev, [idx]: Math.max(min, nieuw) }
+    })
+  }
 
   const heeftAanpassingen = Object.values(aanpassingMultipliers).some(m => m !== 1)
 
@@ -296,57 +306,55 @@ export default function ReceptDetail() {
           <>
             <p className="text-[10px] text-olive-700/40 uppercase tracking-widest mb-2 font-semibold">Voorraadkast</p>
             <ul className="mb-4 space-y-1.5">
-              {ingredientenMetIndex.filter(i => i.voorraadkast).map(ing => (
-                <li key={ing._idx} className="text-sm text-olive-700/50 flex items-center gap-1.5">
-                  <span className="text-olive-700/20 font-light mr-1">—</span>
-                  {kanTweaken(ing) ? (
-                    <>
-                      <button
-                        onClick={() => setMultiplier(ing._idx, -0.25)}
-                        className="w-5 h-5 rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 flex items-center justify-center text-olive-700/60 text-xs transition-all btn-magnetic flex-shrink-0"
-                      >−</button>
-                      <span className="min-w-[3.5rem] text-center tabular-nums text-olive-700/70">
-                        {schaalHoeveelheid(ing.hoeveelheid, factor * (aanpassingMultipliers[ing._idx] ?? 1))}
-                      </span>
-                      <button
-                        onClick={() => setMultiplier(ing._idx, 0.25)}
-                        className="w-5 h-5 rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 flex items-center justify-center text-olive-700/60 text-xs transition-all btn-magnetic flex-shrink-0"
-                      >+</button>
-                      <span>{ing.naam}</span>
-                    </>
-                  ) : (
-                    <span>{schaalHoeveelheid(ing.hoeveelheid, factor) ? `${schaalHoeveelheid(ing.hoeveelheid, factor)} ` : ''}{ing.naam}</span>
-                  )}
-                </li>
-              ))}
+              {ingredientenMetIndex.filter(i => i.voorraadkast).map(ing => {
+                const displayed = displayHoeveelheid(ing.hoeveelheid, factor, aanpassingMultipliers[ing._idx] ?? 1)
+                return (
+                  <li key={ing._idx} className="text-sm text-olive-700/50 flex items-center gap-1.5">
+                    <span className="text-olive-700/20 font-light mr-1">—</span>
+                    {kanTweaken(ing) ? (
+                      <>
+                        <button onClick={() => setMultiplier(ing._idx, ing, -1)}
+                          className="w-5 h-5 rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 flex items-center justify-center text-olive-700/60 text-xs transition-all btn-magnetic flex-shrink-0">−</button>
+                        <span className="min-w-[3.5rem] text-center tabular-nums text-olive-700/70">
+                          {formateerHoeveelheid(displayed, ing.eenheid)}
+                        </span>
+                        <button onClick={() => setMultiplier(ing._idx, ing, 1)}
+                          className="w-5 h-5 rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 flex items-center justify-center text-olive-700/60 text-xs transition-all btn-magnetic flex-shrink-0">+</button>
+                        <span>{ing.naam}</span>
+                      </>
+                    ) : (
+                      <span>{displayed !== null ? `${formateerHoeveelheid(displayed, ing.eenheid)} ` : ''}{ing.naam}</span>
+                    )}
+                  </li>
+                )
+              })}
             </ul>
           </>
         )}
         <p className="text-[10px] text-olive-700/40 uppercase tracking-widest mb-2 font-semibold">Boodschappen</p>
         <ul className="space-y-1.5">
-          {ingredientenMetIndex.filter(i => !i.voorraadkast).map(ing => (
-            <li key={ing._idx} className="text-sm text-olive-700 flex items-center gap-1.5">
-              <span className="text-olive-700/20 font-light mr-1">—</span>
-              {kanTweaken(ing) ? (
-                <>
-                  <button
-                    onClick={() => setMultiplier(ing._idx, -0.25)}
-                    className="w-5 h-5 rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 flex items-center justify-center text-olive-700 text-xs transition-all btn-magnetic flex-shrink-0"
-                  >−</button>
-                  <span className="min-w-[3.5rem] text-center tabular-nums font-medium">
-                    {schaalHoeveelheid(ing.hoeveelheid, factor * (aanpassingMultipliers[ing._idx] ?? 1))}
-                  </span>
-                  <button
-                    onClick={() => setMultiplier(ing._idx, 0.25)}
-                    className="w-5 h-5 rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 flex items-center justify-center text-olive-700 text-xs transition-all btn-magnetic flex-shrink-0"
-                  >+</button>
-                  <span>{ing.naam}</span>
-                </>
-              ) : (
-                <span>{schaalHoeveelheid(ing.hoeveelheid, factor) ? `${schaalHoeveelheid(ing.hoeveelheid, factor)} ` : ''}{ing.naam}</span>
-              )}
-            </li>
-          ))}
+          {ingredientenMetIndex.filter(i => !i.voorraadkast).map(ing => {
+            const displayed = displayHoeveelheid(ing.hoeveelheid, factor, aanpassingMultipliers[ing._idx] ?? 1)
+            return (
+              <li key={ing._idx} className="text-sm text-olive-700 flex items-center gap-1.5">
+                <span className="text-olive-700/20 font-light mr-1">—</span>
+                {kanTweaken(ing) ? (
+                  <>
+                    <button onClick={() => setMultiplier(ing._idx, ing, -1)}
+                      className="w-5 h-5 rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 flex items-center justify-center text-olive-700 text-xs transition-all btn-magnetic flex-shrink-0">−</button>
+                    <span className="min-w-[3.5rem] text-center tabular-nums font-medium">
+                      {formateerHoeveelheid(displayed, ing.eenheid)}
+                    </span>
+                    <button onClick={() => setMultiplier(ing._idx, ing, 1)}
+                      className="w-5 h-5 rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 flex items-center justify-center text-olive-700 text-xs transition-all btn-magnetic flex-shrink-0">+</button>
+                    <span>{ing.naam}</span>
+                  </>
+                ) : (
+                  <span>{displayed !== null ? `${formateerHoeveelheid(displayed, ing.eenheid)} ` : ''}{ing.naam}</span>
+                )}
+              </li>
+            )
+          })}
         </ul>
       </div>
 
