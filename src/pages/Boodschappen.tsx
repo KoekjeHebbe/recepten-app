@@ -22,10 +22,11 @@ import { DAGEN } from '../types'
 import { useWeekMenu } from '../store/weekmenu'
 import { useRecepten } from '../store/aangepaste-recepten'
 import { CATEGORIE_NAMEN, categoriseer } from '../lib/categorieen'
+import { formateerHoeveelheid } from '../lib/eenheden'
 
 interface GegroepeerdeIngredient {
   naam: string
-  hoeveelheden: string[]
+  hoeveelheden: string[]   // al geformatteerd als "200 g", "2 el", …
   voorraadkast: boolean
   categorie: string
 }
@@ -45,13 +46,16 @@ function groepeerIngredienten(ids: string[], alleRecepten: Recept[]): Gegroepeer
   for (const recept of geselecteerd) {
     for (const ing of recept.ingredienten) {
       const sleutel = ing.naam.toLowerCase().trim()
+      const hvStr = ing.hoeveelheid !== null && ing.hoeveelheid !== undefined
+        ? formateerHoeveelheid(ing.hoeveelheid, ing.eenheid ?? '')
+        : null
       if (map.has(sleutel)) {
         const bestaand = map.get(sleutel)!
-        if (ing.hoeveelheid) bestaand.hoeveelheden.push(ing.hoeveelheid)
+        if (hvStr) bestaand.hoeveelheden.push(hvStr)
       } else {
         map.set(sleutel, {
           naam: ing.naam,
-          hoeveelheden: ing.hoeveelheid ? [ing.hoeveelheid] : [],
+          hoeveelheden: hvStr ? [hvStr] : [],
           voorraadkast: ing.voorraadkast,
           categorie: ing.categorie || categoriseer(ing.naam),
         })
