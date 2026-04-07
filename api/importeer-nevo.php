@@ -73,9 +73,8 @@ $insertStmt = db()->prepare(
 while (($kolommen = fgetcsv($fh, 0, $sep, '"')) !== false) {
     $rijnummer++;
 
-    // Sla headerrij(en) over (beginnen met "NEVO" of "Voedingsmiddel")
-    $eerste = trim($kolommen[0] ?? '', '"');
-    if ($rijnummer === 1 || str_starts_with($eerste, 'NEVO') || str_starts_with($eerste, 'Voedingsmiddel')) {
+    // Sla headerrij over (eerste rij)
+    if ($rijnummer === 1) {
         continue;
     }
 
