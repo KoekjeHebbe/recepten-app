@@ -160,10 +160,10 @@ function haalMacrosViaGemini(array $ingredienten): array {
 
     $payload = json_encode([
         'contents'         => [['parts' => [['text' => $prompt]]]],
-        'generationConfig' => ['temperature' => 0.1, 'maxOutputTokens' => 2048],
+        'generationConfig' => ['temperature' => 0.1, 'maxOutputTokens' => 4096],
     ]);
 
-    $apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' . GOOGLE_API_KEY;
+    $apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=' . GOOGLE_API_KEY;
     $ch = curl_init($apiUrl);
     curl_setopt_array($ch, [
         CURLOPT_POST           => true,
