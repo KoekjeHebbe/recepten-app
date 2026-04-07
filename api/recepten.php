@@ -3,45 +3,80 @@ require_once __DIR__ . '/config.php';
 cors();
 
 /**
- * Haal macronutriënten op via de Edamam Nutrition Analysis API.
- * Geeft een array terug met calorieen/koolhydraten/eiwitten/vetten voor de
- * opgegeven hoeveelheid, of null als de API mislukt / het ingrediënt niet herkent.
+ * Haal macronutriënten op voor alle ingrediënten via Gemini (één API-call).
+ * Geeft een array terug van evenveel elementen als $ingredienten:
+ * elk element is {calorieen, koolhydraten, eiwitten, vetten} of null bij fout.
  *
- * @param  string $ingredientString  Bijv. "200g kipfilet" of "1 el olijfolie"
- * @return array|null
+ * @param  array $ingredienten  Elk element heeft 'naam' en optioneel 'hoeveelheid'
+ * @return array                Zelfde lengte als input
  */
-function haalEdamamMacros(string $ingredientString): ?array {
-    if (!defined('EDAMAM_APP_ID') || !defined('EDAMAM_APP_KEY')) return null;
+function haalMacrosViaGemini(array $ingredienten): array {
+    $count = count($ingredienten);
+    $leeg  = array_fill(0, $count, null);
 
-    $url = 'https://api.edamam.com/api/nutrition-data?' . http_build_query([
-        'app_id'  => EDAMAM_APP_ID,
-        'app_key' => EDAMAM_APP_KEY,
-        'ingr'    => $ingredientString,
+    if ($count === 0 || !defined('GOOGLE_API_KEY') || !GOOGLE_API_KEY) return $leeg;
+
+    // Bouw de ingrediëntenlijst op
+    $lijstRegels = [];
+    foreach ($ingredienten as $i => $ing) {
+        $str = trim(($ing['hoeveelheid'] ?? '') . ' ' . $ing['naam']);
+        $lijstRegels[] = ($i + 1) . '. ' . $str;
+    }
+    $lijst = implode("\n", $lijstRegels);
+
+    $prompt = "Bereken de macronutriënten voor elk ingrediënt hieronder in de opgegeven hoeveelheid.\n"
+            . "Geef ALLEEN een JSON-array terug (geen uitleg, geen markdown), één object per ingrediënt in dezelfde volgorde:\n"
+            . "[{\"calorieen\":0,\"koolhydraten\":0,\"eiwitten\":0,\"vetten\":0}, ...]\n"
+            . "Alle waarden zijn gehele getallen (afgerond).\n\n"
+            . "Ingrediënten:\n" . $lijst;
+
+    $payload = json_encode([
+        'contents'         => [['parts' => [['text' => $prompt]]]],
+        'generationConfig' => ['temperature' => 0.1, 'maxOutputTokens' => 512],
     ]);
 
-    $ch = curl_init($url);
+    $apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' . GOOGLE_API_KEY;
+    $ch = curl_init($apiUrl);
     curl_setopt_array($ch, [
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => $payload,
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT        => 8,
-        CURLOPT_HTTPHEADER     => ['Accept: application/json'],
+        CURLOPT_TIMEOUT        => 30,
+        CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
     ]);
-    $response = curl_exec($ch);
-    $httpCode  = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $resp = curl_exec($ch);
     curl_close($ch);
 
-    if ($httpCode < 200 || $httpCode >= 300 || !$response) return null;
+    if (!$resp) return $leeg;
 
-    $json = json_decode($response, true);
-    $n    = $json['totalNutrients'] ?? [];
-    // Edamam geeft HTTP 200 terug maar een leeg nutriëntenobject voor onbekende ingrediënten
-    if (empty($n) || empty($json['calories'])) return null;
+    $respData = json_decode($resp, true);
+    $parts    = $respData['candidates'][0]['content']['parts'] ?? [];
+    $tekst    = '';
+    foreach ($parts as $part) {
+        if (!empty($part['text']) && empty($part['thought'])) { $tekst = $part['text']; break; }
+    }
 
-    return [
-        'calorieen'    => (int) round($n['ENERC_KCAL']['quantity'] ?? 0),
-        'koolhydraten' => (int) round($n['CHOCDF']['quantity']     ?? 0),
-        'eiwitten'     => (int) round($n['PROCNT']['quantity']     ?? 0),
-        'vetten'       => (int) round($n['FAT']['quantity']        ?? 0),
-    ];
+    // Extraheer de JSON-array uit de respons
+    $s = strpos($tekst, '[');
+    $e = strrpos($tekst, ']');
+    if ($s === false || $e <= $s) return $leeg;
+
+    $parsed = json_decode(substr($tekst, $s, $e - $s + 1), true);
+    if (!is_array($parsed)) return $leeg;
+
+    // Zet om naar genormaliseerd formaat, vul ontbrekende rijen aan met null
+    $resultaat = [];
+    for ($i = 0; $i < $count; $i++) {
+        $m = $parsed[$i] ?? null;
+        if (!is_array($m)) { $resultaat[] = null; continue; }
+        $resultaat[] = [
+            'calorieen'    => (int) round($m['calorieen']    ?? 0),
+            'koolhydraten' => (int) round($m['koolhydraten'] ?? 0),
+            'eiwitten'     => (int) round($m['eiwitten']     ?? 0),
+            'vetten'       => (int) round($m['vetten']       ?? 0),
+        ];
+    }
+    return $resultaat;
 }
 
 /**
@@ -125,10 +160,10 @@ if ($methode === 'POST' && !$receptId) {
         $data['id'] = $id;
     }
 
-    // Haal macros op via Edamam voor elk ingrediënt
-    foreach ($data['ingredienten'] as &$ing) {
-        $ingrStr = trim(($ing['hoeveelheid'] ?? '') . ' ' . $ing['naam']);
-        $ing['macros_referentie'] = haalEdamamMacros($ingrStr);
+    // Haal macros op via Gemini voor alle ingrediënten in één call
+    $macrosLijst = haalMacrosViaGemini($data['ingredienten']);
+    foreach ($data['ingredienten'] as $i => &$ing) {
+        $ing['macros_referentie'] = $macrosLijst[$i] ?? null;
     }
     unset($ing);
 
@@ -154,13 +189,18 @@ if ($methode === 'PUT' && $receptId) {
     // Zorg dat id niet verandert
     $data['id'] = $receptId;
 
-    // Herbereken macros: alleen voor ingrediënten zonder macros_referentie (bijv. nieuw toegevoegde)
-    foreach ($data['ingredienten'] as &$ing) {
-        if (isset($ing['macros_referentie'])) continue;
-        $ingrStr = trim(($ing['hoeveelheid'] ?? '') . ' ' . $ing['naam']);
-        $ing['macros_referentie'] = haalEdamamMacros($ingrStr);
+    // Herbereken macros enkel voor ingrediënten zonder macros_referentie (nieuw toegevoegde)
+    $nieuweIndexen = [];
+    foreach ($data['ingredienten'] as $i => $ing) {
+        if (!isset($ing['macros_referentie'])) $nieuweIndexen[] = $i;
     }
-    unset($ing);
+    if (!empty($nieuweIndexen)) {
+        $nieuweIngrs = array_map(fn($i) => $data['ingredienten'][$i], $nieuweIndexen);
+        $macrosLijst = haalMacrosViaGemini($nieuweIngrs);
+        foreach ($nieuweIndexen as $pos => $origIdx) {
+            $data['ingredienten'][$origIdx]['macros_referentie'] = $macrosLijst[$pos] ?? null;
+        }
+    }
 
     herbereken_voedingswaarden($data);
 
