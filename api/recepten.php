@@ -40,6 +40,32 @@ function cacheSleutel(string $naam, string $eenheid): string {
     return hash('sha256', strtolower(trim($naam)) . '|' . $canonisch);
 }
 
+/**
+ * Normaliseer een ingrediënt naar {naam, hoeveelheid (float|null), eenheid}.
+ * Vangt oude string-hoeveelheden op ("3 el", "200g") die door een oude frontend
+ * verstuurd werden voordat het getal+eenheid formaat was uitgerold.
+ */
+function normaliseerIngredient(array $ing): array {
+    // Al in nieuw formaat: hoeveelheid is numeriek (of null) en eenheid bestaat
+    if (array_key_exists('eenheid', $ing) && (!isset($ing['hoeveelheid']) || is_numeric($ing['hoeveelheid']))) {
+        return $ing;
+    }
+
+    // Oud formaat: hoeveelheid is een string zoals "3 el" of "200g"
+    $str = trim((string)($ing['hoeveelheid'] ?? ''));
+    $eenheden = ['sneetje','handvol','snufje','stuk','teen','plak','cup','kg','kl','el','tl','ml','l','g'];
+    $patroon  = '/^(\d+(?:[.,]\d+)?)\s*(' . implode('|', $eenheden) . ')?\b/i';
+
+    if ($str !== '' && preg_match($patroon, $str, $m)) {
+        $ing['hoeveelheid'] = (float) str_replace(',', '.', $m[1]);
+        $ing['eenheid']     = strtolower($m[2] ?? 'stuk');
+    } else {
+        $ing['hoeveelheid'] = null;
+        $ing['eenheid']     = $ing['eenheid'] ?? '';
+    }
+    return $ing;
+}
+
 // ─── Cache-laag ──────────────────────────────────────────────────────────────
 
 /**
@@ -50,6 +76,9 @@ function cacheSleutel(string $naam, string $eenheid): string {
 function haalMacrosMetCache(array $ingredienten): array {
     $count = count($ingredienten);
     if ($count === 0) return [];
+
+    // Normaliseer eerst naar nieuw formaat (vang oude string-hoeveelheden op)
+    $ingredienten = array_map('normaliseerIngredient', $ingredienten);
 
     $hashes = [];
     foreach ($ingredienten as $ing) {
@@ -131,7 +160,7 @@ function haalMacrosViaGemini(array $ingredienten): array {
 
     $payload = json_encode([
         'contents'         => [['parts' => [['text' => $prompt]]]],
-        'generationConfig' => ['temperature' => 0.1, 'maxOutputTokens' => 512],
+        'generationConfig' => ['temperature' => 0.1, 'maxOutputTokens' => 2048],
     ]);
 
     $apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' . GOOGLE_API_KEY;
@@ -191,7 +220,8 @@ function herbereken_voedingswaarden(array &$data): void {
     $totaal      = ['calorieen' => 0.0, 'koolhydraten' => 0.0, 'eiwitten' => 0.0, 'vetten' => 0.0];
     $heeftMacros = false;
 
-    foreach ($ingredienten as $ing) {
+    foreach ($ingredienten as $rawIng) {
+        $ing         = normaliseerIngredient($rawIng);
         $macros      = $ing['macros_referentie'] ?? null;
         $hoeveelheid = isset($ing['hoeveelheid']) ? (float)$ing['hoeveelheid'] : null;
         if (!$macros || $hoeveelheid === null || $hoeveelheid <= 0) continue;
