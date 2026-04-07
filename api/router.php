@@ -19,6 +19,7 @@ match($endpoint) {
     'importeer'  => require __DIR__ . '/importeer.php',
     'foto'       => require __DIR__ . '/foto.php',
     'cache'      => require __DIR__ . '/cache.php',
+    'nevo'       => require __DIR__ . '/importeer-nevo.php',
     ''           => json(['status' => 'ok', 'versie' => '1.0']),
     default      => error('Endpoint niet gevonden', 404),
 };

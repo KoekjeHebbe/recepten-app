@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useGSAP } from '@gsap/react'
 import gsap from 'gsap'
-import { Search, Trash2, Pencil, Check, X, Plus } from 'lucide-react'
+import { Search, Trash2, Pencil, Check, X, Plus, Upload } from 'lucide-react'
 import { useAuth } from '../store/auth'
 import { api } from '../api/client'
 import type { Macros } from '../types'
@@ -30,6 +30,13 @@ export default function Extras() {
   const [nieuwNaam, setNieuwNaam]     = useState('')
   const [nieuwMacros, setNieuwMacros] = useState<Macros>(LEEG_MACROS)
   const [opslaan, setOpslaan]         = useState(false)
+
+  // NEVO import
+  const [nevoBestand, setNevoBestand]     = useState<File | null>(null)
+  const [nevoOverschrijf, setNevoOverschrijf] = useState(false)
+  const [nevoLaden, setNevoLaden]         = useState(false)
+  const [nevoResultaat, setNevoResultaat] = useState<{ ingevoegd: number; overgeslagen: number; fouten: number; totaal_cache: number } | null>(null)
+  const [nevoFout, setNevoFout]           = useState('')
 
   useGSAP(() => {
     if (!containerRef.current) return
@@ -124,6 +131,33 @@ export default function Extras() {
     )
   }
 
+  async function importeerNevo() {
+    if (!nevoBestand) return
+    setNevoFout('')
+    setNevoResultaat(null)
+    setNevoLaden(true)
+    try {
+      const token = localStorage.getItem('recepten-token')
+      const form = new FormData()
+      form.append('bestand', nevoBestand)
+      form.append('overschrijf', nevoOverschrijf ? 'ja' : 'nee')
+      const res = await fetch('https://thenextprepisode.minglemurders.com/api/nevo', {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: form,
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Import mislukt')
+      setNevoResultaat(data)
+      setNevoBestand(null)
+      laadEntries(zoek)
+    } catch (err) {
+      setNevoFout(err instanceof Error ? err.message : 'Import mislukt')
+    } finally {
+      setNevoLaden(false)
+    }
+  }
+
   return (
     <div ref={containerRef} className="max-w-4xl mx-auto">
       {/* Header */}
@@ -132,6 +166,55 @@ export default function Extras() {
         <p className="text-sm text-olive-700/50">
           {entries.length} gecachete ingrediënten — macros worden hergebruikt bij het opslaan van recepten.
         </p>
+      </div>
+
+      {/* NEVO import */}
+      <div className="anim-in rounded-4xl bg-white border border-olive-700/8 shadow-card p-6 mb-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Upload size={14} className="text-olive-700/40" />
+          <h2 className="font-semibold text-olive-700 text-sm uppercase tracking-widest">NEVO-database importeren</h2>
+        </div>
+        <p className="text-xs text-olive-700/40 mb-4">
+          Pijp-gescheiden CSV van <strong>nevo-online.nl</strong> (downloads). Waarden worden opgeslagen per 1g.
+          Bestaande entries worden standaard <em>niet</em> overschreven.
+        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <label className={`flex items-center gap-2 text-sm px-4 py-2.5 rounded-2xl border cursor-pointer transition-all btn-magnetic ${nevoBestand ? 'border-olive-700/30 bg-olive-700/5 text-olive-700' : 'border-olive-700/15 bg-cream text-olive-700/50 hover:border-olive-700/25'}`}>
+            <Upload size={13} />
+            {nevoBestand ? nevoBestand.name : 'CSV kiezen…'}
+            <input
+              type="file"
+              accept=".csv,.txt"
+              className="hidden"
+              onChange={e => { setNevoBestand(e.target.files?.[0] ?? null); setNevoResultaat(null); setNevoFout('') }}
+            />
+          </label>
+          <label className="flex items-center gap-2 text-sm text-olive-700/50 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={nevoOverschrijf}
+              onChange={e => setNevoOverschrijf(e.target.checked)}
+              className="rounded"
+            />
+            Bestaande overschrijven
+          </label>
+          <button
+            onClick={importeerNevo}
+            disabled={!nevoBestand || nevoLaden}
+            className="flex items-center gap-1.5 text-sm font-semibold px-5 py-2.5 rounded-full bg-olive-700 text-cream hover:bg-olive-800 transition-all btn-magnetic disabled:opacity-40"
+          >
+            {nevoLaden ? 'Importeren…' : 'Importeer'}
+          </button>
+        </div>
+        {nevoFout && <p className="mt-3 text-xs text-terracotta-600">{nevoFout}</p>}
+        {nevoResultaat && (
+          <div className="mt-3 flex gap-4 text-xs text-olive-700/60">
+            <span className="text-olive-700 font-semibold">✓ {nevoResultaat.ingevoegd} nieuw</span>
+            <span>{nevoResultaat.overgeslagen} overgeslagen</span>
+            {nevoResultaat.fouten > 0 && <span className="text-terracotta-600">{nevoResultaat.fouten} fouten</span>}
+            <span className="ml-auto">Cache totaal: {nevoResultaat.totaal_cache}</span>
+          </div>
+        )}
       </div>
 
       {/* Zoek + toevoegen */}
