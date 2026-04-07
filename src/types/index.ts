@@ -3,6 +3,7 @@ export interface Ingredient {
   hoeveelheid: string | null
   voorraadkast: boolean
   categorie?: string
+  macros_referentie?: Macros | null
 }
 
 export interface Macros {

@@ -1,5 +1,5 @@
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { useState, useRef } from 'react'
+import { useState, useRef, useMemo, useEffect } from 'react'
 import { useGSAP } from '@gsap/react'
 import gsap from 'gsap'
 import { Heart, CalendarDays, Users, ChevronLeft, ExternalLink, Pencil, Check, X } from 'lucide-react'
@@ -42,6 +42,55 @@ export default function ReceptDetail() {
   const [personen, setPersonen] = useState<number | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
+  // Per-ingrediënt aanpassingsmultiplicators (1.0 = originele hoeveelheid)
+  const [aanpassingMultipliers, setAanpassingMultipliers] = useState<Record<number, number>>({})
+  const macrosTabelRef = useRef<HTMLTableElement>(null)
+
+  // Bereken totale macro's dynamisch vanuit macros_referentie per ingrediënt
+  const berekendeTotalen = useMemo(() => {
+    if (!recept) return null
+    const ingrs = recept.ingredienten
+    if (!ingrs.some(i => i.macros_referentie)) return null
+
+    const aantalP  = personen ?? recept.personen
+    const f        = aantalP / recept.personen
+    let cal = 0, kh = 0, eiwit = 0, vet = 0
+
+    ingrs.forEach((ing, idx) => {
+      if (!ing.macros_referentie) return
+      const m = f * (aanpassingMultipliers[idx] ?? 1)
+      cal   += ing.macros_referentie.calorieen    * m
+      kh    += ing.macros_referentie.koolhydraten * m
+      eiwit += ing.macros_referentie.eiwitten     * m
+      vet   += ing.macros_referentie.vetten       * m
+    })
+
+    return {
+      totaal: {
+        calorieen:    Math.round(cal),
+        koolhydraten: Math.round(kh),
+        eiwitten:     Math.round(eiwit),
+        vetten:       Math.round(vet),
+      },
+      per_portie: {
+        calorieen:    Math.round(cal   / aantalP),
+        koolhydraten: Math.round(kh    / aantalP),
+        eiwitten:     Math.round(eiwit / aantalP),
+        vetten:       Math.round(vet   / aantalP),
+      },
+    }
+  }, [recept, aanpassingMultipliers, personen])
+
+  // Flash-animatie op de macrosaarden bij elke update
+  useEffect(() => {
+    if (!macrosTabelRef.current || !berekendeTotalen) return
+    gsap.fromTo(
+      macrosTabelRef.current.querySelectorAll('td'),
+      { opacity: 0.35 },
+      { opacity: 1, duration: 0.28, ease: 'power2.out', stagger: 0.015 }
+    )
+  }, [berekendeTotalen])
+
   useGSAP(() => {
     if (!containerRef.current) return
     const els = containerRef.current.querySelectorAll<HTMLElement>('.anim-in')
@@ -67,6 +116,32 @@ export default function ReceptDetail() {
   const dagenMetRecept = DAGEN.filter(dag => menu[dag].includes(recept.id))
   const vw = recept.voedingswaarden
   const isEigenaar = !!gebruiker
+
+  // Ingrediënten met hun originele index (voor aanpassingMultipliers)
+  const ingredientenMetIndex = recept.ingredienten.map((ing, idx) => ({ ...ing, _idx: idx }))
+
+  // Toon +/- controls enkel voor ingrediënten met macros_referentie én een getal in de hoeveelheid
+  const kanTweaken = (ing: typeof ingredientenMetIndex[number]) =>
+    !!ing.macros_referentie && !!ing.hoeveelheid && /^\d/.test(ing.hoeveelheid)
+
+  const setMultiplier = (idx: number, delta: number) =>
+    setAanpassingMultipliers(prev => ({
+      ...prev,
+      [idx]: Math.max(0.25, (prev[idx] ?? 1) + delta),
+    }))
+
+  const heeftAanpassingen = Object.values(aanpassingMultipliers).some(m => m !== 1)
+
+  // Voedingswaarden: gebruik dynamisch berekende waarden indien beschikbaar, anders opgeslagen
+  const displayMacros = berekendeTotalen ?? {
+    per_portie: vw.per_portie,
+    totaal: {
+      calorieen:    schaalMacro(vw.per_portie.calorieen,    aantalPersonen),
+      koolhydraten: schaalMacro(vw.per_portie.koolhydraten, aantalPersonen),
+      eiwitten:     schaalMacro(vw.per_portie.eiwitten,     aantalPersonen),
+      vetten:       schaalMacro(vw.per_portie.vetten,       aantalPersonen),
+    },
+  }
 
   function handleToggleDay(dag: Dag) {
     if (menu[dag].includes(recept!.id)) {
@@ -206,15 +281,42 @@ export default function ReceptDetail() {
 
       {/* Ingrediënten */}
       <div className="anim-in rounded-4xl bg-white border border-olive-700/8 shadow-card p-7 mb-4">
-        <h2 className="font-semibold text-olive-700 mb-4 text-sm uppercase tracking-widest">Ingrediënten</h2>
-        {recept.ingredienten.some(i => i.voorraadkast) && (
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-semibold text-olive-700 text-sm uppercase tracking-widest">Ingrediënten</h2>
+          {heeftAanpassingen && (
+            <button
+              onClick={() => setAanpassingMultipliers({})}
+              className="text-xs text-olive-700/40 hover:text-terracotta-600 underline underline-offset-2 transition-colors"
+            >
+              reset aanpassingen
+            </button>
+          )}
+        </div>
+        {ingredientenMetIndex.some(i => i.voorraadkast) && (
           <>
             <p className="text-[10px] text-olive-700/40 uppercase tracking-widest mb-2 font-semibold">Voorraadkast</p>
             <ul className="mb-4 space-y-1.5">
-              {recept.ingredienten.filter(i => i.voorraadkast).map((ing, idx) => (
-                <li key={idx} className="text-sm text-olive-700/50 flex gap-2.5">
-                  <span className="text-olive-700/20 font-light">—</span>
-                  <span>{schaalHoeveelheid(ing.hoeveelheid, factor) ? `${schaalHoeveelheid(ing.hoeveelheid, factor)} ` : ''}{ing.naam}</span>
+              {ingredientenMetIndex.filter(i => i.voorraadkast).map(ing => (
+                <li key={ing._idx} className="text-sm text-olive-700/50 flex items-center gap-1.5">
+                  <span className="text-olive-700/20 font-light mr-1">—</span>
+                  {kanTweaken(ing) ? (
+                    <>
+                      <button
+                        onClick={() => setMultiplier(ing._idx, -0.25)}
+                        className="w-5 h-5 rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 flex items-center justify-center text-olive-700/60 text-xs transition-all btn-magnetic flex-shrink-0"
+                      >−</button>
+                      <span className="min-w-[3.5rem] text-center tabular-nums text-olive-700/70">
+                        {schaalHoeveelheid(ing.hoeveelheid, factor * (aanpassingMultipliers[ing._idx] ?? 1))}
+                      </span>
+                      <button
+                        onClick={() => setMultiplier(ing._idx, 0.25)}
+                        className="w-5 h-5 rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 flex items-center justify-center text-olive-700/60 text-xs transition-all btn-magnetic flex-shrink-0"
+                      >+</button>
+                      <span>{ing.naam}</span>
+                    </>
+                  ) : (
+                    <span>{schaalHoeveelheid(ing.hoeveelheid, factor) ? `${schaalHoeveelheid(ing.hoeveelheid, factor)} ` : ''}{ing.naam}</span>
+                  )}
                 </li>
               ))}
             </ul>
@@ -222,10 +324,27 @@ export default function ReceptDetail() {
         )}
         <p className="text-[10px] text-olive-700/40 uppercase tracking-widest mb-2 font-semibold">Boodschappen</p>
         <ul className="space-y-1.5">
-          {recept.ingredienten.filter(i => !i.voorraadkast).map((ing, idx) => (
-            <li key={idx} className="text-sm text-olive-700 flex gap-2.5">
-              <span className="text-olive-700/20 font-light">—</span>
-              <span>{schaalHoeveelheid(ing.hoeveelheid, factor) ? `${schaalHoeveelheid(ing.hoeveelheid, factor)} ` : ''}{ing.naam}</span>
+          {ingredientenMetIndex.filter(i => !i.voorraadkast).map(ing => (
+            <li key={ing._idx} className="text-sm text-olive-700 flex items-center gap-1.5">
+              <span className="text-olive-700/20 font-light mr-1">—</span>
+              {kanTweaken(ing) ? (
+                <>
+                  <button
+                    onClick={() => setMultiplier(ing._idx, -0.25)}
+                    className="w-5 h-5 rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 flex items-center justify-center text-olive-700 text-xs transition-all btn-magnetic flex-shrink-0"
+                  >−</button>
+                  <span className="min-w-[3.5rem] text-center tabular-nums font-medium">
+                    {schaalHoeveelheid(ing.hoeveelheid, factor * (aanpassingMultipliers[ing._idx] ?? 1))}
+                  </span>
+                  <button
+                    onClick={() => setMultiplier(ing._idx, 0.25)}
+                    className="w-5 h-5 rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 flex items-center justify-center text-olive-700 text-xs transition-all btn-magnetic flex-shrink-0"
+                  >+</button>
+                  <span>{ing.naam}</span>
+                </>
+              ) : (
+                <span>{schaalHoeveelheid(ing.hoeveelheid, factor) ? `${schaalHoeveelheid(ing.hoeveelheid, factor)} ` : ''}{ing.naam}</span>
+              )}
             </li>
           ))}
         </ul>
@@ -249,10 +368,14 @@ export default function ReceptDetail() {
       {/* Voedingswaarden */}
       <div className="anim-in rounded-4xl bg-white border border-olive-700/8 shadow-card p-7">
         <h2 className="font-semibold text-olive-700 mb-1 text-sm uppercase tracking-widest">Voedingswaarden</h2>
-        {vw.schatting && (
+        {berekendeTotalen ? (
+          <p className="text-[11px] text-olive-700/40 mb-4">
+            {heeftAanpassingen ? 'Aangepaste hoeveelheden' : 'Berekend op basis van ingrediënten'}
+          </p>
+        ) : vw.schatting ? (
           <p className="text-[11px] text-olive-700/40 mb-4">Schatting op basis van ingrediënten</p>
-        )}
-        <table className="w-full text-sm mt-3">
+        ) : null}
+        <table ref={macrosTabelRef} className="w-full text-sm mt-3">
           <thead>
             <tr className="text-[10px] text-olive-700/40 uppercase tracking-widest border-b border-olive-700/6">
               <th className="text-left py-2 font-semibold">Macro</th>
@@ -270,10 +393,14 @@ export default function ReceptDetail() {
               <tr key={row.key}>
                 <td className="py-2.5 text-olive-700/70 font-medium">{row.label}</td>
                 <td className="py-2.5 text-right text-olive-700 font-semibold tabular-nums">
-                  {vw.schatting ? '± ' : ''}{schaalMacro(vw.per_portie[row.key], 1)}<span className="text-olive-700/40 font-normal text-xs ml-0.5">{row.unit}</span>
+                  {!berekendeTotalen && vw.schatting ? '± ' : ''}
+                  {displayMacros.per_portie[row.key]}
+                  <span className="text-olive-700/40 font-normal text-xs ml-0.5">{row.unit}</span>
                 </td>
                 <td className="py-2.5 text-right text-olive-700/50 tabular-nums">
-                  {vw.schatting ? '± ' : ''}{schaalMacro(vw.per_portie[row.key], aantalPersonen)}<span className="text-olive-700/30 text-xs ml-0.5">{row.unit}</span>
+                  {!berekendeTotalen && vw.schatting ? '± ' : ''}
+                  {displayMacros.totaal[row.key]}
+                  <span className="text-olive-700/30 text-xs ml-0.5">{row.unit}</span>
                 </td>
               </tr>
             ))}

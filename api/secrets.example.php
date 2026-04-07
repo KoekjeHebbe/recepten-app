@@ -15,3 +15,7 @@ define('UITNODIGINGSCODE', 'vervang_dit_met_een_geheime_code');
 
 // Google API key voor foto-import (maak aan op aistudio.google.com)
 define('GOOGLE_API_KEY', 'AIza...');
+
+// Edamam Nutrition Analysis API (https://developer.edamam.com/)
+define('EDAMAM_APP_ID',  'jouw_edamam_app_id');
+define('EDAMAM_APP_KEY', 'jouw_edamam_app_key');
