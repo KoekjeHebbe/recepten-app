@@ -87,12 +87,12 @@ while (($kolommen = fgetcsv($fh, 0, $sep, '"')) !== false) {
     $fat  = parseNevoGetal($kolommen[NEVO_FAT]  ?? '');
     $cho  = parseNevoGetal($kolommen[NEVO_CHO]  ?? '');
 
-    // Opslaan per 1g (NEVO is per 100g)
+    // Opslaan per 100g (NEVO is al per 100g — geen deling nodig)
     $macros = [
-        'calorieen'    => round($kcal / NEVO_PER, 4),
-        'koolhydraten' => round($cho  / NEVO_PER, 4),
-        'eiwitten'     => round($prot / NEVO_PER, 4),
-        'vetten'       => round($fat  / NEVO_PER, 4),
+        'calorieen'    => round($kcal, 2),
+        'koolhydraten' => round($cho,  2),
+        'eiwitten'     => round($prot, 2),
+        'vetten'       => round($fat,  2),
     ];
 
     $hash = hash('sha256', strtolower($naam) . '|g');

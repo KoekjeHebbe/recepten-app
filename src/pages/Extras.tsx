@@ -16,6 +16,16 @@ interface CacheEntry {
 
 const LEEG_MACROS: Macros = { calorieen: 0, koolhydraten: 0, eiwitten: 0, vetten: 0 }
 
+// Leid de referentie-eenheid af uit de naam (bijv. "kipfilet (g)" → "100g")
+function referentieLabel(naam: string): string {
+  const m = naam.match(/\((\w+)\)$/)
+  if (!m) return '100g'
+  const e = m[1]
+  if (e === 'g') return '100g'
+  if (e === 'ml') return '100ml'
+  return `1 ${e}`
+}
+
 export default function Extras() {
   const { isIngelogd } = useAuth()
   const navigate = useNavigate()
@@ -175,7 +185,7 @@ export default function Extras() {
           <h2 className="font-semibold text-olive-700 text-sm uppercase tracking-widest">NEVO-database importeren</h2>
         </div>
         <p className="text-xs text-olive-700/40 mb-4">
-          Pijp-gescheiden CSV van <strong>nevo-online.nl</strong> (downloads). Waarden worden opgeslagen per 1g.
+          Pijp-gescheiden CSV van <strong>nevo-online.nl</strong> (downloads). Waarden worden opgeslagen per 100g.
           Bestaande entries worden standaard <em>niet</em> overschreven.
         </p>
         <div className="flex flex-wrap items-center gap-3">
@@ -252,6 +262,7 @@ export default function Extras() {
                 className="w-full border border-olive-700/15 rounded-2xl px-4 py-2.5 text-sm text-olive-700 bg-cream focus:outline-none focus:border-olive-700/40"
               />
             </div>
+            <p className="text-[10px] text-olive-700/35 -mt-2">Waarden per 100g / 100ml / 1 stuk</p>
             <div className="flex flex-wrap gap-4">
               {macroInput('Calorieën (kcal)', 'calorieen',    nieuwMacros, setNieuwMacros)}
               {macroInput('Koolhydraten (g)', 'koolhydraten', nieuwMacros, setNieuwMacros)}
@@ -291,9 +302,10 @@ export default function Extras() {
               <tr className="text-[10px] text-olive-700/40 uppercase tracking-widest border-b border-olive-700/6">
                 <th className="text-left px-6 py-3 font-semibold">Ingrediënt</th>
                 <th className="text-right px-4 py-3 font-semibold">kcal</th>
-                <th className="text-right px-4 py-3 font-semibold">KH</th>
-                <th className="text-right px-4 py-3 font-semibold">Eiw</th>
-                <th className="text-right px-4 py-3 font-semibold">Vet</th>
+                <th className="text-right px-4 py-3 font-semibold">KH&nbsp;g</th>
+                <th className="text-right px-4 py-3 font-semibold">Eiw&nbsp;g</th>
+                <th className="text-right px-4 py-3 font-semibold">Vet&nbsp;g</th>
+                <th className="text-right px-4 py-3 font-semibold text-olive-700/25">Per</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -315,6 +327,7 @@ export default function Extras() {
                           />
                         </td>
                       ))}
+                      <td className="px-4 py-3 text-right text-[10px] text-olive-700/30">{referentieLabel(entry.naam)}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1 justify-end">
                           <button
@@ -339,6 +352,7 @@ export default function Extras() {
                       <td className="px-4 py-3 text-right tabular-nums text-olive-700/60">{entry.macros.koolhydraten}</td>
                       <td className="px-4 py-3 text-right tabular-nums text-olive-700/60">{entry.macros.eiwitten}</td>
                       <td className="px-4 py-3 text-right tabular-nums text-olive-700/60">{entry.macros.vetten}</td>
+                      <td className="px-4 py-3 text-right text-[10px] text-olive-700/30 font-medium">{referentieLabel(entry.naam)}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
                           <button

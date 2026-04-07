@@ -61,11 +61,15 @@ export default function ReceptDetail() {
       const aanpassing      = aanpassingMultipliers[idx] ?? 1
       const displayed       = ing.hoeveelheid * f * aanpassing
       const canonicalAmount = displayed * (NAAR_CANONICAL[ing.eenheid as Eenheid] ?? 1)
+      // macros_referentie is stored per 100g/ml or per 1 stuk
+      const isWeight = ing.eenheid === 'g' || ing.eenheid === 'kg'
+      const isVolume = ['ml','l','el','tl','kl','cup'].includes(ing.eenheid ?? '')
+      const ref = (isWeight || isVolume) ? 100 : 1
       const m               = ing.macros_referentie
-      cal   += m.calorieen    * canonicalAmount
-      kh    += m.koolhydraten * canonicalAmount
-      eiwit += m.eiwitten     * canonicalAmount
-      vet   += m.vetten       * canonicalAmount
+      cal   += m.calorieen    * canonicalAmount / ref
+      kh    += m.koolhydraten * canonicalAmount / ref
+      eiwit += m.eiwitten     * canonicalAmount / ref
+      vet   += m.vetten       * canonicalAmount / ref
     })
 
     return {

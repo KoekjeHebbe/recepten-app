@@ -191,17 +191,17 @@ function haalMacrosViaGemini(array $ingredienten): array {
     $parsed = json_decode(substr($tekst, $s, $e - $s + 1), true);
     if (!is_array($parsed)) return $leeg;
 
-    // Deel door referentiehoeveelheid → macros per 1 canonieke eenheid
+    // Sla op per referentiehoeveelheid (100g/ml of 1 stuk) — NIET delen
+    // zodat waarden leesbaar zijn (bijv. 884 kcal per 100ml, niet 8.84 per 1ml)
     $resultaat = [];
     for ($i = 0; $i < $count; $i++) {
-        $m   = $parsed[$i] ?? null;
-        $ref = $refHoevs[$i] ?? 1.0;
-        if (!is_array($m) || $ref <= 0) { $resultaat[] = null; continue; }
+        $m = $parsed[$i] ?? null;
+        if (!is_array($m)) { $resultaat[] = null; continue; }
         $resultaat[] = [
-            'calorieen'    => round(((float)($m['calorieen']    ?? 0)) / $ref, 4),
-            'koolhydraten' => round(((float)($m['koolhydraten'] ?? 0)) / $ref, 4),
-            'eiwitten'     => round(((float)($m['eiwitten']     ?? 0)) / $ref, 4),
-            'vetten'       => round(((float)($m['vetten']       ?? 0)) / $ref, 4),
+            'calorieen'    => round((float)($m['calorieen']    ?? 0), 2),
+            'koolhydraten' => round((float)($m['koolhydraten'] ?? 0), 2),
+            'eiwitten'     => round((float)($m['eiwitten']     ?? 0), 2),
+            'vetten'       => round((float)($m['vetten']       ?? 0), 2),
         ];
     }
     return $resultaat;
@@ -228,10 +228,11 @@ function herbereken_voedingswaarden(array &$data): void {
 
         $canonischFactor = naarCanonischeFactor($ing['eenheid'] ?? '');
         $canonical       = $hoeveelheid * $canonischFactor;
+        $ref             = referentieHoeveelheid(canonischeEenheid($ing['eenheid'] ?? ''));
         $heeftMacros     = true;
 
         foreach (['calorieen', 'koolhydraten', 'eiwitten', 'vetten'] as $key) {
-            $totaal[$key] += (float)($macros[$key] ?? 0) * $canonical;
+            $totaal[$key] += (float)($macros[$key] ?? 0) * $canonical / $ref;
         }
     }
 
