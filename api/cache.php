@@ -6,29 +6,36 @@ vereisLogin();
 $methode = $_SERVER['REQUEST_METHOD'];
 $hash    = trim($_SERVER['PATH_INFO'] ?? '', '/') ?: null;
 
-// GET /api/cache — lijst alle entries, optioneel gefilterd op ?zoek=
+// GET /api/cache — lijst alle entries, optioneel gefilterd op ?zoek= en ?limit=
 if ($methode === 'GET' && !$hash) {
-    $zoek = trim($_GET['zoek'] ?? '');
+    $zoek  = trim($_GET['zoek'] ?? '');
+    $limit = max(1, min(10000, (int)($_GET['limit'] ?? 50)));
+
     if ($zoek) {
         $stmt = db()->prepare(
             'SELECT naam_hash, naam, macros, bijgewerkt_op
              FROM ingredient_macros_cache
              WHERE naam LIKE ?
-             ORDER BY naam LIMIT 300'
+             ORDER BY naam LIMIT ' . $limit
         );
         $stmt->execute(['%' . $zoek . '%']);
     } else {
-        $stmt = db()->query(
+        $stmt = db()->prepare(
             'SELECT naam_hash, naam, macros, bijgewerkt_op
              FROM ingredient_macros_cache
-             ORDER BY naam LIMIT 500'
+             ORDER BY naam LIMIT ' . $limit
         );
+        $stmt->execute();
     }
-    $rijen = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    json(array_map(function ($rij) {
-        $rij['macros'] = json_decode($rij['macros'], true);
-        return $rij;
-    }, $rijen));
+    $totaal = (int) db()->query('SELECT COUNT(*) FROM ingredient_macros_cache')->fetchColumn();
+    $rijen  = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    json([
+        'totaal'  => $totaal,
+        'entries' => array_map(function ($rij) {
+            $rij['macros'] = json_decode($rij['macros'], true);
+            return $rij;
+        }, $rijen),
+    ]);
 }
 
 // GET /api/cache/stats — totaal aantal entries

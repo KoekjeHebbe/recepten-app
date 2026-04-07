@@ -66,6 +66,54 @@ function normaliseerIngredient(array $ing): array {
     return $ing;
 }
 
+// ─── Fuzzy cache-match ───────────────────────────────────────────────────────
+
+/**
+ * Zoek de beste cache-match voor een ingredient via sliding-window LIKE-queries.
+ * Werkt ook voor samengestelde Nederlandse woorden zoals "knolselderij" → "Selderij knol rauw".
+ * Geeft null terug als geen goede match gevonden wordt (drempel: 40% similar_text).
+ */
+function zoekFuzzyMatch(string $naam, string $canonisch): ?array {
+    $lower  = strtolower(trim($naam));
+    if (strlen($lower) < 3) return null;
+
+    // Tokens: woorden op spaties + sliding windows van 6 tekens voor samengestelde woorden
+    $tokens = array_filter(preg_split('/\s+/', $lower), fn($w) => strlen($w) >= 3);
+    if (count($tokens) <= 1 && strlen($lower) >= 6) {
+        for ($i = 0; $i + 6 <= strlen($lower); $i++) {
+            $tokens[] = substr($lower, $i, 6);
+        }
+    }
+    $tokens = array_values(array_unique($tokens));
+    if (empty($tokens)) return null;
+
+    $conditions = implode(' OR ', array_fill(0, count($tokens), 'LOWER(naam) LIKE ?'));
+    $params     = array_map(fn($t) => '%' . $t . '%', $tokens);
+
+    $stmt = db()->prepare(
+        "SELECT naam_hash, naam, macros FROM ingredient_macros_cache
+         WHERE ($conditions) LIMIT 40"
+    );
+    $stmt->execute($params);
+    $kandidaten = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    if (empty($kandidaten)) return null;
+
+    $beste = null;
+    $besteScore = 0.0;
+    foreach ($kandidaten as $k) {
+        similar_text($lower, strtolower($k['naam']), $score);
+        if ($score > $besteScore) {
+            $besteScore = $score;
+            $beste = $k;
+        }
+    }
+
+    if ($besteScore >= 40.0 && $beste) {
+        return json_decode($beste['macros'], true);
+    }
+    return null;
+}
+
 // ─── Cache-laag ──────────────────────────────────────────────────────────────
 
 /**
@@ -94,23 +142,35 @@ function haalMacrosMetCache(array $ingredienten): array {
         $gecached[$rij['naam_hash']] = json_decode($rij['macros'], true);
     }
 
-    // Welke missen nog?
+    // Welke missen nog? Probeer eerst fuzzy match vóór Gemini.
+    $insertStmt = db()->prepare(
+        'INSERT INTO ingredient_macros_cache (naam_hash, naam, macros)
+         VALUES (?, ?, ?)
+         ON DUPLICATE KEY UPDATE macros = VALUES(macros), naam = VALUES(naam), bijgewerkt_op = NOW()'
+    );
+
     $nieuweIndexen = [];
     for ($i = 0; $i < $count; $i++) {
-        if (!isset($gecached[$hashes[$i]])) $nieuweIndexen[] = $i;
+        if (isset($gecached[$hashes[$i]])) continue;
+
+        $ing       = $ingredienten[$i];
+        $canonisch = canonischeEenheid($ing['eenheid'] ?? '');
+        $fuzzy     = zoekFuzzyMatch($ing['naam'] ?? '', $canonisch);
+        if ($fuzzy) {
+            $gecached[$hashes[$i]] = $fuzzy;
+            $label = ($ing['naam'] ?? '') . ' (' . $canonisch . ')';
+            $insertStmt->execute([$hashes[$i], $label, json_encode($fuzzy)]);
+        } else {
+            $nieuweIndexen[] = $i;
+        }
     }
 
-    // Gemini voor de ontbrekende
+    // Gemini enkel voor wat niet via fuzzy gevonden werd
     $nieuweMacros = [];
     if (!empty($nieuweIndexen)) {
         $nieuweIngrs     = array_map(fn($i) => $ingredienten[$i], $nieuweIndexen);
         $geminiResultaat = haalMacrosViaGemini($nieuweIngrs);
 
-        $insertStmt = db()->prepare(
-            'INSERT INTO ingredient_macros_cache (naam_hash, naam, macros)
-             VALUES (?, ?, ?)
-             ON DUPLICATE KEY UPDATE macros = VALUES(macros), naam = VALUES(naam), bijgewerkt_op = NOW()'
-        );
         foreach ($nieuweIndexen as $pos => $origIdx) {
             $macros = $geminiResultaat[$pos] ?? null;
             $nieuweMacros[$origIdx] = $macros;
@@ -141,15 +201,13 @@ function haalMacrosViaGemini(array $ingredienten): array {
     if ($count === 0 || !defined('GOOGLE_API_KEY') || !GOOGLE_API_KEY) return $leeg;
 
     // Bouw de lijst op met referentiehoeveelheden
-    $lijstRegels  = [];
-    $refHoevs     = [];
+    $lijstRegels = [];
     foreach ($ingredienten as $i => $ing) {
         $eenheid   = $ing['eenheid'] ?? '';
         $canonisch = canonischeEenheid($eenheid);
         $ref       = referentieHoeveelheid($canonisch);
-        $refStr    = ($ref == 1.0) ? "1 $eenheid" : "$ref $canonisch";
+        $refStr    = $ref == 1.0 ? "1 $eenheid" : "$ref $canonisch";
         $lijstRegels[] = ($i + 1) . '. ' . $refStr . ' ' . ($ing['naam'] ?? '');
-        $refHoevs[]    = $ref;
     }
 
     $prompt = "Bereken de macronutriënten voor elk ingrediënt in de opgegeven hoeveelheid.\n"

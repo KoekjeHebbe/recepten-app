@@ -32,7 +32,9 @@ export default function Extras() {
   const containerRef = useRef<HTMLDivElement>(null)
 
   const [entries, setEntries]         = useState<CacheEntry[]>([])
+  const [totaal, setTotaal]           = useState(0)
   const [zoek, setZoek]               = useState('')
+  const [paginaGrootte, setPaginaGrootte] = useState(50)
   const [laden, setLaden]             = useState(true)
   const [bewerkHash, setBewerkHash]   = useState<string | null>(null)
   const [bewerkMacros, setBewerkMacros] = useState<Macros>(LEEG_MACROS)
@@ -52,15 +54,17 @@ export default function Extras() {
 
   useEffect(() => {
     if (!isIngelogd) { navigate('/login'); return }
-    laadEntries()
+    laadEntries('', 50)
   }, [isIngelogd])
 
-  async function laadEntries(zoekterm = '') {
+  async function laadEntries(zoekterm = zoek, grootte = paginaGrootte) {
     setLaden(true)
     try {
-      const pad = zoekterm ? `/cache?zoek=${encodeURIComponent(zoekterm)}` : '/cache'
-      const data = await api.get<CacheEntry[]>(pad)
-      setEntries(data)
+      const params = new URLSearchParams({ limit: String(grootte) })
+      if (zoekterm) params.set('zoek', zoekterm)
+      const data = await api.get<{ totaal: number; entries: CacheEntry[] }>(`/cache?${params}`)
+      setEntries(data.entries)
+      setTotaal(data.totaal)
     } finally {
       setLaden(false)
     }
@@ -70,6 +74,11 @@ export default function Extras() {
     setZoek(waarde)
     const timer = setTimeout(() => laadEntries(waarde), 350)
     return () => clearTimeout(timer)
+  }
+
+  function wisselPaginaGrootte(grootte: number) {
+    setPaginaGrootte(grootte)
+    laadEntries(zoek, grootte)
   }
 
   function startBewerken(entry: CacheEntry) {
@@ -140,12 +149,12 @@ export default function Extras() {
       <div className="anim-in mb-6">
         <h1 className="font-serif text-2xl font-bold text-olive-700 mb-1">Macro-cache</h1>
         <p className="text-sm text-olive-700/50">
-          {entries.length} gecachete ingrediënten — macros worden hergebruikt bij het opslaan van recepten.
+          {totaal} gecachete ingrediënten — macros worden hergebruikt bij het opslaan van recepten.
         </p>
       </div>
 
       {/* Zoek + toevoegen */}
-      <div className="anim-in flex gap-3 mb-4">
+      <div className="anim-in flex gap-3 mb-3">
         <div className="relative flex-1">
           <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-olive-700/30" />
           <input
@@ -162,6 +171,27 @@ export default function Extras() {
         >
           <Plus size={14} /> Toevoegen
         </button>
+      </div>
+
+      {/* Limit selector */}
+      <div className="anim-in flex items-center gap-2 mb-4">
+        <span className="text-xs text-olive-700/40 font-medium">Toon</span>
+        {[50, 100, 250, 500, 5000].map(n => (
+          <button
+            key={n}
+            onClick={() => wisselPaginaGrootte(n)}
+            className={`text-xs px-3 py-1 rounded-full transition-all btn-magnetic font-semibold ${
+              paginaGrootte === n
+                ? 'bg-olive-700 text-cream'
+                : 'border border-olive-700/15 text-olive-700/50 hover:border-olive-700/30 hover:text-olive-700'
+            }`}
+          >
+            {n === 5000 ? 'Alles' : n}
+          </button>
+        ))}
+        <span className="text-xs text-olive-700/25 ml-1">
+          {entries.length < totaal ? `(${entries.length} van ${totaal})` : `(${totaal})`}
+        </span>
       </div>
 
       {/* Toevoegen-form */}
