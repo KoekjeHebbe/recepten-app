@@ -90,9 +90,11 @@ function zoekFuzzyMatch(string $naam, string $canonisch): ?array {
     $conditions = implode(' OR ', array_fill(0, count($tokens), 'LOWER(naam) LIKE ?'));
     $params     = array_map(fn($t) => '%' . $t . '%', $tokens);
 
+    // Filter op dezelfde canonieke eenheid zodat (g)-entries niet matchen voor (stuk)-lookups
+    $params[] = '%(' . $canonisch . ')%';
     $stmt = db()->prepare(
         "SELECT naam_hash, naam, macros FROM ingredient_macros_cache
-         WHERE ($conditions) LIMIT 40"
+         WHERE ($conditions) AND LOWER(naam) LIKE ? LIMIT 40"
     );
     $stmt->execute($params);
     $kandidaten = $stmt->fetchAll(PDO::FETCH_ASSOC);
