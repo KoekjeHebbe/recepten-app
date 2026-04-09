@@ -1,0 +1,20 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <script>
+      // GitHub Pages SPA redirect: preserve the route as a query param
+      // so index.html can restore it via React Router
+      var path = window.location.pathname;
+      var search = window.location.search;
+      var hash = window.location.hash;
+      window.location.replace(
+        window.location.origin + '/recepten-app/' +
+        '?p=' + encodeURIComponent(path.replace('/recepten-app/', '')) +
+        (search ? '&' + search.slice(1) : '') +
+        hash
+      );
+    </script>
+  </head>
+  <body></body>
+</html>
