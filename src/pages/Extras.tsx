@@ -37,6 +37,7 @@ export default function Extras() {
   const [paginaGrootte, setPaginaGrootte] = useState(50)
   const [laden, setLaden]             = useState(true)
   const [bewerkHash, setBewerkHash]   = useState<string | null>(null)
+  const [bewerkNaam, setBewerkNaam]   = useState('')
   const [bewerkMacros, setBewerkMacros] = useState<Macros>(LEEG_MACROS)
   const [toonToevoegen, setToonToevoegen] = useState(false)
   const [nieuwNaam, setNieuwNaam]     = useState('')
@@ -83,6 +84,7 @@ export default function Extras() {
 
   function startBewerken(entry: CacheEntry) {
     setBewerkHash(entry.naam_hash)
+    setBewerkNaam(entry.naam)
     setBewerkMacros({ ...entry.macros })
   }
 
@@ -90,9 +92,20 @@ export default function Extras() {
     if (!bewerkHash) return
     setOpslaan(true)
     try {
-      await api.put(`/cache/${bewerkHash}`, { macros: bewerkMacros })
+      const payload: { macros: Macros; naam?: string } = { macros: bewerkMacros }
+      const origEntry = entries.find(e => e.naam_hash === bewerkHash)
+      if (bewerkNaam.trim() && bewerkNaam.trim() !== origEntry?.naam) {
+        payload.naam = bewerkNaam.trim()
+      }
+      const result = await api.put<{ ok: boolean; naam_hash?: string; naam?: string; macros?: Macros }>(
+        `/cache/${bewerkHash}`, payload
+      )
+      const nieuweHash = result.naam_hash ?? bewerkHash
+      const nieuweNaam = result.naam ?? origEntry?.naam ?? bewerkNaam
       setEntries(prev => prev.map(e =>
-        e.naam_hash === bewerkHash ? { ...e, macros: bewerkMacros } : e
+        e.naam_hash === bewerkHash
+          ? { ...e, naam_hash: nieuweHash, naam: nieuweNaam, macros: bewerkMacros }
+          : e
       ))
       setBewerkHash(null)
     } finally {
@@ -263,6 +276,14 @@ export default function Extras() {
 
                   {bewerkHash === entry.naam_hash ? (
                     <>
+                      <td className="px-6 py-2">
+                        <input
+                          type="text"
+                          value={bewerkNaam}
+                          onChange={e => setBewerkNaam(e.target.value)}
+                          className="w-full text-sm border border-olive-700/20 rounded-lg px-2 py-1 bg-cream text-olive-700 focus:outline-none focus:border-olive-700/40"
+                        />
+                      </td>
                       {(['calorieen', 'koolhydraten', 'eiwitten', 'vetten'] as (keyof Macros)[]).map(key => (
                         <td key={key} className="px-2 py-2 text-right">
                           <input
