@@ -1,15 +1,11 @@
 <?php
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/eenheden.php';
 cors();
 
 // ─── Eenheden & conversie ────────────────────────────────────────────────────
-
-$EENHEID_CANONICAL = [
-    'g' => 'g',  'kg' => 'g',
-    'ml' => 'ml', 'l' => 'ml', 'el' => 'ml', 'tl' => 'ml', 'kl' => 'ml', 'cup' => 'ml',
-    'stuk' => 'stuk', 'teen' => 'teen', 'plak' => 'plak',
-    'sneetje' => 'sneetje', 'handvol' => 'handvol', 'snufje' => 'snufje',
-];
+// canonischeEenheid() en cacheSleutel() komen uit eenheden.php (gedeeld met cache.php).
+// $EENHEID_CANONICAL idem.
 
 $NAAR_CANONICAL = [
     'g' => 1.0,  'kg' => 1000.0,
@@ -17,11 +13,6 @@ $NAAR_CANONICAL = [
     'stuk' => 1.0, 'teen' => 1.0, 'plak' => 1.0,
     'sneetje' => 1.0, 'handvol' => 1.0, 'snufje' => 1.0,
 ];
-
-function canonischeEenheid(string $eenheid): string {
-    global $EENHEID_CANONICAL;
-    return $EENHEID_CANONICAL[$eenheid] ?? $eenheid;
-}
 
 function naarCanonischeFactor(string $eenheid): float {
     global $NAAR_CANONICAL;
@@ -32,12 +23,6 @@ function naarCanonischeFactor(string $eenheid): float {
 // Voor stuks: vraag per 1 unit
 function referentieHoeveelheid(string $canonisch): float {
     return in_array($canonisch, ['g', 'ml'], true) ? 100.0 : 1.0;
-}
-
-// Cache-sleutel: SHA-256 van "genormaliseerde naam|canonieke eenheid"
-function cacheSleutel(string $naam, string $eenheid): string {
-    $canonisch = canonischeEenheid($eenheid);
-    return hash('sha256', strtolower(trim($naam)) . '|' . $canonisch);
 }
 
 /**

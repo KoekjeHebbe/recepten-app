@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/eenheden.php';
 cors();
 vereisLogin();
 
@@ -51,7 +52,7 @@ if ($methode === 'POST' && !$hash) {
     $macros = $data['macros']      ?? null;
     if (!$naam || !$macros) error('naam en macros zijn verplicht');
 
-    $naamHash = hash('sha256', strtolower($naam));
+    $naamHash = cacheSleutelUitNaam($naam);
     db()->prepare(
         'INSERT INTO ingredient_macros_cache (naam_hash, naam, macros)
          VALUES (?, ?, ?)
@@ -75,7 +76,7 @@ if ($methode === 'PUT' && $hash) {
 
     $finaleNaam   = $nieuweNaam !== null && $nieuweNaam !== '' ? $nieuweNaam : $rij['naam'];
     $finaleMacros = $macros ?: json_decode($rij['macros'], true);
-    $finaleHash   = hash('sha256', strtolower($finaleNaam));
+    $finaleHash   = cacheSleutelUitNaam($finaleNaam);
 
     if ($finaleHash !== $hash) {
         $check = db()->prepare('SELECT 1 FROM ingredient_macros_cache WHERE naam_hash = ?');
