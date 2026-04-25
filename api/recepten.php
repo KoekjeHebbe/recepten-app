@@ -380,7 +380,8 @@ if ($methode === 'PUT' && $receptId) {
     $stmt->execute([$receptId]);
     $rij = $stmt->fetch(PDO::FETCH_ASSOC);
     if (!$rij) error('Recept niet gevonden', 404);
-    if ((int)$rij['aangemaakt_door'] !== (int)$gebruiker['sub']) error('Geen toegang', 403);
+    $isSuperAdmin = defined('SUPERADMIN_IDS') && in_array((int)$gebruiker['sub'], SUPERADMIN_IDS, true);
+    if ((int)$rij['aangemaakt_door'] !== (int)$gebruiker['sub'] && !$isSuperAdmin) error('Geen toegang', 403);
 
     // Zorg dat id niet verandert
     $data['id'] = $receptId;
@@ -408,7 +409,8 @@ if ($methode === 'DELETE' && $receptId) {
     $stmt->execute([$receptId]);
     $rij = $stmt->fetch(PDO::FETCH_ASSOC);
     if (!$rij) error('Recept niet gevonden', 404);
-    if ((int)$rij['aangemaakt_door'] !== (int)$gebruiker['sub']) error('Geen toegang', 403);
+    $isSuperAdmin = defined('SUPERADMIN_IDS') && in_array((int)$gebruiker['sub'], SUPERADMIN_IDS, true);
+    if ((int)$rij['aangemaakt_door'] !== (int)$gebruiker['sub'] && !$isSuperAdmin) error('Geen toegang', 403);
 
     db()->prepare('DELETE FROM favorieten WHERE recept_id = ?')->execute([$receptId]);
     db()->prepare('DELETE FROM recepten WHERE id = ?')->execute([$receptId]);

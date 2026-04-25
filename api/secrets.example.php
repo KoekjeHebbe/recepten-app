@@ -19,3 +19,7 @@ define('GOOGLE_API_KEY', 'AIza...');
 // Edamam Nutrition Analysis API (https://developer.edamam.com/)
 define('EDAMAM_APP_ID',  'jouw_edamam_app_id');
 define('EDAMAM_APP_KEY', 'jouw_edamam_app_key');
+
+// Superadmins — gebruiker-ID's die alle recepten mogen bewerken/verwijderen
+// Zoek de ID's op in de tabel `gebruikers`
+define('SUPERADMIN_IDS', [1, 2]);
