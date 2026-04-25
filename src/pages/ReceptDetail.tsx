@@ -3,7 +3,7 @@ import { useState, useRef, useMemo, useEffect } from 'react'
 import { useGSAP } from '@gsap/react'
 import gsap from 'gsap'
 import { Heart, CalendarDays, Users, ChevronLeft, ExternalLink, Pencil, Check, X } from 'lucide-react'
-import type { Recept, Dag } from '../types'
+import type { Recept, Dag, Ingredient } from '../types'
 import { NAAR_CANONICAL, STAP, formateerHoeveelheid } from '../lib/eenheden'
 import type { Eenheid } from '../lib/eenheden'
 import { DAGEN } from '../types'
@@ -45,8 +45,28 @@ export default function ReceptDetail() {
   const [aanpassingMultipliers, setAanpassingMultipliers] = useState<Record<number, number>>({})
   const macrosTabelRef = useRef<HTMLTableElement>(null)
 
-  // Bereken totale macro's dynamisch:
-  // hoeveelheid × factor × aanpassing × canonical_factor × macros_per_canonical
+  // Bijdrage van één ingrediënt aan de totale macro's, gegeven een schaalfactor f
+  // (typically aantalPersonen / recept.personen). Returnt null als ingrediënt geen
+  // macros_referentie of hoeveelheid heeft.
+  function ingredientBijdrage(ing: Ingredient, idx: number, f: number) {
+    if (!ing.macros_referentie || ing.hoeveelheid === null || ing.hoeveelheid === undefined) return null
+    const aanpassing      = aanpassingMultipliers[idx] ?? 1
+    const displayed       = ing.hoeveelheid * f * aanpassing
+    const canonicalAmount = displayed * (NAAR_CANONICAL[ing.eenheid as Eenheid] ?? 1)
+    // macros_referentie is stored per 100g/ml or per 1 stuk
+    const isWeight = ing.eenheid === 'g' || ing.eenheid === 'kg'
+    const isVolume = ['ml','l','el','tl','kl','cup'].includes(ing.eenheid ?? '')
+    const ref = (isWeight || isVolume) ? 100 : 1
+    const m = ing.macros_referentie
+    return {
+      cal:   m.calorieen    * canonicalAmount / ref,
+      kh:    m.koolhydraten * canonicalAmount / ref,
+      eiwit: m.eiwitten     * canonicalAmount / ref,
+      vet:   m.vetten       * canonicalAmount / ref,
+    }
+  }
+
+  // Bereken totale macro's dynamisch via de per-ingrediënt bijdragen.
   const berekendeTotalen = useMemo(() => {
     if (!recept) return null
     const ingrs = recept.ingredienten
@@ -57,19 +77,9 @@ export default function ReceptDetail() {
     let cal = 0, kh = 0, eiwit = 0, vet = 0
 
     ingrs.forEach((ing, idx) => {
-      if (!ing.macros_referentie || ing.hoeveelheid === null) return
-      const aanpassing      = aanpassingMultipliers[idx] ?? 1
-      const displayed       = ing.hoeveelheid * f * aanpassing
-      const canonicalAmount = displayed * (NAAR_CANONICAL[ing.eenheid as Eenheid] ?? 1)
-      // macros_referentie is stored per 100g/ml or per 1 stuk
-      const isWeight = ing.eenheid === 'g' || ing.eenheid === 'kg'
-      const isVolume = ['ml','l','el','tl','kl','cup'].includes(ing.eenheid ?? '')
-      const ref = (isWeight || isVolume) ? 100 : 1
-      const m               = ing.macros_referentie
-      cal   += m.calorieen    * canonicalAmount / ref
-      kh    += m.koolhydraten * canonicalAmount / ref
-      eiwit += m.eiwitten     * canonicalAmount / ref
-      vet   += m.vetten       * canonicalAmount / ref
+      const b = ingredientBijdrage(ing, idx, f)
+      if (!b) return
+      cal += b.cal; kh += b.kh; eiwit += b.eiwit; vet += b.vet
     })
 
     return {
@@ -312,22 +322,30 @@ export default function ReceptDetail() {
             <ul className="mb-4 space-y-1.5">
               {ingredientenMetIndex.filter(i => i.voorraadkast).map(ing => {
                 const displayed = displayHoeveelheid(ing.hoeveelheid, factor, aanpassingMultipliers[ing._idx] ?? 1)
+                const bijdrage  = ingredientBijdrage(ing, ing._idx, factor)
                 return (
-                  <li key={ing._idx} className="text-sm text-olive-700/50 flex items-center gap-1.5">
-                    <span className="text-olive-700/20 font-light mr-1">—</span>
-                    {kanTweaken(ing) ? (
-                      <>
-                        <button onClick={() => setMultiplier(ing._idx, ing, -1)}
-                          className="w-5 h-5 rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 flex items-center justify-center text-olive-700/60 text-xs transition-all btn-magnetic flex-shrink-0">−</button>
-                        <span className="min-w-[3.5rem] text-center tabular-nums text-olive-700/70">
-                          {formateerHoeveelheid(displayed, ing.eenheid)}
-                        </span>
-                        <button onClick={() => setMultiplier(ing._idx, ing, 1)}
-                          className="w-5 h-5 rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 flex items-center justify-center text-olive-700/60 text-xs transition-all btn-magnetic flex-shrink-0">+</button>
-                        <span>{ing.naam}</span>
-                      </>
-                    ) : (
-                      <span>{displayed !== null ? `${formateerHoeveelheid(displayed, ing.eenheid)} ` : ''}{ing.naam}</span>
+                  <li key={ing._idx} className="text-sm text-olive-700/50">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-olive-700/20 font-light mr-1">—</span>
+                      {kanTweaken(ing) ? (
+                        <>
+                          <button onClick={() => setMultiplier(ing._idx, ing, -1)}
+                            className="w-5 h-5 rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 flex items-center justify-center text-olive-700/60 text-xs transition-all btn-magnetic flex-shrink-0">−</button>
+                          <span className="min-w-[3.5rem] text-center tabular-nums text-olive-700/70">
+                            {formateerHoeveelheid(displayed, ing.eenheid)}
+                          </span>
+                          <button onClick={() => setMultiplier(ing._idx, ing, 1)}
+                            className="w-5 h-5 rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 flex items-center justify-center text-olive-700/60 text-xs transition-all btn-magnetic flex-shrink-0">+</button>
+                          <span>{ing.naam}</span>
+                        </>
+                      ) : (
+                        <span>{displayed !== null ? `${formateerHoeveelheid(displayed, ing.eenheid)} ` : ''}{ing.naam}</span>
+                      )}
+                    </div>
+                    {bijdrage && (
+                      <span className="block ml-7 text-[10px] text-olive-700/35 tabular-nums tracking-wide">
+                        {Math.round(bijdrage.cal)} kcal · {Math.round(bijdrage.kh)}g KH · {Math.round(bijdrage.eiwit)}g E · {Math.round(bijdrage.vet)}g V
+                      </span>
                     )}
                   </li>
                 )
@@ -339,22 +357,30 @@ export default function ReceptDetail() {
         <ul className="space-y-1.5">
           {ingredientenMetIndex.filter(i => !i.voorraadkast).map(ing => {
             const displayed = displayHoeveelheid(ing.hoeveelheid, factor, aanpassingMultipliers[ing._idx] ?? 1)
+            const bijdrage  = ingredientBijdrage(ing, ing._idx, factor)
             return (
-              <li key={ing._idx} className="text-sm text-olive-700 flex items-center gap-1.5">
-                <span className="text-olive-700/20 font-light mr-1">—</span>
-                {kanTweaken(ing) ? (
-                  <>
-                    <button onClick={() => setMultiplier(ing._idx, ing, -1)}
-                      className="w-5 h-5 rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 flex items-center justify-center text-olive-700 text-xs transition-all btn-magnetic flex-shrink-0">−</button>
-                    <span className="min-w-[3.5rem] text-center tabular-nums font-medium">
-                      {formateerHoeveelheid(displayed, ing.eenheid)}
-                    </span>
-                    <button onClick={() => setMultiplier(ing._idx, ing, 1)}
-                      className="w-5 h-5 rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 flex items-center justify-center text-olive-700 text-xs transition-all btn-magnetic flex-shrink-0">+</button>
-                    <span>{ing.naam}</span>
-                  </>
-                ) : (
-                  <span>{displayed !== null ? `${formateerHoeveelheid(displayed, ing.eenheid)} ` : ''}{ing.naam}</span>
+              <li key={ing._idx} className="text-sm text-olive-700">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-olive-700/20 font-light mr-1">—</span>
+                  {kanTweaken(ing) ? (
+                    <>
+                      <button onClick={() => setMultiplier(ing._idx, ing, -1)}
+                        className="w-5 h-5 rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 flex items-center justify-center text-olive-700 text-xs transition-all btn-magnetic flex-shrink-0">−</button>
+                      <span className="min-w-[3.5rem] text-center tabular-nums font-medium">
+                        {formateerHoeveelheid(displayed, ing.eenheid)}
+                      </span>
+                      <button onClick={() => setMultiplier(ing._idx, ing, 1)}
+                        className="w-5 h-5 rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 flex items-center justify-center text-olive-700 text-xs transition-all btn-magnetic flex-shrink-0">+</button>
+                      <span>{ing.naam}</span>
+                    </>
+                  ) : (
+                    <span>{displayed !== null ? `${formateerHoeveelheid(displayed, ing.eenheid)} ` : ''}{ing.naam}</span>
+                  )}
+                </div>
+                {bijdrage && (
+                  <span className="block ml-7 text-[10px] text-olive-700/40 tabular-nums tracking-wide">
+                    {Math.round(bijdrage.cal)} kcal · {Math.round(bijdrage.kh)}g KH · {Math.round(bijdrage.eiwit)}g E · {Math.round(bijdrage.vet)}g V
+                  </span>
                 )}
               </li>
             )
