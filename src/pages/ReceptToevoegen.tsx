@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import { Link2, Loader2, ChevronLeft, Camera, X } from 'lucide-react'
-import type { Recept, Ingredient } from '../types'
+import type { Recept, Ingredient, Onderdeel } from '../types'
 import { useRecepten, maakId } from '../store/aangepaste-recepten'
 import { useAuth } from '../store/auth'
 import { api } from '../api/client'
 import { CATEGORIE_NAMEN, categoriseer } from '../lib/categorieen'
 import { EENHEID_GROEPEN, parseerOudeHoeveelheid } from '../lib/eenheden'
 import type { Eenheid } from '../lib/eenheden'
+import ReceptKiezer from '../components/ReceptKiezer'
 
 const MAALTIJD_TYPES = ['diner', 'lunch', 'bijgerecht', 'tapas', 'ontbijt', 'snack', 'dessert']
 const BESCHIKBARE_TAGS = ['kip', 'lamsvlees', 'rund', 'varken', 'vis', 'garnalen', 'vegetarisch', 'vegan',
@@ -43,6 +44,7 @@ export default function ReceptToevoegen() {
   const [geselecteerdeTags, setGeselecteerdeTags] = useState<string[]>([])
   const [nieuwTag, setNieuwTag] = useState('')
   const [ingredienten, setIngredienten] = useState<IngredientRij[]>([leegIngredient()])
+  const [onderdelen, setOnderdelen] = useState<Onderdeel[]>([])
   const [bereiding, setBereiding] = useState([''])
   const [calorieen, setCalorieen] = useState('')
   const [koolhydraten, setKoolhydraten] = useState('')
@@ -72,6 +74,7 @@ export default function ReceptToevoegen() {
     setGeselecteerdeMaaltijd(tagsZonderRecept.filter(t => MAALTIJD_TYPES.includes(t)))
     setGeselecteerdeTags(tagsZonderRecept.filter(t => !MAALTIJD_TYPES.includes(t)))
     setIngredienten(bestaandRecept.ingredienten.map(i => ({ ...i, _key: Math.random(), categorie: i.categorie || categoriseer(i.naam), _manuelleCategorie: !!i.categorie })))
+    setOnderdelen(bestaandRecept.onderdelen ?? [])
     setBereiding(bestaandRecept.bereiding)
     setCalorieen(String(bestaandRecept.voedingswaarden.per_portie.calorieen || ''))
     setKoolhydraten(String(bestaandRecept.voedingswaarden.per_portie.koolhydraten || ''))
@@ -261,6 +264,7 @@ export default function ReceptToevoegen() {
           voorraadkast,
           categorie: categorie || categoriseer(naam.trim()),
         })),
+      onderdelen: onderdelen.filter(od => od.recept_id && od.porties > 0),
       bereiding: bereiding.filter(s => s.trim()),
       voedingswaarden: {
         per_portie: { calorieen: cal, koolhydraten: kh, eiwitten: eiw, vetten: vet },
@@ -547,6 +551,44 @@ export default function ReceptToevoegen() {
         <button type="button" onClick={() => setIngredienten(prev => [...prev, leegIngredient()])}
           className="mt-4 text-sm text-terracotta-600 hover:text-terracotta-700 font-semibold btn-magnetic transition-colors">
           + Ingrediënt toevoegen
+        </button>
+      </div>
+
+      <div className={sectionCls}>
+        <h2 className="font-semibold text-olive-700 text-sm uppercase tracking-widest mb-1">Onderdelen</h2>
+        <p className="text-xs text-olive-700/50 mb-4">
+          Andere recepten die in dit gerecht gebruikt worden. Hun ingrediënten verschijnen automatisch
+          op de boodschappenlijst, hun macro's tellen mee.
+        </p>
+        <div className="space-y-2">
+          {onderdelen.map((od, idx) => (
+            <div key={idx} className="flex gap-2 items-center">
+              <ReceptKiezer
+                value={od.recept_id}
+                excludeIds={isBewerkModus && id ? [id] : []}
+                onChange={recept_id =>
+                  setOnderdelen(prev => prev.map((o, i) => i === idx ? { ...o, recept_id } : o))
+                }
+              />
+              <input
+                type="number"
+                min={0}
+                step={arrowStap(od.porties)}
+                value={od.porties}
+                onChange={e => setOnderdelen(prev => prev.map((o, i) => i === idx ? { ...o, porties: parseFloat(e.target.value) || 0 } : o))}
+                className="w-20 px-3 py-2 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 text-right tabular-nums focus:outline-none focus:ring-2 focus:ring-terracotta-600/25"
+              />
+              <span className="text-xs text-olive-700/50 font-medium whitespace-nowrap">porties</span>
+              <button type="button" onClick={() => setOnderdelen(prev => prev.filter((_, i) => i !== idx))}
+                className="w-9 h-9 rounded-xl border border-olive-700/8 text-olive-700/25 hover:text-terracotta-600 hover:border-terracotta-200 text-sm transition-all btn-magnetic flex-shrink-0 flex items-center justify-center">
+                ✕
+              </button>
+            </div>
+          ))}
+        </div>
+        <button type="button" onClick={() => setOnderdelen(prev => [...prev, { recept_id: '', porties: 1 }])}
+          className="mt-4 text-sm text-terracotta-600 hover:text-terracotta-700 font-semibold btn-magnetic transition-colors">
+          + Onderdeel toevoegen
         </button>
       </div>
 

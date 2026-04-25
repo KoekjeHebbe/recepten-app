@@ -267,18 +267,52 @@ function haalMacrosViaGemini(array $ingredienten): array {
     return $resultaat;
 }
 
+// ─── Onderdelen normaliseren ─────────────────────────────────────────────────
+
+/**
+ * Filter en valideer onderdelen-array. Drop entries die:
+ * - lege recept_id of niet-positieve porties hebben
+ * - naar zichzelf verwijzen
+ * - naar een niet-bestaand recept verwijzen
+ * - naar een recept verwijzen dat zelf onderdelen heeft (single-level guard)
+ */
+function normaliseerOnderdelen(array $onderdelen, ?string $eigenId): array {
+    $resultaat = [];
+    foreach ($onderdelen as $od) {
+        if (!is_array($od)) continue;
+        $rid = isset($od['recept_id']) ? trim((string)$od['recept_id']) : '';
+        $porties = isset($od['porties']) ? (float)$od['porties'] : 0;
+        if ($rid === '' || $porties <= 0) continue;
+        if ($eigenId !== null && $rid === $eigenId) continue;
+
+        $stmt = db()->prepare('SELECT data FROM recepten WHERE id = ?');
+        $stmt->execute([$rid]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$row) continue;
+        $subData = json_decode($row['data'], true);
+        if (!empty($subData['onderdelen'])) continue;
+
+        $resultaat[] = ['recept_id' => $rid, 'porties' => $porties];
+    }
+    return $resultaat;
+}
+
 // ─── Voedingswaarden herberekenen ────────────────────────────────────────────
 
 /**
- * Herbereken voedingswaarden op basis van macros_referentie per ingrediënt.
+ * Herbereken voedingswaarden op basis van macros_referentie per ingrediënt en
+ * de per_portie van eventuele sub-recepten (onderdelen).
  * Formule: hoeveelheid × canonical_factor × macros_per_canonical_unit
+ *        + sub.per_portie × porties
  */
 function herbereken_voedingswaarden(array &$data): void {
     $ingredienten = $data['ingredienten'] ?? [];
+    $onderdelen   = $data['onderdelen']   ?? [];
     $personen     = max(1, (int)($data['personen'] ?? 1));
 
     $totaal      = ['calorieen' => 0.0, 'koolhydraten' => 0.0, 'eiwitten' => 0.0, 'vetten' => 0.0];
-    $heeftMacros = false;
+    $heeftBron   = false;
+    $isSchatting = false;
 
     foreach ($ingredienten as $rawIng) {
         $ing         = normaliseerIngredient($rawIng);
@@ -289,19 +323,40 @@ function herbereken_voedingswaarden(array &$data): void {
         $canonischFactor = naarCanonischeFactor($ing['eenheid'] ?? '');
         $canonical       = $hoeveelheid * $canonischFactor;
         $ref             = referentieHoeveelheid(canonischeEenheid($ing['eenheid'] ?? ''));
-        $heeftMacros     = true;
+        $heeftBron       = true;
 
         foreach (['calorieen', 'koolhydraten', 'eiwitten', 'vetten'] as $key) {
             $totaal[$key] += (float)($macros[$key] ?? 0) * $canonical / $ref;
         }
     }
 
-    if (!$heeftMacros) return;
+    foreach ($onderdelen as $od) {
+        $rid = $od['recept_id'] ?? '';
+        $porties = (float)($od['porties'] ?? 0);
+        if ($rid === '' || $porties <= 0) continue;
+
+        $stmt = db()->prepare('SELECT data FROM recepten WHERE id = ?');
+        $stmt->execute([$rid]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$row) continue;
+        $sub = json_decode($row['data'], true);
+        $pp = $sub['voedingswaarden']['per_portie'] ?? null;
+        if (!$pp) continue;
+
+        $heeftBron = true;
+        if (!empty($sub['voedingswaarden']['schatting'])) $isSchatting = true;
+
+        foreach (['calorieen', 'koolhydraten', 'eiwitten', 'vetten'] as $key) {
+            $totaal[$key] += (float)($pp[$key] ?? 0) * $porties;
+        }
+    }
+
+    if (!$heeftBron) return;
 
     $data['voedingswaarden'] = [
         'totaal'     => array_map(fn($v) => (int) round($v), $totaal),
         'per_portie' => array_map(fn($v) => (int) round($v / $personen), $totaal),
-        'schatting'  => false,
+        'schatting'  => $isSchatting,
     ];
 }
 
@@ -363,7 +418,10 @@ if ($methode === 'POST' && !$receptId) {
     }
     unset($ing);
 
-    // Herbereken totale voedingswaarden op basis van ingrediënt-macros
+    // Valideer onderdelen (single-level, bestaande recepten, geen self-ref)
+    $data['onderdelen'] = normaliseerOnderdelen($data['onderdelen'] ?? [], $id);
+
+    // Herbereken totale voedingswaarden op basis van ingrediënt-macros + sub-recepten
     herbereken_voedingswaarden($data);
 
     $stmt = db()->prepare('INSERT INTO recepten (id, data, aangemaakt_door) VALUES (?, ?, ?)');
@@ -393,6 +451,9 @@ if ($methode === 'PUT' && $receptId) {
         $ing['macros_referentie'] = $macrosLijst[$i] ?? null;
     }
     unset($ing);
+
+    // Valideer onderdelen (single-level, bestaande recepten, geen self-ref)
+    $data['onderdelen'] = normaliseerOnderdelen($data['onderdelen'] ?? [], $receptId);
 
     herbereken_voedingswaarden($data);
 

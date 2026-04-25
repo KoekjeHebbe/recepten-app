@@ -66,11 +66,14 @@ export default function ReceptDetail() {
     }
   }
 
-  // Bereken totale macro's dynamisch via de per-ingrediënt bijdragen.
+  // Bereken totale macro's dynamisch via de per-ingrediënt bijdragen + scaled
+  // bijdragen van sub-recepten (onderdelen).
   const berekendeTotalen = useMemo(() => {
     if (!recept) return null
     const ingrs = recept.ingredienten
-    if (!ingrs.some(i => i.macros_referentie)) return null
+    const ods   = recept.onderdelen ?? []
+    const heeftBron = ingrs.some(i => i.macros_referentie) || ods.length > 0
+    if (!heeftBron) return null
 
     const aantalP = personen ?? recept.personen
     const f       = aantalP / recept.personen
@@ -82,6 +85,18 @@ export default function ReceptDetail() {
       cal += b.cal; kh += b.kh; eiwit += b.eiwit; vet += b.vet
     })
 
+    // Sub-recept bijdragen: per_portie × porties × f (parent-portie schaling)
+    for (const od of ods) {
+      const sub = alleRecepten.find(r => r.id === od.recept_id)
+      if (!sub) continue
+      const pp = sub.voedingswaarden.per_portie
+      const factor = od.porties * f
+      cal   += pp.calorieen    * factor
+      kh    += pp.koolhydraten * factor
+      eiwit += pp.eiwitten     * factor
+      vet   += pp.vetten       * factor
+    }
+
     return {
       totaal: {
         calorieen: Math.round(cal), koolhydraten: Math.round(kh),
@@ -92,7 +107,7 @@ export default function ReceptDetail() {
         eiwitten:  Math.round(eiwit / aantalP), vetten: Math.round(vet / aantalP),
       },
     }
-  }, [recept, aanpassingMultipliers, personen])
+  }, [recept, aanpassingMultipliers, personen, alleRecepten])
 
   // Flash-animatie op de macrosaarden bij elke update
   useEffect(() => {
@@ -387,6 +402,44 @@ export default function ReceptDetail() {
           })}
         </ul>
       </div>
+
+      {/* Onderdelen */}
+      {recept.onderdelen && recept.onderdelen.length > 0 && (
+        <div className="anim-in rounded-4xl bg-white border border-olive-700/8 shadow-card p-7 mb-4">
+          <h2 className="font-semibold text-olive-700 mb-4 text-sm uppercase tracking-widest">Onderdelen</h2>
+          <ul className="space-y-2.5">
+            {recept.onderdelen.map((od, idx) => {
+              const sub = alleRecepten.find(r => r.id === od.recept_id)
+              const geschaaldePorties = od.porties * factor
+              if (!sub) {
+                return (
+                  <li key={idx} className="flex items-center gap-3 text-sm text-olive-700/35 italic">
+                    <span className="w-9 h-9 rounded-xl bg-olive-700/5 flex-shrink-0" />
+                    <span>Onbekend onderdeel — verwijderd</span>
+                  </li>
+                )
+              }
+              return (
+                <li key={idx}>
+                  <Link to={`/recept/${sub.id}`}
+                    className="flex items-center gap-3 text-sm text-olive-700 hover:bg-cream rounded-2xl -mx-2 px-2 py-1.5 transition-colors group">
+                    {sub.afbeelding_url ? (
+                      <img src={sub.afbeelding_url} alt="" className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
+                    ) : (
+                      <span className="w-9 h-9 rounded-xl bg-olive-700/8 flex-shrink-0" />
+                    )}
+                    <span className="flex-1 font-medium group-hover:text-terracotta-600 transition-colors">{sub.titel}</span>
+                    <span className="text-olive-700/50 tabular-nums text-sm">
+                      {geschaaldePorties % 1 === 0 ? geschaaldePorties : geschaaldePorties.toFixed(2).replace(/\.?0+$/, '').replace('.', ',')} {geschaaldePorties === 1 ? 'portie' : 'porties'}
+                    </span>
+                    <ExternalLink size={13} className="text-olive-700/30 group-hover:text-terracotta-600 transition-colors" />
+                  </Link>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      )}
 
       {/* Bereiding */}
       <div className="anim-in rounded-4xl bg-white border border-olive-700/8 shadow-card p-7 mb-4">

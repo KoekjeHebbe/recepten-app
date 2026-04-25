@@ -17,7 +17,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { GripVertical, Copy, Check, ChevronDown } from 'lucide-react'
-import type { Recept } from '../types'
+import type { Recept, Ingredient } from '../types'
 import { DAGEN } from '../types'
 import { useWeekMenu } from '../store/weekmenu'
 import { useRecepten } from '../store/aangepaste-recepten'
@@ -36,6 +36,27 @@ interface CategoriGroep {
   items: GegroepeerdeIngredient[]
 }
 
+function voegToe(map: Map<string, GegroepeerdeIngredient>, ing: Ingredient, factor: number) {
+  const sleutel = ing.naam.toLowerCase().trim()
+  const geschaald = ing.hoeveelheid !== null && ing.hoeveelheid !== undefined
+    ? ing.hoeveelheid * factor
+    : null
+  const hvStr = geschaald !== null
+    ? formateerHoeveelheid(geschaald, ing.eenheid ?? '')
+    : null
+  if (map.has(sleutel)) {
+    const bestaand = map.get(sleutel)!
+    if (hvStr) bestaand.hoeveelheden.push(hvStr)
+  } else {
+    map.set(sleutel, {
+      naam: ing.naam,
+      hoeveelheden: hvStr ? [hvStr] : [],
+      voorraadkast: ing.voorraadkast,
+      categorie: ing.categorie || categoriseer(ing.naam),
+    })
+  }
+}
+
 function groepeerIngredienten(ids: string[], alleRecepten: Recept[]): GegroepeerdeIngredient[] {
   const geselecteerd = ids
     .map(id => alleRecepten.find(r => r.id === id))
@@ -44,22 +65,15 @@ function groepeerIngredienten(ids: string[], alleRecepten: Recept[]): Gegroepeer
   const map = new Map<string, GegroepeerdeIngredient>()
 
   for (const recept of geselecteerd) {
-    for (const ing of recept.ingredienten) {
-      const sleutel = ing.naam.toLowerCase().trim()
-      const hvStr = ing.hoeveelheid !== null && ing.hoeveelheid !== undefined
-        ? formateerHoeveelheid(ing.hoeveelheid, ing.eenheid ?? '')
-        : null
-      if (map.has(sleutel)) {
-        const bestaand = map.get(sleutel)!
-        if (hvStr) bestaand.hoeveelheden.push(hvStr)
-      } else {
-        map.set(sleutel, {
-          naam: ing.naam,
-          hoeveelheden: hvStr ? [hvStr] : [],
-          voorraadkast: ing.voorraadkast,
-          categorie: ing.categorie || categoriseer(ing.naam),
-        })
-      }
+    // Eigen ingrediënten — geen schaling, hoeveelheid zoals opgegeven
+    for (const ing of recept.ingredienten) voegToe(map, ing, 1)
+
+    // Onderdelen — sub-recept ingrediënten geschaald op (porties / sub.personen)
+    for (const od of recept.onderdelen ?? []) {
+      const sub = alleRecepten.find(r => r.id === od.recept_id)
+      if (!sub || !sub.personen) continue
+      const factor = od.porties / sub.personen
+      for (const ing of sub.ingredienten) voegToe(map, ing, factor)
     }
   }
 

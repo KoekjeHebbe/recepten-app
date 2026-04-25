@@ -20,6 +20,11 @@ export interface Voedingswaarden {
   schatting: boolean
 }
 
+export interface Onderdeel {
+  recept_id: string   // verwijzing naar een ander recept
+  porties: number     // aantal porties van dat recept (decimalen toegestaan)
+}
+
 export interface Recept {
   id: string
   titel: string
@@ -29,6 +34,7 @@ export interface Recept {
   afbeelding_url: string | null
   tags: string[]
   ingredienten: Ingredient[]
+  onderdelen?: Onderdeel[]
   bereiding: string[]
   voedingswaarden: Voedingswaarden
 }
