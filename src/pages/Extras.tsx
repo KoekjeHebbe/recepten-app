@@ -16,14 +16,32 @@ interface CacheEntry {
 
 const LEEG_MACROS: Macros = { calorieen: 0, koolhydraten: 0, eiwitten: 0, vetten: 0 }
 
+const CANONIEKE_EENHEDEN = ['g', 'ml', 'stuk', 'teen', 'plak', 'sneetje', 'handvol', 'snufje'] as const
+type CanoniekeEenheid = typeof CANONIEKE_EENHEDEN[number]
+
+// Splits "kipfilet (g)" → { basis: "kipfilet", eenheid: "g" }
+function parseNaam(naam: string): { basis: string; eenheid: CanoniekeEenheid } {
+  const m = naam.match(/^(.*?)\s*\((\w+)\)\s*$/)
+  if (m && (CANONIEKE_EENHEDEN as readonly string[]).includes(m[2])) {
+    return { basis: m[1].trim(), eenheid: m[2] as CanoniekeEenheid }
+  }
+  return { basis: naam.trim(), eenheid: 'g' }
+}
+
+function bouwNaam(basis: string, eenheid: CanoniekeEenheid): string {
+  return `${basis.trim()} (${eenheid})`
+}
+
+// Label voor de "Per"-kolom op basis van eenheid
+function eenheidLabel(eenheid: string): string {
+  if (eenheid === 'g') return '100g'
+  if (eenheid === 'ml') return '100ml'
+  return `1 ${eenheid}`
+}
+
 // Leid de referentie-eenheid af uit de naam (bijv. "kipfilet (g)" → "100g")
 function referentieLabel(naam: string): string {
-  const m = naam.match(/\((\w+)\)$/)
-  if (!m) return '100g'
-  const e = m[1]
-  if (e === 'g') return '100g'
-  if (e === 'ml') return '100ml'
-  return `1 ${e}`
+  return eenheidLabel(parseNaam(naam).eenheid)
 }
 
 export default function Extras() {
@@ -37,10 +55,12 @@ export default function Extras() {
   const [paginaGrootte, setPaginaGrootte] = useState(50)
   const [laden, setLaden]             = useState(true)
   const [bewerkHash, setBewerkHash]   = useState<string | null>(null)
-  const [bewerkNaam, setBewerkNaam]   = useState('')
+  const [bewerkBasis, setBewerkBasis] = useState('')
+  const [bewerkEenheid, setBewerkEenheid] = useState<CanoniekeEenheid>('g')
   const [bewerkMacros, setBewerkMacros] = useState<Macros>(LEEG_MACROS)
   const [toonToevoegen, setToonToevoegen] = useState(false)
-  const [nieuwNaam, setNieuwNaam]     = useState('')
+  const [nieuwBasis, setNieuwBasis]   = useState('')
+  const [nieuwEenheid, setNieuwEenheid] = useState<CanoniekeEenheid>('g')
   const [nieuwMacros, setNieuwMacros] = useState<Macros>(LEEG_MACROS)
   const [opslaan, setOpslaan]         = useState(false)
 
@@ -83,25 +103,26 @@ export default function Extras() {
   }
 
   function startBewerken(entry: CacheEntry) {
+    const { basis, eenheid } = parseNaam(entry.naam)
     setBewerkHash(entry.naam_hash)
-    setBewerkNaam(entry.naam)
+    setBewerkBasis(basis)
+    setBewerkEenheid(eenheid)
     setBewerkMacros({ ...entry.macros })
   }
 
   async function slaBewerkenOp() {
-    if (!bewerkHash) return
+    if (!bewerkHash || !bewerkBasis.trim()) return
     setOpslaan(true)
     try {
-      const payload: { macros: Macros; naam?: string } = { macros: bewerkMacros }
       const origEntry = entries.find(e => e.naam_hash === bewerkHash)
-      if (bewerkNaam.trim() && bewerkNaam.trim() !== origEntry?.naam) {
-        payload.naam = bewerkNaam.trim()
-      }
+      const samengesteldeNaam = bouwNaam(bewerkBasis, bewerkEenheid)
+      const payload: { macros: Macros; naam?: string } = { macros: bewerkMacros }
+      if (samengesteldeNaam !== origEntry?.naam) payload.naam = samengesteldeNaam
       const result = await api.put<{ ok: boolean; naam_hash?: string; naam?: string; macros?: Macros }>(
         `/cache/${bewerkHash}`, payload
       )
       const nieuweHash = result.naam_hash ?? bewerkHash
-      const nieuweNaam = result.naam ?? origEntry?.naam ?? bewerkNaam
+      const nieuweNaam = result.naam ?? origEntry?.naam ?? samengesteldeNaam
       setEntries(prev => prev.map(e =>
         e.naam_hash === bewerkHash
           ? { ...e, naam_hash: nieuweHash, naam: nieuweNaam, macros: bewerkMacros }
@@ -120,15 +141,17 @@ export default function Extras() {
   }
 
   async function voegToe() {
-    if (!nieuwNaam.trim()) return
+    if (!nieuwBasis.trim()) return
     setOpslaan(true)
     try {
-      const entry = await api.post<CacheEntry>('/cache', { naam: nieuwNaam.trim(), macros: nieuwMacros })
+      const samengestelde = bouwNaam(nieuwBasis, nieuwEenheid)
+      const entry = await api.post<CacheEntry>('/cache', { naam: samengestelde, macros: nieuwMacros })
       setEntries(prev => {
         const gefilterd = prev.filter(e => e.naam_hash !== entry.naam_hash)
         return [entry, ...gefilterd].sort((a, b) => a.naam.localeCompare(b.naam))
       })
-      setNieuwNaam('')
+      setNieuwBasis('')
+      setNieuwEenheid('g')
       setNieuwMacros(LEEG_MACROS)
       setToonToevoegen(false)
     } finally {
@@ -149,6 +172,7 @@ export default function Extras() {
           type="number"
           min={0}
           value={state[key]}
+          onFocus={e => e.target.select()}
           onChange={e => setState({ ...state, [key]: Number(e.target.value) })}
           className="w-20 text-sm text-right tabular-nums border border-olive-700/15 rounded-xl px-2 py-1 bg-cream focus:outline-none focus:border-olive-700/40"
         />
@@ -212,17 +236,31 @@ export default function Extras() {
         <div className="anim-in rounded-4xl bg-white border border-olive-700/8 shadow-card p-6 mb-4">
           <h2 className="font-semibold text-olive-700 text-sm uppercase tracking-widest mb-4">Nieuw ingrediënt</h2>
           <div className="flex flex-col gap-4">
-            <div>
-              <label className="text-[10px] text-olive-700/40 uppercase tracking-widest font-semibold block mb-1">Naam (incl. hoeveelheid)</label>
-              <input
-                type="text"
-                placeholder="bijv. 200g kipfilet"
-                value={nieuwNaam}
-                onChange={e => setNieuwNaam(e.target.value)}
-                className="w-full border border-olive-700/15 rounded-2xl px-4 py-2.5 text-sm text-olive-700 bg-cream focus:outline-none focus:border-olive-700/40"
-              />
+            <div className="flex gap-2 items-end">
+              <div className="flex-1">
+                <label className="text-[10px] text-olive-700/40 uppercase tracking-widest font-semibold block mb-1">Naam</label>
+                <input
+                  type="text"
+                  placeholder="bijv. kipfilet"
+                  value={nieuwBasis}
+                  onChange={e => setNieuwBasis(e.target.value)}
+                  className="w-full border border-olive-700/15 rounded-2xl px-4 py-2.5 text-sm text-olive-700 bg-cream focus:outline-none focus:border-olive-700/40"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] text-olive-700/40 uppercase tracking-widest font-semibold block mb-1">Per</label>
+                <select
+                  value={nieuwEenheid}
+                  onChange={e => setNieuwEenheid(e.target.value as CanoniekeEenheid)}
+                  className="border border-olive-700/15 rounded-2xl px-3 py-2.5 text-sm text-olive-700 bg-cream focus:outline-none focus:border-olive-700/40 cursor-pointer"
+                >
+                  {CANONIEKE_EENHEDEN.map(e => (
+                    <option key={e} value={e}>{eenheidLabel(e)}</option>
+                  ))}
+                </select>
+              </div>
             </div>
-            <p className="text-[10px] text-olive-700/35 -mt-2">Waarden per 100g / 100ml / 1 stuk</p>
+            <p className="text-[10px] text-olive-700/35 -mt-2">Macro-waarden gelden per {eenheidLabel(nieuwEenheid)}</p>
             <div className="flex flex-wrap gap-4">
               {macroInput('Calorieën (kcal)', 'calorieen',    nieuwMacros, setNieuwMacros)}
               {macroInput('Koolhydraten (g)', 'koolhydraten', nieuwMacros, setNieuwMacros)}
@@ -238,7 +276,7 @@ export default function Extras() {
               </button>
               <button
                 onClick={voegToe}
-                disabled={opslaan || !nieuwNaam.trim()}
+                disabled={opslaan || !nieuwBasis.trim()}
                 className="text-sm font-semibold px-5 py-2 rounded-full bg-olive-700 text-cream hover:bg-olive-800 transition-all btn-magnetic disabled:opacity-40"
               >
                 {opslaan ? 'Opslaan…' : 'Opslaan'}
@@ -270,37 +308,54 @@ export default function Extras() {
               </tr>
             </thead>
             <tbody className="divide-y divide-olive-700/4">
-              {entries.map(entry => (
-                <tr key={entry.naam_hash} className="hover:bg-cream/60 transition-colors group">
-                  <td className="px-6 py-3 text-olive-700 font-medium max-w-xs truncate">{entry.naam}</td>
-
-                  {bewerkHash === entry.naam_hash ? (
-                    <>
-                      <td className="px-6 py-2">
+              {entries.map(entry => {
+                const inBewerking = bewerkHash === entry.naam_hash
+                return (
+                <tr key={entry.naam_hash} className="hover:bg-cream/60 transition-colors group align-middle">
+                  <td className="px-6 py-3 max-w-xs">
+                    {inBewerking ? (
+                      <div className="flex gap-2 items-center">
                         <input
                           type="text"
-                          value={bewerkNaam}
-                          onChange={e => setBewerkNaam(e.target.value)}
-                          className="w-full text-sm border border-olive-700/20 rounded-lg px-2 py-1 bg-cream text-olive-700 focus:outline-none focus:border-olive-700/40"
+                          value={bewerkBasis}
+                          onChange={e => setBewerkBasis(e.target.value)}
+                          className="flex-1 text-sm border border-olive-700/20 rounded-lg px-2 py-1 bg-cream text-olive-700 focus:outline-none focus:border-olive-700/40"
                         />
-                      </td>
+                        <select
+                          value={bewerkEenheid}
+                          onChange={e => setBewerkEenheid(e.target.value as CanoniekeEenheid)}
+                          className="text-xs border border-olive-700/20 rounded-lg px-1.5 py-1 bg-cream text-olive-700 focus:outline-none focus:border-olive-700/40 cursor-pointer"
+                        >
+                          {CANONIEKE_EENHEDEN.map(e => (
+                            <option key={e} value={e}>{e}</option>
+                          ))}
+                        </select>
+                      </div>
+                    ) : (
+                      <span className="text-olive-700 font-medium truncate block">{entry.naam}</span>
+                    )}
+                  </td>
+
+                  {inBewerking ? (
+                    <>
                       {(['calorieen', 'koolhydraten', 'eiwitten', 'vetten'] as (keyof Macros)[]).map(key => (
                         <td key={key} className="px-2 py-2 text-right">
                           <input
                             type="number"
                             min={0}
                             value={bewerkMacros[key]}
+                            onFocus={e => e.target.select()}
                             onChange={e => setBewerkMacros(prev => ({ ...prev, [key]: Number(e.target.value) }))}
                             className="w-16 text-right tabular-nums border border-olive-700/20 rounded-lg px-2 py-1 bg-cream text-sm focus:outline-none focus:border-olive-700/40"
                           />
                         </td>
                       ))}
-                      <td className="px-4 py-3 text-right text-[10px] text-olive-700/30">{referentieLabel(entry.naam)}</td>
+                      <td className="px-4 py-3 text-right text-[10px] text-olive-700/30 font-medium">{eenheidLabel(bewerkEenheid)}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1 justify-end">
                           <button
                             onClick={slaBewerkenOp}
-                            disabled={opslaan}
+                            disabled={opslaan || !bewerkBasis.trim()}
                             className="w-7 h-7 rounded-full bg-olive-700 text-cream flex items-center justify-center hover:bg-olive-800 transition-all disabled:opacity-40"
                           >
                             <Check size={12} />
@@ -340,7 +395,8 @@ export default function Extras() {
                     </>
                   )}
                 </tr>
-              ))}
+                )
+              })}
             </tbody>
           </table>
         )}

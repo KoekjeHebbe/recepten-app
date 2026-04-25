@@ -61,18 +61,40 @@ if ($methode === 'POST' && !$hash) {
     json(['naam_hash' => $naamHash, 'naam' => $naam, 'macros' => $macros]);
 }
 
-// PUT /api/cache/{hash} — macros van een bestaande entry bijwerken
+// PUT /api/cache/{hash} — macros en/of naam van een bestaande entry bijwerken
 if ($methode === 'PUT' && $hash) {
-    $data   = body();
-    $macros = $data['macros'] ?? null;
-    if (!$macros) error('macros zijn verplicht');
+    $data       = body();
+    $macros     = $data['macros'] ?? null;
+    $nieuweNaam = isset($data['naam']) ? trim((string)$data['naam']) : null;
+    if (!$macros && !$nieuweNaam) error('macros of naam zijn verplicht');
 
-    $stmt = db()->prepare(
-        'UPDATE ingredient_macros_cache SET macros = ?, bijgewerkt_op = NOW() WHERE naam_hash = ?'
-    );
-    $stmt->execute([json_encode($macros), $hash]);
-    if ($stmt->rowCount() === 0) error('Niet gevonden', 404);
-    json(['ok' => true]);
+    $huidig = db()->prepare('SELECT naam, macros FROM ingredient_macros_cache WHERE naam_hash = ?');
+    $huidig->execute([$hash]);
+    $rij = $huidig->fetch(PDO::FETCH_ASSOC);
+    if (!$rij) error('Niet gevonden', 404);
+
+    $finaleNaam   = $nieuweNaam !== null && $nieuweNaam !== '' ? $nieuweNaam : $rij['naam'];
+    $finaleMacros = $macros ?: json_decode($rij['macros'], true);
+    $finaleHash   = hash('sha256', strtolower($finaleNaam));
+
+    if ($finaleHash !== $hash) {
+        $check = db()->prepare('SELECT 1 FROM ingredient_macros_cache WHERE naam_hash = ?');
+        $check->execute([$finaleHash]);
+        if ($check->fetchColumn()) error('Een entry met deze naam bestaat al', 409);
+    }
+
+    db()->prepare(
+        'UPDATE ingredient_macros_cache
+         SET naam_hash = ?, naam = ?, macros = ?, bijgewerkt_op = NOW()
+         WHERE naam_hash = ?'
+    )->execute([$finaleHash, $finaleNaam, json_encode($finaleMacros), $hash]);
+
+    json([
+        'ok'        => true,
+        'naam_hash' => $finaleHash,
+        'naam'      => $finaleNaam,
+        'macros'    => $finaleMacros,
+    ]);
 }
 
 // DELETE /api/cache/{hash}
