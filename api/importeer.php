@@ -11,6 +11,121 @@ $url = trim($data['url'] ?? '');
 if (!$url || !filter_var($url, FILTER_VALIDATE_URL)) error('Ongeldige URL');
 if (!preg_match('/^https?:\/\//i', $url)) error('Alleen HTTP/HTTPS URLs zijn toegestaan');
 
+// ─── TikTok: beschrijving → Gemini → gestructureerd recept ──────────────────
+if (preg_match('/tiktok\.com/i', $url)) {
+    $beschrijving = trim($data['beschrijving'] ?? '');
+
+    // Stap 1: nog geen beschrijving → vraag de frontend om die te tonen
+    if (!$beschrijving) {
+        json(['tiktok' => true]);
+    }
+
+    // Stap 2: beschrijving ontvangen → parse met Gemini
+    if (!defined('GOOGLE_API_KEY') || !GOOGLE_API_KEY) error('Google API key niet geconfigureerd', 500);
+
+    $prompt = "Analyseer deze TikTok-videobeschrijving en extraheer het recept.\n"
+        . "Als er geen duidelijk recept in staat, antwoord dan ALLEEN met het woord: GEEN_RECEPT\n\n"
+        . "Beschrijving:\n" . $beschrijving . "\n\n"
+        . "Geef ALLEEN een JSON-object terug (geen uitleg, geen markdown, geen codeblok):\n"
+        . "{\"titel\":\"...\",\"personen\":4,\"ingredienten\":[{\"naam\":\"...\",\"hoeveelheid\":null,\"eenheid\":\"\",\"voorraadkast\":false}],\"bereiding\":[\"stap 1\",\"stap 2\"],\"tags\":[]}\n\n"
+        . "Regels:\n"
+        . "- titel: korte receptnaam in het Nederlands\n"
+        . "- personen: aantal porties (standaard 4 als niet vermeld)\n"
+        . "- ingredienten: elk ingredient apart, hoeveelheid als getal of null, eenheid uit [g,kg,ml,l,el,tl,kl,cup,stuk,teen,plak,sneetje,handvol,snufje] of lege string\n"
+        . "- bereiding: array van korte, duidelijke stappen in het Nederlands\n"
+        . "- tags: relevante tags uit [ontbijt,lunch,diner,snack,zoet,hartig,gezond,comfort,quick,pasta,soep,salade,ovenschotel,wok]\n"
+        . "- Als de beschrijving enkel ingrediënten noemt zonder bereiding, reconstrueer dan logische bereidingsstappen";
+
+    $payload = json_encode([
+        'contents'         => [['parts' => [['text' => $prompt]]]],
+        'generationConfig' => ['temperature' => 0.2, 'maxOutputTokens' => 4096],
+    ]);
+    $apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=' . GOOGLE_API_KEY;
+    $ch = curl_init($apiUrl);
+    curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => $payload, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 30, CURLOPT_HTTPHEADER => ['Content-Type: application/json']]);
+    $resp = curl_exec($ch);
+    curl_close($ch);
+
+    if (!$resp) error('Kon Gemini niet bereiken.', 502);
+
+    $respData = json_decode($resp, true);
+    $parts = $respData['candidates'][0]['content']['parts'] ?? [];
+    $tekst = '';
+    foreach ($parts as $part) {
+        if (!empty($part['text']) && empty($part['thought'])) { $tekst = $part['text']; break; }
+    }
+
+    if (stripos($tekst, 'GEEN_RECEPT') !== false) {
+        error('Geen recept gevonden in de beschrijving. Plak de volledige caption met ingrediënten.', 422);
+    }
+
+    $s = strpos($tekst, '{');
+    $e = strrpos($tekst, '}');
+    if ($s === false || $e <= $s) error('Kon het recept niet structureren uit de beschrijving.', 422);
+
+    $parsed = json_decode(substr($tekst, $s, $e - $s + 1), true);
+    if (!$parsed || empty($parsed['titel'])) error('Kon het recept niet structureren uit de beschrijving.', 422);
+
+    $personen     = max(1, (int)($parsed['personen'] ?? 4));
+    $ingredienten = [];
+    foreach (($parsed['ingredienten'] ?? []) as $ing) {
+        $ingredienten[] = [
+            'naam'         => $ing['naam'] ?? '',
+            'hoeveelheid'  => isset($ing['hoeveelheid']) && is_numeric($ing['hoeveelheid']) ? (float)$ing['hoeveelheid'] : null,
+            'eenheid'      => $ing['eenheid'] ?? '',
+            'voorraadkast' => (bool)($ing['voorraadkast'] ?? false),
+        ];
+    }
+
+    // Voedingswaarden schatten via Gemini
+    $cal = $kh = $eiw = $vet = 0;
+    if (!empty($ingredienten)) {
+        $ingLijst = implode(', ', array_map(fn($i) => ($i['hoeveelheid'] ? $i['hoeveelheid'] . ' ' . $i['eenheid'] . ' ' : '') . $i['naam'], $ingredienten));
+        $vraag = "Bereken de voedingswaarden per portie voor $personen personen van dit recept: $ingLijst. Geef alleen JSON terug: {\"calorieen\": 0, \"koolhydraten\": 0, \"eiwitten\": 0, \"vetten\": 0}. Alle waarden als gehele getallen.";
+        $macroPayload = json_encode([
+            'contents' => [['parts' => [['text' => $vraag]]]],
+            'generationConfig' => ['temperature' => 0.1, 'maxOutputTokens' => 100],
+        ]);
+        $ch2 = curl_init('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=' . GOOGLE_API_KEY);
+        curl_setopt_array($ch2, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => $macroPayload, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 15, CURLOPT_HTTPHEADER => ['Content-Type: application/json']]);
+        $macroResp = curl_exec($ch2);
+        curl_close($ch2);
+        if ($macroResp) {
+            $macroData = json_decode($macroResp, true);
+            $macroParts = $macroData['candidates'][0]['content']['parts'] ?? [];
+            $macroTekst = '';
+            foreach ($macroParts as $part) {
+                if (!empty($part['text']) && empty($part['thought'])) { $macroTekst = $part['text']; break; }
+            }
+            $ms = strpos($macroTekst, '{'); $me = strrpos($macroTekst, '}');
+            if ($ms !== false && $me > $ms) {
+                $macros = json_decode(substr($macroTekst, $ms, $me - $ms + 1), true);
+                if ($macros) {
+                    $cal = (int)($macros['calorieen'] ?? 0);
+                    $kh  = (int)($macros['koolhydraten'] ?? 0);
+                    $eiw = (int)($macros['eiwitten'] ?? 0);
+                    $vet = (int)($macros['vetten'] ?? 0);
+                }
+            }
+        }
+    }
+
+    json([
+        'titel'           => $parsed['titel'],
+        'personen'        => $personen,
+        'afbeelding_url'  => null,
+        'bron_url'        => $url,
+        'tags'            => $parsed['tags'] ?? [],
+        'ingredienten'    => $ingredienten,
+        'bereiding'       => $parsed['bereiding'] ?? [],
+        'voedingswaarden' => [
+            'per_portie' => ['calorieen' => $cal, 'koolhydraten' => $kh, 'eiwitten' => $eiw, 'vetten' => $vet],
+            'totaal'     => ['calorieen' => $cal * $personen, 'koolhydraten' => $kh * $personen, 'eiwitten' => $eiw * $personen, 'vetten' => $vet * $personen],
+            'schatting'  => true,
+        ],
+    ]);
+}
+
 // Haal de pagina op
 $context = stream_context_create([
     'http' => [
@@ -119,7 +234,7 @@ if (!$heeftMacros && defined('GOOGLE_API_KEY') && GOOGLE_API_KEY) {
         'contents' => [['parts' => [['text' => $vraag]]]],
         'generationConfig' => ['temperature' => 0.1, 'maxOutputTokens' => 100],
     ]);
-    $apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' . GOOGLE_API_KEY;
+    $apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=' . GOOGLE_API_KEY;
     $ch = curl_init($apiUrl);
     curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => $payload, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 15, CURLOPT_HTTPHEADER => ['Content-Type: application/json']]);
     $resp = curl_exec($ch);

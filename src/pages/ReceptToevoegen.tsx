@@ -54,6 +54,8 @@ export default function ReceptToevoegen() {
   const [importUrl, setImportUrl] = useState('')
   const [importLaden, setImportLaden] = useState(false)
   const [importFout, setImportFout] = useState('')
+  const [tiktokModus, setTiktokModus] = useState(false)
+  const [tiktokBeschrijving, setTiktokBeschrijving] = useState('')
   const [fotoPreview, setFotoPreview] = useState<string | null>(null)
   const [fotoMediaType, setFotoMediaType] = useState<string>('image/jpeg')
   const [fotoLaden, setFotoLaden] = useState(false)
@@ -136,12 +138,23 @@ export default function ReceptToevoegen() {
     }
   }
 
-  async function importeerViaUrl() {
+  async function importeerViaUrl(beschrijving?: string) {
     if (!importUrl.trim()) return
     setImportFout('')
     setImportLaden(true)
     try {
-      const res = await api.post<Recept & { voedingswaarden: Recept['voedingswaarden'] }>('/importeer', { url: importUrl.trim() })
+      const body: Record<string, string> = { url: importUrl.trim() }
+      if (beschrijving) body.beschrijving = beschrijving
+
+      const res = await api.post<Recept & { voedingswaarden: Recept['voedingswaarden']; tiktok?: boolean }>('/importeer', body)
+
+      // TikTok stap 1: backend vraagt om beschrijving
+      if (res.tiktok) {
+        setTiktokModus(true)
+        setImportLaden(false)
+        return
+      }
+
       setTitel(res.titel || '')
       setPersonen(res.personen || 4)
       setBronUrl(res.bron_url ?? importUrl.trim())
@@ -164,6 +177,8 @@ export default function ReceptToevoegen() {
         setVetten(String(vw.vetten || ''))
       }
       setImportUrl('')
+      setTiktokModus(false)
+      setTiktokBeschrijving('')
     } catch (err) {
       setImportFout(err instanceof Error ? err.message : 'Importeren mislukt')
     } finally {
@@ -297,13 +312,13 @@ export default function ReceptToevoegen() {
                 type="url"
                 value={importUrl}
                 onChange={e => setImportUrl(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && importeerViaUrl()}
-                placeholder="https://..."
+                onKeyDown={e => { if (e.key === 'Enter') importeerViaUrl() }}
+                placeholder="Recept-URL of TikTok-link plakken…"
                 className="flex-1 px-4 py-2.5 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 placeholder:text-olive-700/25 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25 transition-all"
               />
               <button
                 type="button"
-                onClick={importeerViaUrl}
+                onClick={() => importeerViaUrl()}
                 disabled={importLaden || !importUrl.trim()}
                 className="px-4 py-2.5 rounded-2xl bg-olive-700 text-cream text-sm font-semibold btn-magnetic transition-all disabled:opacity-40 flex items-center gap-1.5 whitespace-nowrap"
               >
@@ -312,6 +327,29 @@ export default function ReceptToevoegen() {
               </button>
             </div>
             {importFout && <p className="mt-2 text-xs text-terracotta-600">{importFout}</p>}
+
+            {/* TikTok: beschrijving plakken */}
+            {tiktokModus && (
+              <div className="mt-3 space-y-2">
+                <p className="text-xs text-olive-700/60">Plak de beschrijving van de TikTok-video hieronder (kopieer de caption met ingrediënten):</p>
+                <textarea
+                  value={tiktokBeschrijving}
+                  onChange={e => setTiktokBeschrijving(e.target.value)}
+                  placeholder="Bijv: Pasta met kip en pesto&#10;&#10;Ingrediënten:&#10;300g pasta&#10;2 kipfilets&#10;..."
+                  rows={5}
+                  className="w-full px-4 py-2.5 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 placeholder:text-olive-700/25 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25 transition-all resize-y"
+                />
+                <button
+                  type="button"
+                  onClick={() => importeerViaUrl(tiktokBeschrijving)}
+                  disabled={importLaden || !tiktokBeschrijving.trim()}
+                  className="px-4 py-2.5 rounded-2xl bg-olive-700 text-cream text-sm font-semibold btn-magnetic transition-all disabled:opacity-40 flex items-center gap-1.5"
+                >
+                  {importLaden && <Loader2 size={14} className="animate-spin" />}
+                  {importLaden ? 'Bezig…' : 'Importeer TikTok-recept'}
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Foto import */}
