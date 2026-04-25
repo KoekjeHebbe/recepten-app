@@ -19,6 +19,13 @@ function leegIngredient(): IngredientRij {
   return { naam: '', hoeveelheid: null, eenheid: 'g', voorraadkast: false, _key: Date.now() + Math.random() }
 }
 
+function arrowStap(waarde: number | null): number {
+  const w = waarde ?? 0
+  if (w >= 20) return 5
+  if (w >= 10) return 1
+  return 0.5
+}
+
 export default function ReceptToevoegen() {
   const navigate = useNavigate()
   const { id } = useParams()
@@ -451,7 +458,7 @@ export default function ReceptToevoegen() {
                 <input
                   type="number"
                   min={0}
-                  step="any"
+                  step={arrowStap(ing.hoeveelheid)}
                   value={ing.hoeveelheid ?? ''}
                   onChange={e => updateIngredient(idx, 'hoeveelheid', e.target.value === '' ? null : parseFloat(e.target.value))}
                   placeholder="0"
