@@ -43,6 +43,11 @@ export type Dag = 'maandag' | 'dinsdag' | 'woensdag' | 'donderdag' | 'vrijdag' |
 
 export const DAGEN: Dag[] = ['maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag', 'zondag']
 
+export interface WeekmenuItem {
+  recept_id: string
+  porties: number   // aantal mensen dat eet die dag
+}
+
 export interface WeekMenu {
-  [dag: string]: string[] // array of recept ids
+  [dag: string]: WeekmenuItem[]
 }

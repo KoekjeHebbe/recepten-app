@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { Heart, Plus, Users, Check, X } from 'lucide-react'
+import { Heart, Plus, Users, Check } from 'lucide-react'
 import type { Recept, Dag } from '../types'
 import { DAGEN } from '../types'
 import TagBadge from './TagBadge'
@@ -15,20 +15,35 @@ const MAALTIJD_TAGS = ['diner', 'lunch', 'bijgerecht', 'tapas', 'ontbijt', 'snac
 
 export default function ReceptKaart({ recept }: Props) {
   const { isFavoriet, toggleFavoriet } = useFavorieten()
-  const { menu, addToDay, removeFromDay } = useWeekMenu()
+  const { menu, addToDay, removeFromDay, setPorties } = useWeekMenu()
   const [dagPickerOpen, setDagPickerOpen] = useState(false)
+  const [pendingPorties, setPendingPorties] = useState<Record<string, number>>({})
+  const dagPickerRef = useRef<HTMLDivElement>(null)
 
   const favoriet = isFavoriet(recept.id)
   const maaltijdTag = recept.tags.find(t => MAALTIJD_TAGS.includes(t))
   const overigeTags = recept.tags.filter(t => t !== 'recept' && t !== maaltijdTag)
-  const dagenMetRecept = DAGEN.filter(dag => menu[dag].includes(recept.id))
+  const dagenMetRecept = DAGEN.filter(dag => menu[dag].some(it => it.recept_id === recept.id))
   const vw = recept.voedingswaarden.per_portie
 
+  useEffect(() => {
+    if (!dagPickerOpen) return
+    function onClick(e: MouseEvent) {
+      if (dagPickerRef.current && !dagPickerRef.current.contains(e.target as Node)) {
+        setDagPickerOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onClick)
+    return () => document.removeEventListener('mousedown', onClick)
+  }, [dagPickerOpen])
+
   function handleToggleDay(dag: Dag) {
-    if (menu[dag].includes(recept.id)) {
+    const reeds = menu[dag].some(it => it.recept_id === recept.id)
+    if (reeds) {
       removeFromDay(dag, recept.id)
     } else {
-      addToDay(dag, recept.id)
+      const porties = pendingPorties[dag] ?? recept.personen
+      addToDay(dag, recept.id, porties)
     }
   }
 
@@ -90,9 +105,9 @@ export default function ReceptKaart({ recept }: Props) {
 
         <div className="flex items-center gap-1.5 flex-shrink-0">
           {/* Weekmenu picker */}
-          <div className="relative">
+          <div className="relative" ref={dagPickerRef}>
             <button
-              onClick={() => setDagPickerOpen(p => !p)}
+              onClick={e => { e.preventDefault(); setDagPickerOpen(p => !p) }}
               className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all btn-magnetic ${
                 dagenMetRecept.length > 0
                   ? 'bg-olive-700 border-olive-700 text-white'
@@ -103,27 +118,54 @@ export default function ReceptKaart({ recept }: Props) {
               <Plus size={14} />
             </button>
             {dagPickerOpen && (
-              <div className="absolute right-0 bottom-full mb-2 bg-white rounded-3xl shadow-card-hover border border-olive-700/8 z-50 min-w-[168px] py-2 overflow-hidden">
-                {DAGEN.map(dag => (
-                  <button
-                    key={dag}
-                    onClick={() => handleToggleDay(dag)}
-                    className={`w-full text-left px-4 py-2.5 text-sm hover:bg-cream transition-colors flex items-center justify-between ${
-                      menu[dag].includes(recept.id) ? 'text-olive-700 font-semibold' : 'text-olive-700/70'
-                    }`}
-                  >
-                    <span className="capitalize">{dag}</span>
-                    {menu[dag].includes(recept.id) && <Check size={12} className="text-terracotta-600" />}
-                  </button>
-                ))}
-                <div className="border-t border-olive-700/6 mt-1 pt-1">
-                  <button
-                    onClick={() => setDagPickerOpen(false)}
-                    className="w-full text-left px-4 py-2 text-xs text-olive-700/40 hover:bg-cream transition-colors flex items-center gap-1.5"
-                  >
-                    <X size={10} /> Sluiten
-                  </button>
-                </div>
+              <div className="absolute right-0 bottom-full mb-2 bg-white rounded-3xl shadow-card-hover border border-olive-700/8 z-50 min-w-[220px] py-2 overflow-hidden">
+                {DAGEN.map(dag => {
+                  const item = menu[dag].find(it => it.recept_id === recept.id)
+                  const geselecteerd = !!item
+                  const portiesWaarde = item ? item.porties : (pendingPorties[dag] ?? recept.personen)
+                  return (
+                    <div
+                      key={dag}
+                      className={`flex items-center gap-2 px-4 py-2 hover:bg-cream transition-colors ${
+                        geselecteerd ? 'text-olive-700' : 'text-olive-700/70'
+                      }`}
+                    >
+                      <button
+                        onClick={e => { e.preventDefault(); handleToggleDay(dag) }}
+                        className="flex-1 text-left text-sm flex items-center gap-2"
+                      >
+                        {geselecteerd ? (
+                          <Check size={12} className="text-terracotta-600 flex-shrink-0" />
+                        ) : (
+                          <span className="w-3 h-3 flex-shrink-0" />
+                        )}
+                        <span className={`capitalize ${geselecteerd ? 'font-semibold' : ''}`}>{dag}</span>
+                      </button>
+                      <input
+                        type="number"
+                        min={1}
+                        value={portiesWaarde}
+                        onClick={e => { e.preventDefault(); e.stopPropagation() }}
+                        onFocus={e => e.target.select()}
+                        onChange={e => {
+                          const n = parseFloat(e.target.value)
+                          if (!Number.isFinite(n) || n <= 0) return
+                          if (geselecteerd) {
+                            setPorties(dag, recept.id, n)
+                          } else {
+                            setPendingPorties(prev => ({ ...prev, [dag]: n }))
+                          }
+                        }}
+                        title="Aantal personen"
+                        className={`w-12 text-xs text-right tabular-nums border rounded-lg px-1.5 py-1 focus:outline-none focus:border-olive-700/40 transition-opacity ${
+                          geselecteerd
+                            ? 'border-olive-700/20 bg-cream text-olive-700'
+                            : 'border-olive-700/10 bg-white text-olive-700/50 opacity-60'
+                        }`}
+                      />
+                    </div>
+                  )
+                })}
               </div>
             )}
           </div>

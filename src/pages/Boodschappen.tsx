@@ -17,7 +17,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { GripVertical, Copy, Check, ChevronDown } from 'lucide-react'
-import type { Recept, Ingredient } from '../types'
+import type { Recept, Ingredient, WeekmenuItem } from '../types'
 import { DAGEN } from '../types'
 import { useWeekMenu } from '../store/weekmenu'
 import { useRecepten } from '../store/aangepaste-recepten'
@@ -57,23 +57,24 @@ function voegToe(map: Map<string, GegroepeerdeIngredient>, ing: Ingredient, fact
   }
 }
 
-function groepeerIngredienten(ids: string[], alleRecepten: Recept[]): GegroepeerdeIngredient[] {
-  const geselecteerd = ids
-    .map(id => alleRecepten.find(r => r.id === id))
-    .filter(Boolean) as Recept[]
-
+function groepeerIngredienten(items: WeekmenuItem[], alleRecepten: Recept[]): GegroepeerdeIngredient[] {
   const map = new Map<string, GegroepeerdeIngredient>()
 
-  for (const recept of geselecteerd) {
-    // Eigen ingrediënten — geen schaling, hoeveelheid zoals opgegeven
-    for (const ing of recept.ingredienten) voegToe(map, ing, 1)
+  for (const item of items) {
+    const recept = alleRecepten.find(r => r.id === item.recept_id)
+    if (!recept || !recept.personen) continue
+    // Schaal op aantal eters: porties (gepland) / personen (recept)
+    const factor = item.porties / recept.personen
 
-    // Onderdelen — sub-recept ingrediënten geschaald op (porties / sub.personen)
+    for (const ing of recept.ingredienten) voegToe(map, ing, factor)
+
+    // Onderdelen — sub-recept ingrediënten geschaald op het ouder-recept én
+    // op (od.porties / sub.personen) voor de sub-recept verhouding.
     for (const od of recept.onderdelen ?? []) {
       const sub = alleRecepten.find(r => r.id === od.recept_id)
       if (!sub || !sub.personen) continue
-      const factor = od.porties / sub.personen
-      for (const ing of sub.ingredienten) voegToe(map, ing, factor)
+      const subFactor = factor * (od.porties / sub.personen)
+      for (const ing of sub.ingredienten) voegToe(map, ing, subFactor)
     }
   }
 
@@ -173,13 +174,13 @@ export default function Boodschappen() {
   const [gekopieerd, setGekopieerd] = useState(false)
   const [voorraadTonen, setVoorraadTonen] = useState(false)
 
-  const alleIds = useMemo(() => {
-    const ids: string[] = []
-    DAGEN.forEach(dag => ids.push(...menu[dag]))
-    return ids
+  const alleItems = useMemo(() => {
+    const arr: WeekmenuItem[] = []
+    DAGEN.forEach(dag => arr.push(...menu[dag]))
+    return arr
   }, [menu])
 
-  const items = useMemo(() => groepeerIngredienten(alleIds, alleRecepten), [alleIds, alleRecepten])
+  const items = useMemo(() => groepeerIngredienten(alleItems, alleRecepten), [alleItems, alleRecepten])
   const boodschappen = items.filter(i => !i.voorraadkast)
   const voorraad = items.filter(i => i.voorraadkast)
 
@@ -202,9 +203,9 @@ export default function Boodschappen() {
   )
 
   const betrokkenRecepten = useMemo(() => {
-    const uniekeIds = [...new Set(alleIds)]
+    const uniekeIds = [...new Set(alleItems.map(it => it.recept_id))]
     return uniekeIds.map(id => alleRecepten.find(r => r.id === id)).filter(Boolean) as Recept[]
-  }, [alleIds, alleRecepten])
+  }, [alleItems, alleRecepten])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -227,7 +228,7 @@ export default function Boodschappen() {
     setTimeout(() => setGekopieerd(false), 2500)
   }
 
-  if (alleIds.length === 0) {
+  if (alleItems.length === 0) {
     return (
       <div className="text-center py-20 text-olive-700/40">
         <p className="text-4xl mb-4">🛒</p>

@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { useRef } from 'react'
 import { useGSAP } from '@gsap/react'
 import gsap from 'gsap'
-import type { Recept, Dag } from '../types'
+import type { Recept, Dag, WeekmenuItem } from '../types'
 import { DAGEN } from '../types'
 import { useWeekMenu } from '../store/weekmenu'
 import { useRecepten } from '../store/aangepaste-recepten'
@@ -10,7 +10,7 @@ import { useRecepten } from '../store/aangepaste-recepten'
 gsap.registerPlugin()
 
 export default function Weekmenu() {
-  const { menu, removeFromDay, clearAll } = useWeekMenu()
+  const { menu, removeFromDay, setPorties, clearAll } = useWeekMenu()
   const { alleRecepten } = useRecepten()
   const containerRef = useRef<HTMLDivElement>(null)
   const totalItems = DAGEN.reduce((sum, dag) => sum + menu[dag].length, 0)
@@ -58,10 +58,19 @@ export default function Weekmenu() {
 
       <div className="space-y-2">
         {DAGEN.map(dag => {
-          const ids = menu[dag]
-          const dagRecepten = ids.map(getRecept).filter(Boolean) as Recept[]
-          const kcalTotaal = dagRecepten.reduce((sum, r) => sum + r.voedingswaarden.per_portie.calorieen, 0)
-          const heeftRecepten = dagRecepten.length > 0
+          const items = menu[dag]
+          const dagItems: { item: WeekmenuItem; recept: Recept }[] = items
+            .map(item => {
+              const recept = getRecept(item.recept_id)
+              return recept ? { item, recept } : null
+            })
+            .filter((x): x is { item: WeekmenuItem; recept: Recept } => x !== null)
+
+          const kcalTotaal = dagItems.reduce(
+            (sum, { item, recept }) => sum + recept.voedingswaarden.per_portie.calorieen * item.porties,
+            0
+          )
+          const heeftRecepten = dagItems.length > 0
 
           return (
             <div key={dag} className="dag-rij rounded-3xl bg-white border border-olive-700/8 shadow-card overflow-hidden">
@@ -69,7 +78,7 @@ export default function Weekmenu() {
                 <h2 className="font-semibold text-olive-700 capitalize text-sm tracking-wide">{dag}</h2>
                 {heeftRecepten && (
                   <span className="text-[11px] font-semibold text-olive-700/40 tabular-nums">
-                    {kcalTotaal} kcal/pers.
+                    {Math.round(kcalTotaal)} kcal
                   </span>
                 )}
               </div>
@@ -78,18 +87,44 @@ export default function Weekmenu() {
                 <div className="px-5 py-3.5 text-xs text-olive-700/25 italic">Nog niets gepland</div>
               ) : (
                 <ul className="divide-y divide-olive-700/4">
-                  {dagRecepten.map(r => (
-                    <li key={r.id} className="flex items-center justify-between px-5 py-3">
+                  {dagItems.map(({ item, recept }) => (
+                    <li key={recept.id} className="flex items-center justify-between px-5 py-3">
                       <Link
-                        to={`/recept/${r.id}`}
+                        to={`/recept/${recept.id}`}
                         className="text-sm font-medium text-olive-700 hover:text-terracotta-600 transition-colors flex-1 truncate"
                       >
-                        {r.titel}
+                        {recept.titel}
                       </Link>
                       <div className="flex items-center gap-3 ml-3 flex-shrink-0">
-                        <span className="text-[11px] text-olive-700/30 font-medium">👥 {r.personen}</span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => setPorties(dag as Dag, recept.id, Math.max(1, item.porties - 1))}
+                            disabled={item.porties <= 1}
+                            className="w-6 h-6 rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 disabled:opacity-30 flex items-center justify-center text-olive-700 text-xs transition-all btn-magnetic"
+                          >
+                            −
+                          </button>
+                          <input
+                            type="number"
+                            min={1}
+                            value={item.porties}
+                            onFocus={e => e.target.select()}
+                            onChange={e => {
+                              const n = parseFloat(e.target.value)
+                              if (Number.isFinite(n) && n > 0) setPorties(dag as Dag, recept.id, n)
+                            }}
+                            className="w-10 text-xs text-center tabular-nums border border-olive-700/15 rounded-lg px-1 py-0.5 bg-white text-olive-700 focus:outline-none focus:border-olive-700/40"
+                            title="Aantal personen"
+                          />
+                          <button
+                            onClick={() => setPorties(dag as Dag, recept.id, item.porties + 1)}
+                            className="w-6 h-6 rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 flex items-center justify-center text-olive-700 text-xs transition-all btn-magnetic"
+                          >
+                            +
+                          </button>
+                        </div>
                         <button
-                          onClick={() => removeFromDay(dag as Dag, r.id)}
+                          onClick={() => removeFromDay(dag as Dag, recept.id)}
                           className="text-olive-700/20 hover:text-terracotta-600 transition-colors text-base btn-magnetic leading-none w-5 h-5 flex items-center justify-center"
                           title="Verwijder"
                         >
