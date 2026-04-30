@@ -187,10 +187,13 @@ if (is_array($afbeelding)) {
 $afbeelding = is_string($afbeelding) ? $afbeelding : null;
 
 // --- Ingrediënten ---
+// Op dit punt is het de ruwe string uit JSON-LD ("1 lb beef", "2 tbsp olive oil").
+// Onderaan loopt Gemini hierdoorheen om hoeveelheid + eenheid eruit te trekken
+// en alles naar Nederlands te vertalen.
 $ingredienten = [];
 foreach ((array) ($schemaRecept['recipeIngredient'] ?? []) as $ing) {
     if (is_string($ing) && trim($ing)) {
-        $ingredienten[] = ['naam' => trim(strip_tags($ing)), 'hoeveelheid' => null, 'voorraadkast' => false];
+        $ingredienten[] = ['naam' => trim(strip_tags($ing)), 'hoeveelheid' => null, 'eenheid' => '', 'voorraadkast' => false];
     }
 }
 
@@ -203,6 +206,83 @@ foreach ((array) ($schemaRecept['recipeInstructions'] ?? []) as $stap) {
         $tekst = $stap['text'] ?? $stap['name'] ?? '';
         if (trim($tekst)) $bereiding[] = trim(strip_tags($tekst));
     }
+}
+
+// --- Normaliseer + vertaal naar Nederlands via Gemini ---
+// Lost twee problemen op tegelijk: (1) ingrediënten als ruwe string ("1 lb 90% lean ground beef"),
+// (2) recepten in een vreemde taal. Gemini parseert hoeveelheid + eenheid, converteert imperial
+// naar metric, vertaalt naar Nederlands.
+if (defined('GOOGLE_API_KEY') && GOOGLE_API_KEY && !empty($ingredienten)) {
+    $ingLijnen   = array_map(fn($i) => $i['naam'], $ingredienten);
+    $bereidLijnen = $bereiding;
+
+    $prompt = "Normaliseer en vertaal dit recept naar Nederlands. Geef ALLEEN een JSON-object terug, geen markdown:\n"
+        . "{\"titel\":\"...\",\"ingredienten\":[{\"naam\":\"...\",\"hoeveelheid\":null,\"eenheid\":\"\"}],\"bereiding\":[\"...\"]}\n\n"
+        . "Input:\n"
+        . "Titel: " . $titel . "\n"
+        . "Ingrediënten:\n- " . implode("\n- ", $ingLijnen) . "\n"
+        . "Bereiding:\n- " . implode("\n- ", $bereidLijnen) . "\n\n"
+        . "Regels:\n"
+        . "- titel: korte Nederlandse receptnaam.\n"
+        . "- ingredienten: parse hoeveelheid (getal) + eenheid + naam uit elke input-regel. Behoud volgorde.\n"
+        . "  eenheid moet uit deze lijst komen of leeg zijn: [g, kg, ml, l, el, tl, kl, cup, stuk, teen, plak, sneetje, handvol, snufje].\n"
+        . "  Imperial → metric: 1 lb ≈ 454 g, 1 oz ≈ 28 g, 1 tbsp = 1 el, 1 tsp = 1 tl, 1 fl oz ≈ 30 ml, 1 quart ≈ 950 ml, 1 pint ≈ 470 ml.\n"
+        . "  Verwerk fracties (1/2, 1/4, etc.) als decimalen (0.5, 0.25).\n"
+        . "  Vertaal ingrediënt-namen naar Nederlands; behoud merknamen onveranderd.\n"
+        . "  Geen voorraadkast-veld toevoegen.\n"
+        . "- bereiding: korte, duidelijke Nederlandse stappen in dezelfde volgorde als de input.\n";
+
+    $payload = json_encode([
+        'contents'         => [['parts' => [['text' => $prompt]]]],
+        'generationConfig' => ['temperature' => 0.1, 'maxOutputTokens' => 4096],
+    ]);
+    $ch = curl_init('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=' . GOOGLE_API_KEY);
+    curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => $payload, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 30, CURLOPT_HTTPHEADER => ['Content-Type: application/json']]);
+    $resp = curl_exec($ch);
+    curl_close($ch);
+
+    if ($resp) {
+        $respData = json_decode($resp, true);
+        $parts = $respData['candidates'][0]['content']['parts'] ?? [];
+        $tekst = '';
+        foreach ($parts as $part) {
+            if (!empty($part['text']) && empty($part['thought'])) { $tekst = $part['text']; break; }
+        }
+        $s = strpos($tekst, '{'); $e = strrpos($tekst, '}');
+        if ($s !== false && $e > $s) {
+            $parsed = json_decode(substr($tekst, $s, $e - $s + 1), true);
+            if ($parsed && is_array($parsed)) {
+                if (!empty($parsed['titel'])) {
+                    $titel = $parsed['titel'];
+                }
+                if (is_array($parsed['ingredienten'] ?? null) && count($parsed['ingredienten']) > 0) {
+                    $genormaliseerd = [];
+                    foreach ($parsed['ingredienten'] as $ing) {
+                        $naam = trim((string)($ing['naam'] ?? ''));
+                        if ($naam === '') continue;
+                        $hoeveelheid = null;
+                        if (isset($ing['hoeveelheid']) && is_numeric($ing['hoeveelheid'])) {
+                            $hoeveelheid = (float)$ing['hoeveelheid'];
+                        }
+                        $genormaliseerd[] = [
+                            'naam'         => $naam,
+                            'hoeveelheid'  => $hoeveelheid,
+                            'eenheid'      => trim((string)($ing['eenheid'] ?? '')),
+                            'voorraadkast' => false,
+                        ];
+                    }
+                    if (!empty($genormaliseerd)) $ingredienten = $genormaliseerd;
+                }
+                if (is_array($parsed['bereiding'] ?? null) && count($parsed['bereiding']) > 0) {
+                    $bereiding = array_values(array_filter(
+                        array_map(fn($s) => trim((string)$s), $parsed['bereiding']),
+                        fn($s) => $s !== ''
+                    ));
+                }
+            }
+        }
+    }
+    // Bij elke fout houden we de ruwe scrape — import gaat door.
 }
 
 // --- Voedingswaarden ---
