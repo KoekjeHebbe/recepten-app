@@ -2,7 +2,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useState, useRef, useMemo, useEffect } from 'react'
 import { useGSAP } from '@gsap/react'
 import gsap from 'gsap'
-import { Heart, CalendarDays, Users, ChevronLeft, ExternalLink, Pencil, Check } from 'lucide-react'
+import { Heart, CalendarDays, Users, ChevronLeft, ExternalLink, Pencil, Check, Copy } from 'lucide-react'
 import type { Recept, Dag, Ingredient } from '../types'
 import { NAAR_CANONICAL, STAP, formateerHoeveelheid } from '../lib/eenheden'
 import type { Eenheid } from '../lib/eenheden'
@@ -10,7 +10,7 @@ import { DAGEN } from '../types'
 import TagBadge from '../components/TagBadge'
 import { useWeekMenu } from '../store/weekmenu'
 import { useFavorieten } from '../store/favorieten'
-import { useRecepten } from '../store/aangepaste-recepten'
+import { useRecepten, maakId } from '../store/aangepaste-recepten'
 import { useAuth } from '../store/auth'
 
 gsap.registerPlugin()
@@ -32,7 +32,8 @@ function displayHoeveelheid(
 export default function ReceptDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { alleRecepten } = useRecepten()
+  const { alleRecepten, voegReceptToe } = useRecepten()
+  const [dupliceerLaden, setDupliceerLaden] = useState(false)
   const { gebruiker } = useAuth()
   const recept = alleRecepten.find((r: Recept) => r.id === id)
   const { menu, addToDay, removeFromDay, setPorties: setMenuPorties } = useWeekMenu()
@@ -196,6 +197,25 @@ export default function ReceptDetail() {
     },
   }
 
+  async function handleDupliceer() {
+    if (!recept || dupliceerLaden) return
+    setDupliceerLaden(true)
+    try {
+      const nieuweTitel = `${recept.titel} (kopie)`
+      const kopie: Recept = {
+        ...recept,
+        id: maakId(nieuweTitel),
+        titel: nieuweTitel,
+        datum: new Date().toISOString().slice(0, 10),
+      }
+      const nieuw = await voegReceptToe(kopie)
+      navigate(`/recept/${nieuw.id}/bewerken`)
+    } catch (err) {
+      console.error('Dupliceren mislukt', err)
+      setDupliceerLaden(false)
+    }
+  }
+
   function handleToggleDay(dag: Dag) {
     const reeds = menu[dag].some(it => it.recept_id === recept!.id)
     if (reeds) {
@@ -216,12 +236,22 @@ export default function ReceptDetail() {
           <ChevronLeft size={16} /> Terug
         </button>
         {isEigenaar && (
-          <Link
-            to={`/recept/${recept.id}/bewerken`}
-            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border border-olive-700/15 text-olive-700/50 hover:text-olive-700 hover:border-olive-700/30 transition-all btn-magnetic"
-          >
-            <Pencil size={12} /> Bewerken
-          </Link>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleDupliceer}
+              disabled={dupliceerLaden}
+              className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border border-olive-700/15 text-olive-700/50 hover:text-olive-700 hover:border-olive-700/30 transition-all btn-magnetic disabled:opacity-40"
+              title="Maak een kopie en open hem in de bewerker"
+            >
+              <Copy size={12} /> {dupliceerLaden ? 'Bezig…' : 'Kopiëren'}
+            </button>
+            <Link
+              to={`/recept/${recept.id}/bewerken`}
+              className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border border-olive-700/15 text-olive-700/50 hover:text-olive-700 hover:border-olive-700/30 transition-all btn-magnetic"
+            >
+              <Pencil size={12} /> Bewerken
+            </Link>
+          </div>
         )}
       </div>
 
