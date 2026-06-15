@@ -29,8 +29,8 @@ import type { Eenheid } from '../lib/eenheden'
 import ReceptKiezer from '../components/ReceptKiezer'
 
 const MAALTIJD_TYPES = ['diner', 'lunch', 'bijgerecht', 'tapas', 'ontbijt', 'snack', 'dessert']
-const BESCHIKBARE_TAGS = ['kip', 'lamsvlees', 'rund', 'varken', 'vis', 'garnalen', 'vegetarisch', 'vegan',
-  'pasta', 'rijst', 'soep', 'salade', 'wrap', 'flatbread', 'gemengd_gehakt', 'low_carb', 'snel']
+const BESCHIKBARE_TAGS = ['kip', 'kalkoen', 'rund', 'kalf', 'varken', 'lamsvlees', 'konijn', 'vis', 'garnalen',
+  'vegetarisch', 'vegan', 'pasta', 'rijst', 'soep', 'salade', 'wrap', 'flatbread', 'gemengd_gehakt', 'low_carb', 'snel']
 
 type IngredientRij = Ingredient & { _key: number; _manuelleCategorie?: boolean }
 type StapRij = { _key: number; tekst: string }
