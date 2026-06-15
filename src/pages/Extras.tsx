@@ -295,17 +295,10 @@ export default function Extras() {
               {macroInput('Vetten (g)',        'vetten',       nieuwMacros, setNieuwMacros)}
             </div>
             <div className="flex gap-2 justify-end">
-              <button
-                onClick={() => setToonToevoegen(false)}
-                className="text-sm px-4 py-2 rounded-full text-olive-700/50 hover:bg-olive-700/8 transition-all btn-magnetic"
-              >
+              <button onClick={() => setToonToevoegen(false)} className="btn btn-ghost btn-sm">
                 Annuleer
               </button>
-              <button
-                onClick={voegToe}
-                disabled={opslaan || !nieuwBasis.trim()}
-                className="text-sm font-semibold px-5 py-2 rounded-full bg-olive-700 text-cream hover:bg-olive-800 transition-all btn-magnetic disabled:opacity-40"
-              >
+              <button onClick={voegToe} disabled={opslaan || !nieuwBasis.trim()} className="btn btn-secondary btn-sm">
                 {opslaan ? 'Opslaan…' : 'Opslaan'}
               </button>
             </div>
@@ -316,21 +309,23 @@ export default function Extras() {
       {/* Tabel */}
       <div className="anim-in rounded-4xl bg-white border border-olive-700/8 shadow-card overflow-hidden">
         {laden ? (
-          <div className="py-16 text-center text-sm text-olive-700/40">Laden…</div>
+          <div className="py-16 flex justify-center">
+            <div className="w-8 h-8 rounded-full border-2 border-olive-700/15 border-t-terracotta-600 animate-spin" />
+          </div>
         ) : entries.length === 0 ? (
-          <div className="py-16 text-center text-sm text-olive-700/40">
-            {zoek ? 'Geen resultaten gevonden.' : 'Cache is leeg — sla een recept op om te beginnen.'}
+          <div className="py-16 text-center text-sm text-olive-700/55">
+            {zoek ? 'Geen resultaten gevonden.' : 'Cache is nog leeg — sla een recept op om te beginnen.'}
           </div>
         ) : (
           <table className="w-full text-sm">
             <thead>
               <tr className="text-[10px] text-olive-700/40 uppercase tracking-widest border-b border-olive-700/6">
-                <th className="text-left px-6 py-3 font-semibold">Ingrediënt</th>
+                <th className="text-left px-4 sm:px-6 py-3 font-semibold">Ingrediënt</th>
                 <th className="text-right px-4 py-3 font-semibold">kcal</th>
-                <th className="text-right px-4 py-3 font-semibold">KH&nbsp;g</th>
-                <th className="text-right px-4 py-3 font-semibold">Eiw&nbsp;g</th>
-                <th className="text-right px-4 py-3 font-semibold">Vet&nbsp;g</th>
-                <th className="text-right px-4 py-3 font-semibold text-olive-700/25">Per</th>
+                <th className="text-right px-4 py-3 font-semibold hidden sm:table-cell">KH&nbsp;g</th>
+                <th className="text-right px-4 py-3 font-semibold hidden sm:table-cell">Eiw&nbsp;g</th>
+                <th className="text-right px-4 py-3 font-semibold hidden sm:table-cell">Vet&nbsp;g</th>
+                <th className="text-right px-4 py-3 font-semibold text-olive-700/40 hidden sm:table-cell">Per</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -416,14 +411,14 @@ export default function Extras() {
                 }
                 return (
                 <tr key={entry.naam_hash} className="hover:bg-cream/60 transition-colors group align-middle">
-                  <td className="px-6 py-3 max-w-xs">
+                  <td className="px-4 sm:px-6 py-3 max-w-xs">
                     <span className="text-olive-700 font-medium truncate block">{entry.naam}</span>
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums text-olive-700">{entry.macros.calorieen}</td>
-                  <td className="px-4 py-3 text-right tabular-nums text-olive-700/60">{entry.macros.koolhydraten}</td>
-                  <td className="px-4 py-3 text-right tabular-nums text-olive-700/60">{entry.macros.eiwitten}</td>
-                  <td className="px-4 py-3 text-right tabular-nums text-olive-700/60">{entry.macros.vetten}</td>
-                  <td className="px-4 py-3 text-right text-[10px] text-olive-700/30 font-medium">{referentieLabel(entry.naam)}</td>
+                  <td className="px-4 py-3 text-right tabular-nums text-olive-700/60 hidden sm:table-cell">{entry.macros.koolhydraten}</td>
+                  <td className="px-4 py-3 text-right tabular-nums text-olive-700/60 hidden sm:table-cell">{entry.macros.eiwitten}</td>
+                  <td className="px-4 py-3 text-right tabular-nums text-olive-700/60 hidden sm:table-cell">{entry.macros.vetten}</td>
+                  <td className="px-4 py-3 text-right text-[10px] text-olive-700/40 font-medium hidden sm:table-cell">{referentieLabel(entry.naam)}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1 justify-end opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 transition-opacity">
                       <button

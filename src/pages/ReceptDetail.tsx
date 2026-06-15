@@ -251,7 +251,7 @@ export default function ReceptDetail() {
             <div className="absolute inset-0 bg-gradient-to-t from-olive-900/40 to-transparent" />
           </div>
         ) : (
-          <div className="w-full h-36 bg-olive-50 flex items-center justify-center text-olive-200 text-6xl rounded-t-4xl">
+          <div className="w-full h-64 bg-olive-50 flex items-center justify-center text-olive-200 text-6xl rounded-t-4xl" aria-hidden="true">
             🍽
           </div>
         )}

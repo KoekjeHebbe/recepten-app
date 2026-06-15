@@ -43,7 +43,7 @@ export default function Weekmenu() {
       {totalItems === 0 && (
         <div className="text-center py-20 text-olive-700/55">
           <p className="text-4xl mb-4">📅</p>
-          <p className="mb-2 text-sm">Je weekmenu is leeg.</p>
+          <p className="mb-2 text-sm">Nog niets op het menu deze week.</p>
           <p className="text-xs mb-5 max-w-xs mx-auto leading-relaxed">
             Open een recept en gebruik de <strong className="font-semibold text-olive-700/60">Voeg toe</strong> knop om het aan een dag te koppelen.
           </p>

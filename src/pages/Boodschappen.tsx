@@ -268,9 +268,9 @@ export default function Boodschappen() {
     return (
       <div className="text-center py-20 text-olive-700/55">
         <p className="text-4xl mb-4">🛒</p>
-        <p className="mb-2 text-sm">Je weekmenu is leeg.</p>
+        <p className="mb-2 text-sm">Je weekmenu is nog leeg — vul het eerst om een lijst te maken.</p>
         <Link to="/weekmenu" className="text-terracotta-600 underline underline-offset-2 text-sm font-medium">
-          Stel eerst een weekmenu in
+          Naar het weekmenu
         </Link>
       </div>
     )
