@@ -7,6 +7,7 @@ import { DAGEN } from '../types'
 import { useWeekMenu } from '../store/weekmenu'
 import { useRecepten } from '../store/aangepaste-recepten'
 import { verminderBeweging } from '../lib/motion'
+import PageHeader from '../components/PageHeader'
 
 gsap.registerPlugin()
 
@@ -32,17 +33,12 @@ export default function Weekmenu() {
 
   return (
     <div ref={containerRef} className="max-w-2xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold text-olive-700 tracking-tight">Weekmenu</h1>
-        {totalItems > 0 && (
-          <button
-            onClick={clearAll}
-            className="text-xs text-olive-700/30 hover:text-terracotta-600 transition-colors btn-magnetic font-medium"
-          >
-            Alles wissen
-          </button>
-        )}
-      </div>
+      <PageHeader
+        titel="Weekmenu"
+        acties={totalItems > 0 ? (
+          <button onClick={clearAll} className="btn btn-ghost btn-sm">Alles wissen</button>
+        ) : undefined}
+      />
 
       {totalItems === 0 && (
         <div className="text-center py-20 text-olive-700/55">
@@ -147,10 +143,7 @@ export default function Weekmenu() {
 
       {totalItems > 0 && (
         <div className="mt-8 flex justify-center">
-          <Link
-            to="/boodschappen"
-            className="bg-terracotta-600 text-white px-8 py-3 rounded-full font-semibold text-sm btn-magnetic shadow-card"
-          >
+          <Link to="/boodschappen" className="btn btn-primary btn-md">
             Genereer boodschappenlijst →
           </Link>
         </div>

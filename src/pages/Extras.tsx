@@ -5,6 +5,7 @@ import { Search, Trash2, Pencil, Check, X, Plus } from 'lucide-react'
 import { api } from '../api/client'
 import { verminderBeweging } from '../lib/motion'
 import Bevestiging from '../components/Bevestiging'
+import PageHeader from '../components/PageHeader'
 import type { Macros } from '../types'
 
 interface CacheEntry {
@@ -202,12 +203,10 @@ export default function Extras() {
   return (
     <div ref={containerRef} className="max-w-4xl mx-auto">
       {/* Header */}
-      <div className="anim-in mb-6">
-        <h1 className="font-serif text-2xl font-bold text-olive-700 mb-1">Macro-cache</h1>
-        <p className="text-sm text-olive-700/50">
-          {totaal} gecachete ingrediënten — macros worden hergebruikt bij het opslaan van recepten.
-        </p>
-      </div>
+      <PageHeader
+        titel="Macro-cache"
+        ondertitel={`${totaal} gecachete ingrediënten — macros worden hergebruikt bij het opslaan van recepten.`}
+      />
 
       {fout && (
         <div className="anim-in mb-4 px-4 py-3 bg-terracotta-50 border border-terracotta-200 rounded-2xl text-sm text-terracotta-700 flex items-center justify-between gap-3">

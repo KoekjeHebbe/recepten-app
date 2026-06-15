@@ -40,7 +40,7 @@ export default function Login() {
   return (
     <div className="max-w-sm mx-auto pt-8">
       <div className="rounded-4xl bg-white border border-olive-700/8 shadow-card p-8">
-        <h1 className="text-xl font-bold text-olive-700 mb-1">
+        <h1 className="font-serif text-2xl font-bold text-olive-700 mb-1">
           {modus === 'login' ? 'Inloggen' : 'Account aanmaken'}
         </h1>
         <p className="text-sm text-olive-700/40 mb-7">
@@ -81,9 +81,8 @@ export default function Login() {
               placeholder="••••••••" required minLength={8}
               autoComplete={modus === 'login' ? 'current-password' : 'new-password'} className={inputCls} />
           </div>
-          <button type="submit" disabled={laden}
-            className="w-full py-3 bg-terracotta-600 text-white font-semibold rounded-full transition-all btn-magnetic shadow-card text-sm disabled:opacity-50">
-            {laden ? 'Even geduld...' : modus === 'login' ? 'Inloggen' : 'Account aanmaken'}
+          <button type="submit" disabled={laden} className="btn btn-primary w-full py-3 text-sm">
+            {laden ? 'Even geduld…' : modus === 'login' ? 'Inloggen' : 'Account aanmaken'}
           </button>
         </form>
 

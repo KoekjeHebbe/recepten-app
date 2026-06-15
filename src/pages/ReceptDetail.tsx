@@ -225,16 +225,13 @@ export default function ReceptDetail() {
             <button
               onClick={handleDupliceer}
               disabled={dupliceerLaden}
-              className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border border-olive-700/15 text-olive-700/50 hover:text-olive-700 hover:border-olive-700/30 transition-all btn-magnetic disabled:opacity-40"
+              className="btn btn-outline btn-sm"
               title="Maak een kopie en open hem in de bewerker"
             >
-              <Copy size={12} /> {dupliceerLaden ? 'Bezig…' : 'Kopiëren'}
+              <Copy size={12} aria-hidden="true" /> {dupliceerLaden ? 'Bezig…' : 'Kopiëren'}
             </button>
-            <Link
-              to={`/recept/${recept.id}/bewerken`}
-              className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border border-olive-700/15 text-olive-700/50 hover:text-olive-700 hover:border-olive-700/30 transition-all btn-magnetic"
-            >
-              <Pencil size={12} /> Bewerken
+            <Link to={`/recept/${recept.id}/bewerken`} className="btn btn-outline btn-sm">
+              <Pencil size={12} aria-hidden="true" /> Bewerken
             </Link>
           </div>
         )}

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import type { ReactNode } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
-import { Link2, Loader2, ChevronLeft, Camera, X, GripVertical } from 'lucide-react'
+import { Link2, Loader2, Camera, X, GripVertical } from 'lucide-react'
 import {
   DndContext,
   closestCenter,
@@ -27,6 +27,7 @@ import { CATEGORIE_NAMEN, categoriseer } from '../lib/categorieen'
 import { EENHEID_GROEPEN, parseerOudeHoeveelheid } from '../lib/eenheden'
 import type { Eenheid } from '../lib/eenheden'
 import ReceptKiezer from '../components/ReceptKiezer'
+import PageHeader from '../components/PageHeader'
 
 const MAALTIJD_TYPES = ['diner', 'lunch', 'bijgerecht', 'tapas', 'ontbijt', 'snack', 'dessert']
 const BESCHIKBARE_TAGS = ['kip', 'kalkoen', 'rund', 'kalf', 'varken', 'lamsvlees', 'konijn', 'vis', 'garnalen',
@@ -405,14 +406,7 @@ export default function ReceptToevoegen() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <button onClick={() => navigate(-1)}
-        className="text-sm text-olive-700/40 hover:text-olive-700 mb-5 flex items-center gap-1 transition-colors btn-magnetic">
-        <ChevronLeft size={16} /> Terug
-      </button>
-
-      <h1 className="text-2xl font-bold text-olive-700 tracking-tight mb-7">
-        {isBewerkModus ? 'Recept bewerken' : 'Recept toevoegen'}
-      </h1>
+      <PageHeader terug titel={isBewerkModus ? 'Recept bewerken' : 'Recept toevoegen'} />
 
       {/* Importeer — alleen bij nieuw recept */}
       {!isBewerkModus && (
@@ -782,8 +776,8 @@ export default function ReceptToevoegen() {
       </div>
 
       <button onClick={opslaan} disabled={laden}
-        className="w-full py-3.5 bg-terracotta-600 text-white font-semibold rounded-full transition-all btn-magnetic shadow-card text-sm tracking-wide disabled:opacity-50">
-        {laden ? 'Bezig met opslaan...' : isBewerkModus ? 'Wijzigingen opslaan' : 'Recept opslaan'}
+        className="btn btn-primary w-full py-3.5 text-sm tracking-wide">
+        {laden ? 'Bezig met opslaan…' : isBewerkModus ? 'Wijzigingen opslaan' : 'Recept opslaan'}
       </button>
     </div>
   )

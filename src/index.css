@@ -41,6 +41,38 @@
   }
 }
 
+@layer components {
+  /* Gedeelde knop-primitieven — één consistente hoogte/vorm per type.
+     Combineer een variant (.btn-primary/secondary/outline/ghost) met een
+     maat (.btn-md/.btn-sm). Beweging respecteert prefers-reduced-motion. */
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-full font-semibold
+           whitespace-nowrap disabled:opacity-50 disabled:pointer-events-none;
+    transition: transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                box-shadow 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                background-color 0.2s ease, color 0.2s ease;
+  }
+  .btn:hover { transform: scale(1.03); }
+  .btn:active { transform: scale(0.98); }
+
+  .btn-md { @apply text-sm px-5 py-2.5; }
+  .btn-sm { @apply text-xs px-3 py-1.5; }
+
+  /* Solide varianten via @apply (geen opacity-modifiers). De opacity-gebaseerde
+     varianten staan in rauwe CSS omdat /8 en /15 buiten de Tailwind-schaal vallen
+     en @apply die niet genereert. olive-700 = #2E4036. */
+  .btn-primary   { @apply bg-terracotta-600 text-white shadow-card; }
+  .btn-primary:hover   { @apply bg-terracotta-700; }
+  .btn-secondary { @apply bg-olive-700 text-cream; }
+  .btn-secondary:hover { @apply bg-olive-800; }
+
+  .btn-outline { border: 1px solid rgba(46, 64, 54, 0.15); color: rgba(46, 64, 54, 0.6); }
+  .btn-outline:hover { color: rgba(46, 64, 54, 1); border-color: rgba(46, 64, 54, 0.3); }
+
+  .btn-ghost { color: rgba(46, 64, 54, 0.5); }
+  .btn-ghost:hover { color: rgba(46, 64, 54, 1); background-color: rgba(46, 64, 54, 0.08); }
+}
+
 @layer utilities {
   .line-clamp-2 {
     display: -webkit-box;

@@ -125,10 +125,7 @@ export default function ReceptenLijst() {
             className="w-full pl-9 pr-4 py-2.5 rounded-full border border-olive-700/10 bg-white shadow-card focus:outline-none focus:ring-2 focus:ring-terracotta-600/30 text-sm text-olive-700 placeholder:text-olive-700/50"
           />
         </div>
-        <Link
-          to="/recept/nieuw"
-          className="px-5 py-2.5 rounded-full bg-terracotta-600 text-white text-sm font-semibold shadow-card btn-magnetic whitespace-nowrap"
-        >
+        <Link to="/recept/nieuw" className="btn btn-primary btn-md">
           + Recept
         </Link>
       </div>

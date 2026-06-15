@@ -23,6 +23,7 @@ import { useWeekMenu } from '../store/weekmenu'
 import { useRecepten } from '../store/aangepaste-recepten'
 import { CATEGORIE_NAMEN, categoriseer } from '../lib/categorieen'
 import { formateerHoeveelheid } from '../lib/eenheden'
+import PageHeader from '../components/PageHeader'
 
 interface GegroepeerdeIngredient {
   naam: string
@@ -278,18 +279,18 @@ export default function Boodschappen() {
   return (
     <div className="max-w-lg mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between mb-5">
-        <h1 className="text-xl font-bold text-olive-700 tracking-tight">Boodschappenlijst</h1>
-        <button
-          onClick={kopieerNaarKeep}
-          className={`flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold transition-all btn-magnetic shadow-card ${
-            kopieerFout ? 'bg-terracotta-700 text-white' : gekopieerd ? 'bg-olive-700 text-cream' : 'bg-terracotta-600 text-white'
-          }`}
-        >
-          {gekopieerd ? <Check size={14} /> : <Copy size={14} />}
-          {kopieerFout ? 'Kopiëren mislukt' : gekopieerd ? 'Gekopieerd!' : 'Kopieer voor Keep'}
-        </button>
-      </div>
+      <PageHeader
+        titel="Boodschappenlijst"
+        acties={(
+          <button
+            onClick={kopieerNaarKeep}
+            className={`btn btn-md ${kopieerFout ? 'bg-terracotta-700 text-white shadow-card' : gekopieerd ? 'btn-secondary' : 'btn-primary'}`}
+          >
+            {gekopieerd ? <Check size={14} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}
+            {kopieerFout ? 'Kopiëren mislukt' : gekopieerd ? 'Gekopieerd!' : 'Kopieer voor Keep'}
+          </button>
+        )}
+      />
 
       {/* Betrokken recepten */}
       <div className="rounded-3xl bg-white border border-olive-700/8 shadow-card p-3 mb-4 flex flex-wrap gap-1.5">
