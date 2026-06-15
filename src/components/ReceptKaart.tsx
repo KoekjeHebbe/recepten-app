@@ -40,7 +40,7 @@ export default function ReceptKaart({ recept }: Props) {
         </div>
 
         <div className="p-5 pb-3">
-          <h2 className="font-bold text-olive-700 leading-snug group-hover:text-terracotta-600 transition-colors line-clamp-2 mb-2 text-[15px]">
+          <h2 className="font-serif font-bold text-olive-700 leading-snug group-hover:text-terracotta-600 transition-colors line-clamp-2 mb-2 text-base">
             {recept.titel}
           </h2>
           <div className="flex flex-wrap gap-1 mb-3 min-h-[20px]">
