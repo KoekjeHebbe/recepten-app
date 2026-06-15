@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { X, Search } from 'lucide-react'
 import { useRecepten } from '../store/aangepaste-recepten'
+import Afbeelding from './Afbeelding'
 
 interface Props {
   value: string
@@ -59,9 +60,7 @@ export default function ReceptKiezer({
     <div ref={containerRef} className="relative flex-1">
       {huidig ? (
         <div className="flex items-center gap-2 px-3 py-2 rounded-2xl border border-olive-700/10 bg-cream text-sm text-olive-700">
-          {huidig.afbeelding_url && (
-            <img src={huidig.afbeelding_url} alt="" className="w-7 h-7 rounded-lg object-cover flex-shrink-0" />
-          )}
+          <Afbeelding src={huidig.afbeelding_url} alt="" className="w-7 h-7 rounded-lg flex-shrink-0" imgClassName="object-cover" fallbackClassName="text-xs" />
           <span className="flex-1 truncate font-medium">{huidig.titel}</span>
           <button
             type="button"
@@ -97,11 +96,7 @@ export default function ReceptKiezer({
                     onClick={() => kies(r.id)}
                     className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-olive-700 hover:bg-cream transition-colors"
                   >
-                    {r.afbeelding_url ? (
-                      <img src={r.afbeelding_url} alt="" className="w-7 h-7 rounded-lg object-cover flex-shrink-0" />
-                    ) : (
-                      <span className="w-7 h-7 rounded-lg bg-olive-700/8 flex-shrink-0" />
-                    )}
+                    <Afbeelding src={r.afbeelding_url} alt="" className="w-7 h-7 rounded-lg flex-shrink-0" imgClassName="object-cover" fallbackClassName="text-xs" />
                     <span className="truncate">{r.titel}</span>
                   </button>
                 ))

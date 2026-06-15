@@ -31,6 +31,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setLaden(false))
   }, [])
 
+  // Reageer op een verlopen sessie (401 in de API-client) door uit te loggen
+  useEffect(() => {
+    const handler = () => setGebruiker(null)
+    window.addEventListener('auth:uitgelogd', handler)
+    return () => window.removeEventListener('auth:uitgelogd', handler)
+  }, [])
+
   async function login(email: string, wachtwoord: string) {
     const res = await api.post<{ token: string; gebruiker: Gebruiker }>('/auth/login', { email, wachtwoord })
     localStorage.setItem('recepten-token', res.token)
@@ -46,6 +53,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   function logout() {
     localStorage.removeItem('recepten-token')
     setGebruiker(null)
+    // Laat andere stores (bijv. favorieten) hun per-gebruiker state opruimen
+    window.dispatchEvent(new Event('auth:uitgelogd'))
   }
 
   return (

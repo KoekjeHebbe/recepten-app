@@ -4,6 +4,7 @@ import { Heart, Plus, Users, Check } from 'lucide-react'
 import type { Recept, Dag } from '../types'
 import { DAGEN } from '../types'
 import TagBadge from './TagBadge'
+import Afbeelding from './Afbeelding'
 import { useFavorieten } from '../store/favorieten'
 import { useWeekMenu } from '../store/weekmenu'
 
@@ -52,18 +53,13 @@ export default function ReceptKaart({ recept }: Props) {
       {/* Afbeelding */}
       <Link to={`/recept/${recept.id}`} className="block">
         <div className="relative overflow-hidden rounded-t-4xl">
-          {recept.afbeelding_url ? (
-            <img
-              src={recept.afbeelding_url}
-              alt={recept.titel}
-              className="w-full h-44 object-cover transition-transform duration-500 group-hover:scale-105"
-              loading="lazy"
-            />
-          ) : (
-            <div className="w-full h-44 bg-olive-50 flex items-center justify-center text-olive-200 text-5xl">
-              🍽
-            </div>
-          )}
+          <Afbeelding
+            src={recept.afbeelding_url}
+            alt={recept.titel}
+            className="w-full h-44"
+            imgClassName="object-cover transition-transform duration-500 group-hover:scale-105"
+            fallbackClassName="text-5xl"
+          />
           {maaltijdTag && (
             <div className="absolute top-3 left-3">
               <TagBadge tag={maaltijdTag} />
@@ -148,7 +144,7 @@ export default function ReceptKaart({ recept }: Props) {
                         onClick={e => { e.preventDefault(); e.stopPropagation() }}
                         onFocus={e => e.target.select()}
                         onChange={e => {
-                          const n = parseFloat(e.target.value)
+                          const n = Math.round(parseFloat(e.target.value))
                           if (!Number.isFinite(n) || n <= 0) return
                           if (geselecteerd) {
                             setPorties(dag, recept.id, n)

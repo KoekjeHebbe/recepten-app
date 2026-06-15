@@ -98,7 +98,7 @@ export default function ReceptToevoegen() {
   const navigate = useNavigate()
   const { id } = useParams()
   const isBewerkModus = !!id
-  const { voegReceptToe, updateRecept, alleRecepten } = useRecepten()
+  const { voegReceptToe, updateRecept, alleRecepten, laden: receptenLaden } = useRecepten()
   const { isIngelogd } = useAuth()
 
   const bestaandRecept = isBewerkModus ? alleRecepten.find(r => r.id === id) : undefined
@@ -183,6 +183,24 @@ export default function ReceptToevoegen() {
         <Link to="/login" className="text-terracotta-600 underline underline-offset-2 text-sm font-medium">
           Inloggen
         </Link>
+      </div>
+    )
+  }
+
+  // In bewerkmodus: wacht tot de recepten geladen zijn voor we "niet gevonden" tonen
+  if (isBewerkModus && !bestaandRecept) {
+    if (receptenLaden) {
+      return (
+        <div className="flex justify-center py-20">
+          <div className="w-8 h-8 rounded-full border-2 border-olive-700/15 border-t-terracotta-600 animate-spin" />
+        </div>
+      )
+    }
+    return (
+      <div className="text-center py-20 text-olive-700/40">
+        <p className="text-4xl mb-4">🔍</p>
+        <p className="mb-4 text-sm">Dit recept bestaat niet (meer).</p>
+        <Link to="/" className="text-terracotta-600 underline underline-offset-2 text-sm font-medium">Naar overzicht</Link>
       </div>
     )
   }

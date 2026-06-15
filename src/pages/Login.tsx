@@ -1,10 +1,13 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../store/auth'
 
 export default function Login() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { login, registreer } = useAuth()
+  // Ga na inloggen terug naar waar de gebruiker vandaan kwam (anders home)
+  const naarToe = (location.state as { from?: { pathname: string } } | null)?.from?.pathname ?? '/'
   const [modus, setModus] = useState<'login' | 'registreer'>('login')
   const [naam, setNaam] = useState('')
   const [email, setEmail] = useState('')
@@ -23,7 +26,7 @@ export default function Login() {
       } else {
         await registreer(naam, email, wachtwoord, uitnodigingscode)
       }
-      navigate(-1)
+      navigate(naarToe, { replace: true })
     } catch (err) {
       setFout(err instanceof Error ? err.message : 'Er ging iets mis')
     } finally {

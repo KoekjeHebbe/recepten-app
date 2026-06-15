@@ -8,6 +8,7 @@ import { NAAR_CANONICAL, STAP, formateerHoeveelheid } from '../lib/eenheden'
 import type { Eenheid } from '../lib/eenheden'
 import { DAGEN } from '../types'
 import TagBadge from '../components/TagBadge'
+import Afbeelding from '../components/Afbeelding'
 import { useWeekMenu } from '../store/weekmenu'
 import { useFavorieten } from '../store/favorieten'
 import { useRecepten, maakId } from '../store/aangepaste-recepten'
@@ -32,8 +33,9 @@ function displayHoeveelheid(
 export default function ReceptDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { alleRecepten, voegReceptToe } = useRecepten()
+  const { alleRecepten, voegReceptToe, laden: receptenLaden } = useRecepten()
   const [dupliceerLaden, setDupliceerLaden] = useState(false)
+  const [heroMislukt, setHeroMislukt] = useState(false)
   const { gebruiker } = useAuth()
   const recept = alleRecepten.find((r: Recept) => r.id === id)
   const { menu, addToDay, removeFromDay, setPorties: setMenuPorties } = useWeekMenu()
@@ -112,6 +114,9 @@ export default function ReceptDetail() {
     }
   }, [recept, aanpassingMultipliers, personen, alleRecepten])
 
+  // Reset de hero-afbeelding-foutstatus wanneer we naar een ander recept gaan
+  useEffect(() => { setHeroMislukt(false) }, [id])
+
   // Sluit day-picker bij click buiten
   useEffect(() => {
     if (!dagPickerOpen) return
@@ -145,6 +150,13 @@ export default function ReceptDetail() {
   }, { scope: containerRef, dependencies: [id] })
 
   if (!recept) {
+    if (receptenLaden) {
+      return (
+        <div className="flex justify-center py-20">
+          <div className="w-8 h-8 rounded-full border-2 border-olive-700/15 border-t-terracotta-600 animate-spin" />
+        </div>
+      )
+    }
     return (
       <div className="text-center py-20">
         <p className="text-olive-700/50 mb-4">Recept niet gevonden.</p>
@@ -257,13 +269,14 @@ export default function ReceptDetail() {
 
       {/* Hero card — geen overflow-hidden zodat de dag-picker niet geclipped wordt */}
       <div className="anim-in rounded-4xl bg-white border border-olive-700/8 shadow-card mb-4">
-        {recept.afbeelding_url ? (
+        {recept.afbeelding_url && !heroMislukt ? (
           <div className="relative overflow-hidden h-64 rounded-t-4xl">
             <img
               src={recept.afbeelding_url}
               alt={recept.titel}
               className="w-full h-full object-cover"
               loading="lazy"
+              onError={() => setHeroMislukt(true)}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-olive-900/40 to-transparent" />
           </div>
@@ -332,7 +345,7 @@ export default function ReceptDetail() {
                             onClick={e => e.stopPropagation()}
                             onFocus={e => e.target.select()}
                             onChange={e => {
-                              const n = parseFloat(e.target.value)
+                              const n = Math.round(parseFloat(e.target.value))
                               if (!Number.isFinite(n) || n <= 0) return
                               if (geselecteerd) {
                                 setMenuPorties(dag, recept.id, n)
@@ -496,11 +509,7 @@ export default function ReceptDetail() {
                 <li key={idx}>
                   <Link to={`/recept/${sub.id}`}
                     className="flex items-center gap-3 text-sm text-olive-700 hover:bg-cream rounded-2xl -mx-2 px-2 py-1.5 transition-colors group">
-                    {sub.afbeelding_url ? (
-                      <img src={sub.afbeelding_url} alt="" className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
-                    ) : (
-                      <span className="w-9 h-9 rounded-xl bg-olive-700/8 flex-shrink-0" />
-                    )}
+                    <Afbeelding src={sub.afbeelding_url} alt="" className="w-9 h-9 rounded-xl flex-shrink-0" imgClassName="object-cover" fallbackClassName="text-sm" />
                     <span className="flex-1 font-medium group-hover:text-terracotta-600 transition-colors">{sub.titel}</span>
                     <span className="text-olive-700/50 tabular-nums text-sm">
                       {geschaaldePorties % 1 === 0 ? geschaaldePorties : geschaaldePorties.toFixed(2).replace(/\.?0+$/, '').replace('.', ',')} {geschaaldePorties === 1 ? 'portie' : 'porties'}

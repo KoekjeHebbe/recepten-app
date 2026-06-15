@@ -76,7 +76,7 @@ export const WINKELINDELING: { naam: string; keywords: string[] }[] = [
     naam: 'Olie & Azijn',
     keywords: [
       'olijfolie', 'zonnebloemolie', 'kokosolie', 'sesamolie', 'koolzaadolie',
-      'boter', 'ghee', 'azijn', 'balsamico', 'appelazijn', 'rijstazijn',
+      'ghee', 'azijn', 'balsamico', 'appelazijn', 'rijstazijn',
       'wijnazijn', 'sherryazijn',
     ],
   },

@@ -27,8 +27,12 @@ const SORT_OPTIES: { id: string; label: string }[] = [
   { id: 'kcal-af', label: 'Calorieën (hoog→laag)' },
 ]
 
-const kcal = (r: { voedingswaarden: { per_portie: { calorieen: number } } }) =>
+const kcal = (r: { voedingswaarden?: { per_portie?: { calorieen?: number } } }) =>
   r.voedingswaarden?.per_portie?.calorieen || 0
+
+// Negeer accenten/diacrieten zodat "creme" ook "crème" vindt
+const normaliseer = (s: string) =>
+  s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 
 export default function ReceptenLijst() {
   const { alleRecepten } = useRecepten()
@@ -61,13 +65,13 @@ export default function ReceptenLijst() {
   )
 
   const gefilterd = useMemo(() => {
-    const q = zoek.trim().toLowerCase()
+    const q = normaliseer(zoek.trim())
     return alleRecepten.filter(r => {
       const zoekMatch =
         q === '' ||
-        r.titel.toLowerCase().includes(q) ||
-        r.tags.some(t => t.toLowerCase().includes(q)) ||
-        r.ingredienten.some(i => i.naam.toLowerCase().includes(q))
+        normaliseer(r.titel).includes(q) ||
+        r.tags.some(t => normaliseer(t).includes(q)) ||
+        r.ingredienten.some(i => normaliseer(i.naam).includes(q))
       // Binnen een groep OF, tussen groepen EN
       const tagMatch = FILTER_GROEPEN.every(groep => {
         const actiefInGroep = groep.tags.filter(t => actieveTags.includes(t))

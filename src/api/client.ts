@@ -16,8 +16,28 @@ async function request<T>(
   if (token) headers['Authorization'] = `Bearer ${token}`
 
   const res = await fetch(`${API_BASE}${pad}`, { ...opties, headers })
-  const data = await res.json()
-  if (!res.ok) throw new Error(data.error ?? 'API fout')
+
+  // 401 → token verlopen of ongeldig: opruimen en de app laten reageren
+  if (res.status === 401) {
+    localStorage.removeItem('recepten-token')
+    window.dispatchEvent(new Event('auth:uitgelogd'))
+    throw new Error('Je sessie is verlopen. Log opnieuw in.')
+  }
+
+  // Lees de body veilig: DELETE/204/lege of niet-JSON antwoorden mogen niet crashen
+  const tekst = await res.text()
+  let data: unknown = null
+  if (tekst) {
+    try { data = JSON.parse(tekst) } catch { data = null }
+  }
+
+  if (!res.ok) {
+    const melding =
+      data && typeof data === 'object' && 'error' in data
+        ? String((data as { error: unknown }).error)
+        : `API fout (${res.status})`
+    throw new Error(melding)
+  }
   return data as T
 }
 

@@ -67,7 +67,7 @@ export default function Weekmenu() {
             .filter((x): x is { item: WeekmenuItem; recept: Recept } => x !== null)
 
           const kcalTotaal = dagItems.reduce(
-            (sum, { item, recept }) => sum + recept.voedingswaarden.per_portie.calorieen * item.porties,
+            (sum, { item, recept }) => sum + (recept.voedingswaarden?.per_portie?.calorieen ?? 0) * item.porties,
             0
           )
           const heeftRecepten = dagItems.length > 0
@@ -110,10 +110,11 @@ export default function Weekmenu() {
                             value={item.porties}
                             onFocus={e => e.target.select()}
                             onChange={e => {
-                              const n = parseFloat(e.target.value)
+                              const n = Math.round(parseFloat(e.target.value))
                               if (Number.isFinite(n) && n > 0) setPorties(dag as Dag, recept.id, n)
                             }}
                             className="w-10 text-xs text-center tabular-nums border border-olive-700/15 rounded-lg px-1 py-0.5 bg-white text-olive-700 focus:outline-none focus:border-olive-700/40"
+                            aria-label={`Aantal personen voor ${recept.titel}`}
                             title="Aantal personen"
                           />
                           <button

@@ -1,9 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useGSAP } from '@gsap/react'
 import gsap from 'gsap'
 import { Search, Trash2, Pencil, Check, X, Plus } from 'lucide-react'
-import { useAuth } from '../store/auth'
 import { api } from '../api/client'
 import type { Macros } from '../types'
 
@@ -45,8 +43,6 @@ function referentieLabel(naam: string): string {
 }
 
 export default function Extras() {
-  const { isIngelogd } = useAuth()
-  const navigate = useNavigate()
   const containerRef = useRef<HTMLDivElement>(null)
 
   const [entries, setEntries]         = useState<CacheEntry[]>([])
@@ -63,6 +59,7 @@ export default function Extras() {
   const [nieuwEenheid, setNieuwEenheid] = useState<CanoniekeEenheid>('g')
   const [nieuwMacros, setNieuwMacros] = useState<Macros>(LEEG_MACROS)
   const [opslaan, setOpslaan]         = useState(false)
+  const [fout, setFout]               = useState('')
 
   useGSAP(() => {
     if (!containerRef.current) return
@@ -73,10 +70,20 @@ export default function Extras() {
     )
   }, { scope: containerRef })
 
+  // Eerste keer meteen laden; daarna gedebounced bij elke wijziging van de
+  // zoekterm. De timer wordt opgeruimd zodat oude (trage) requests niet over
+  // nieuwere resultaten heen schrijven.
+  const eersteRender = useRef(true)
   useEffect(() => {
-    if (!isIngelogd) { navigate('/login'); return }
-    laadEntries('', 50)
-  }, [isIngelogd])
+    if (eersteRender.current) {
+      eersteRender.current = false
+      laadEntries(zoek)
+      return
+    }
+    const timer = setTimeout(() => laadEntries(zoek), 350)
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [zoek])
 
   async function laadEntries(zoekterm = zoek, grootte = paginaGrootte) {
     setLaden(true)
@@ -86,15 +93,11 @@ export default function Extras() {
       const data = await api.get<{ totaal: number; entries: CacheEntry[] }>(`/cache?${params}`)
       setEntries(data.entries)
       setTotaal(data.totaal)
+    } catch {
+      setFout('Kon de cache niet laden.')
     } finally {
       setLaden(false)
     }
-  }
-
-  function zoekHandler(waarde: string) {
-    setZoek(waarde)
-    const timer = setTimeout(() => laadEntries(waarde), 350)
-    return () => clearTimeout(timer)
   }
 
   function wisselPaginaGrootte(grootte: number) {
@@ -113,6 +116,7 @@ export default function Extras() {
   async function slaBewerkenOp() {
     if (!bewerkHash || !bewerkBasis.trim()) return
     setOpslaan(true)
+    setFout('')
     try {
       const origEntry = entries.find(e => e.naam_hash === bewerkHash)
       const samengesteldeNaam = bouwNaam(bewerkBasis, bewerkEenheid)
@@ -125,10 +129,12 @@ export default function Extras() {
       const nieuweNaam = result.naam ?? origEntry?.naam ?? samengesteldeNaam
       setEntries(prev => prev.map(e =>
         e.naam_hash === bewerkHash
-          ? { ...e, naam_hash: nieuweHash, naam: nieuweNaam, macros: bewerkMacros }
+          ? { ...e, naam_hash: nieuweHash, naam: nieuweNaam, macros: result.macros ?? bewerkMacros }
           : e
       ))
       setBewerkHash(null)
+    } catch {
+      setFout('Opslaan mislukt. Probeer opnieuw.')
     } finally {
       setOpslaan(false)
     }
@@ -136,24 +142,35 @@ export default function Extras() {
 
   async function verwijder(hash: string) {
     if (!confirm('Deze entry verwijderen uit de cache?')) return
-    await api.delete(`/cache/${hash}`)
-    setEntries(prev => prev.filter(e => e.naam_hash !== hash))
+    setFout('')
+    try {
+      await api.delete(`/cache/${hash}`)
+      setEntries(prev => prev.filter(e => e.naam_hash !== hash))
+      setTotaal(t => Math.max(0, t - 1))
+    } catch {
+      setFout('Verwijderen mislukt. Probeer opnieuw.')
+    }
   }
 
   async function voegToe() {
     if (!nieuwBasis.trim()) return
     setOpslaan(true)
+    setFout('')
     try {
       const samengestelde = bouwNaam(nieuwBasis, nieuwEenheid)
       const entry = await api.post<CacheEntry>('/cache', { naam: samengestelde, macros: nieuwMacros })
       setEntries(prev => {
+        const bestond = prev.some(e => e.naam_hash === entry.naam_hash)
         const gefilterd = prev.filter(e => e.naam_hash !== entry.naam_hash)
+        if (!bestond) setTotaal(t => t + 1)
         return [entry, ...gefilterd].sort((a, b) => a.naam.localeCompare(b.naam))
       })
       setNieuwBasis('')
       setNieuwEenheid('g')
       setNieuwMacros(LEEG_MACROS)
       setToonToevoegen(false)
+    } catch {
+      setFout('Toevoegen mislukt. Probeer opnieuw.')
     } finally {
       setOpslaan(false)
     }
@@ -190,6 +207,15 @@ export default function Extras() {
         </p>
       </div>
 
+      {fout && (
+        <div className="anim-in mb-4 px-4 py-3 bg-terracotta-50 border border-terracotta-200 rounded-2xl text-sm text-terracotta-700 flex items-center justify-between gap-3">
+          <span>{fout}</span>
+          <button onClick={() => setFout('')} aria-label="Sluit melding" className="text-terracotta-700/60 hover:text-terracotta-700">
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
       {/* Zoek + toevoegen */}
       <div className="anim-in flex gap-3 mb-3">
         <div className="relative flex-1">
@@ -198,7 +224,7 @@ export default function Extras() {
             type="text"
             placeholder="Zoek op naam…"
             value={zoek}
-            onChange={e => zoekHandler(e.target.value)}
+            onChange={e => setZoek(e.target.value)}
             className="w-full pl-9 pr-4 py-2.5 rounded-full border border-olive-700/15 bg-white text-sm text-olive-700 placeholder:text-olive-700/30 focus:outline-none focus:border-olive-700/30"
           />
         </div>

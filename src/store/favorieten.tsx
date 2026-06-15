@@ -31,19 +31,30 @@ export function FavorietenProvider({ children }: { children: ReactNode }) {
       .catch(() => {/* gebruik localStorage als fallback */})
   }, [isIngelogd])
 
-  function toggleFavoriet(id: string) {
-    const isAl = favorieten.includes(id)
-    const nieuw = isAl ? favorieten.filter(f => f !== id) : [...favorieten, id]
-    setFavorieten(nieuw)
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(nieuw))
-
-    if (isIngelogd) {
-      if (isAl) {
-        api.delete(`/favorieten/${id}`).catch(console.error)
-      } else {
-        api.post('/favorieten', { recept_id: id }).catch(console.error)
-      }
+  // Bij uitloggen/sessie-verloop: per-gebruiker favorieten wissen zodat een
+  // volgende (anonieme) bezoeker niet de favorieten van de vorige gebruiker ziet
+  useEffect(() => {
+    const handler = () => {
+      setFavorieten([])
+      localStorage.removeItem(STORAGE_KEY)
     }
+    window.addEventListener('auth:uitgelogd', handler)
+    return () => window.removeEventListener('auth:uitgelogd', handler)
+  }, [])
+
+  function toggleFavoriet(id: string) {
+    setFavorieten(prev => {
+      const isAl = prev.includes(id)
+      const nieuw = isAl ? prev.filter(f => f !== id) : [...prev, id]
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(nieuw))
+      if (isIngelogd) {
+        const verzoek = isAl
+          ? api.delete(`/favorieten/${id}`)
+          : api.post('/favorieten', { recept_id: id })
+        verzoek.catch(console.error)
+      }
+      return nieuw
+    })
   }
 
   function isFavoriet(id: string) {

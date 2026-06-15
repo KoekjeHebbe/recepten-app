@@ -26,9 +26,10 @@ import { formateerHoeveelheid } from '../lib/eenheden'
 
 interface GegroepeerdeIngredient {
   naam: string
-  hoeveelheden: string[]   // al geformatteerd als "200 g", "2 el", …
+  hoeveelheden: string[]          // geformatteerd, gesommeerd per eenheid: ["350 g", "2 el"]
   voorraadkast: boolean
   categorie: string
+  _perEenheid: Map<string, number> // intern: som per exacte eenheid voor aggregatie
 }
 
 interface CategoriGroep {
@@ -41,20 +42,30 @@ function voegToe(map: Map<string, GegroepeerdeIngredient>, ing: Ingredient, fact
   const geschaald = ing.hoeveelheid !== null && ing.hoeveelheid !== undefined
     ? ing.hoeveelheid * factor
     : null
-  const hvStr = geschaald !== null
-    ? formateerHoeveelheid(geschaald, ing.eenheid ?? '')
-    : null
-  if (map.has(sleutel)) {
-    const bestaand = map.get(sleutel)!
-    if (hvStr) bestaand.hoeveelheden.push(hvStr)
-  } else {
-    map.set(sleutel, {
+
+  let bestaand = map.get(sleutel)
+  if (!bestaand) {
+    bestaand = {
       naam: ing.naam,
-      hoeveelheden: hvStr ? [hvStr] : [],
+      hoeveelheden: [],
       voorraadkast: ing.voorraadkast,
       categorie: ing.categorie || categoriseer(ing.naam),
-    })
+      _perEenheid: new Map(),
+    }
+    map.set(sleutel, bestaand)
   }
+  // Tel hoeveelheden met dezelfde eenheid bij elkaar op ("200 g" + "150 g" → "350 g")
+  if (geschaald !== null) {
+    const eh = ing.eenheid ?? ''
+    bestaand._perEenheid.set(eh, (bestaand._perEenheid.get(eh) ?? 0) + geschaald)
+  }
+}
+
+// Zet de gesommeerde hoeveelheden per eenheid om naar weergavestrings
+function finaliseerHoeveelheden(g: GegroepeerdeIngredient) {
+  g.hoeveelheden = [...g._perEenheid.entries()]
+    .map(([eh, som]) => formateerHoeveelheid(som, eh))
+    .filter(Boolean)
 }
 
 function groepeerIngredienten(items: WeekmenuItem[], alleRecepten: Recept[]): GegroepeerdeIngredient[] {
@@ -78,7 +89,9 @@ function groepeerIngredienten(items: WeekmenuItem[], alleRecepten: Recept[]): Ge
     }
   }
 
-  return Array.from(map.values()).sort((a, b) => {
+  const lijst = Array.from(map.values())
+  lijst.forEach(finaliseerHoeveelheden)
+  return lijst.sort((a, b) => {
     const catA = CATEGORIE_NAMEN.indexOf(a.categorie)
     const catB = CATEGORIE_NAMEN.indexOf(b.categorie)
     if (catA !== catB) return catA - catB
@@ -172,6 +185,7 @@ export default function Boodschappen() {
   const { menu } = useWeekMenu()
   const { alleRecepten } = useRecepten()
   const [gekopieerd, setGekopieerd] = useState(false)
+  const [kopieerFout, setKopieerFout] = useState(false)
   const [voorraadTonen, setVoorraadTonen] = useState(false)
 
   const alleItems = useMemo(() => {
@@ -217,15 +231,34 @@ export default function Boodschappen() {
     if (!over || active.id === over.id) return
     const oudIndex = groepen.findIndex(g => g.id === active.id)
     const nieuwIndex = groepen.findIndex(g => g.id === over.id)
+    if (oudIndex === -1 || nieuwIndex === -1) return
     const nieuweVolgorde = arrayMove(groepen, oudIndex, nieuwIndex).map(g => g.id)
     setVolgorde(nieuweVolgorde)
   }
 
   async function kopieerNaarKeep() {
     const tekst = formatKeepLijst(groepen, voorraad)
-    await navigator.clipboard.writeText(tekst)
-    setGekopieerd(true)
-    setTimeout(() => setGekopieerd(false), 2500)
+    const toon = () => { setGekopieerd(true); setTimeout(() => setGekopieerd(false), 2500) }
+    try {
+      await navigator.clipboard.writeText(tekst)
+      toon()
+    } catch {
+      // Fallback voor onveilige context / geweigerde permissie / oude browsers
+      try {
+        const ta = document.createElement('textarea')
+        ta.value = tekst
+        ta.style.position = 'fixed'
+        ta.style.opacity = '0'
+        document.body.appendChild(ta)
+        ta.focus(); ta.select()
+        document.execCommand('copy')
+        document.body.removeChild(ta)
+        toon()
+      } catch {
+        setKopieerFout(true)
+        setTimeout(() => setKopieerFout(false), 3500)
+      }
+    }
   }
 
   if (alleItems.length === 0) {
@@ -248,11 +281,11 @@ export default function Boodschappen() {
         <button
           onClick={kopieerNaarKeep}
           className={`flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold transition-all btn-magnetic shadow-card ${
-            gekopieerd ? 'bg-olive-700 text-cream' : 'bg-terracotta-600 text-white'
+            kopieerFout ? 'bg-terracotta-700 text-white' : gekopieerd ? 'bg-olive-700 text-cream' : 'bg-terracotta-600 text-white'
           }`}
         >
           {gekopieerd ? <Check size={14} /> : <Copy size={14} />}
-          {gekopieerd ? 'Gekopieerd!' : 'Kopieer voor Keep'}
+          {kopieerFout ? 'Kopiëren mislukt' : gekopieerd ? 'Gekopieerd!' : 'Kopieer voor Keep'}
         </button>
       </div>
 
