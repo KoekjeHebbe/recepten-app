@@ -34,7 +34,7 @@ export default function Login() {
     }
   }
 
-  const inputCls = "w-full px-4 py-3 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 placeholder:text-olive-700/25 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25 transition-all"
+  const inputCls = "w-full px-4 py-3 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 placeholder:text-olive-700/50 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25 transition-all"
   const labelCls = "block text-[10px] font-bold text-olive-700/40 uppercase tracking-widest mb-1.5"
 
   return (

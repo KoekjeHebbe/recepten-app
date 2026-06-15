@@ -265,7 +265,7 @@ export default function Boodschappen() {
 
   if (alleItems.length === 0) {
     return (
-      <div className="text-center py-20 text-olive-700/40">
+      <div className="text-center py-20 text-olive-700/55">
         <p className="text-4xl mb-4">🛒</p>
         <p className="mb-2 text-sm">Je weekmenu is leeg.</p>
         <Link to="/weekmenu" className="text-terracotta-600 underline underline-offset-2 text-sm font-medium">

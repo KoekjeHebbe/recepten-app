@@ -122,7 +122,7 @@ export default function ReceptenLijst() {
             placeholder="Zoek recept of ingrediënt…"
             value={zoek}
             onChange={e => setZoek(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 rounded-full border border-olive-700/10 bg-white shadow-card focus:outline-none focus:ring-2 focus:ring-terracotta-600/30 text-sm text-olive-700 placeholder:text-olive-700/30"
+            className="w-full pl-9 pr-4 py-2.5 rounded-full border border-olive-700/10 bg-white shadow-card focus:outline-none focus:ring-2 focus:ring-terracotta-600/30 text-sm text-olive-700 placeholder:text-olive-700/50"
           />
         </div>
         <Link
@@ -206,13 +206,13 @@ export default function ReceptenLijst() {
       )}
 
       {/* Resultaattelling */}
-      <p className="text-xs text-olive-700/40 mb-4 font-medium">
+      <p className="text-xs text-olive-700/55 mb-4 font-medium">
         {gesorteerd.length} {gesorteerd.length === 1 ? 'recept' : 'recepten'}
         {(aantalActief > 0 || zoek.trim()) && ` van ${alleRecepten.length}`}
       </p>
 
       {gesorteerd.length === 0 ? (
-        <p className="text-olive-700/40 text-center py-16 text-sm">Geen recepten gevonden.</p>
+        <p className="text-olive-700/55 text-center py-16 text-sm">Geen recepten gevonden.</p>
       ) : (
         <div ref={gridRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {gesorteerd.map(r => (

@@ -82,7 +82,7 @@ export default function ReceptKiezer({
               placeholder={placeholder}
               onFocus={() => setOpen(true)}
               onChange={e => { setZoek(e.target.value); setOpen(true) }}
-              className="w-full pl-8 pr-3 py-2 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 placeholder:text-olive-700/30 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25"
+              className="w-full pl-8 pr-3 py-2 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 placeholder:text-olive-700/50 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25"
             />
           </div>
           {open && (

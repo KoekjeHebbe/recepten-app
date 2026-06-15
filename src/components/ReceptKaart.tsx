@@ -90,7 +90,7 @@ export default function ReceptKaart({ recept }: Props) {
               {vw.calorieen}{recept.voedingswaarden.schatting ? ' ±' : ''} kcal
             </span>
           </div>
-          <div className="flex items-center gap-2 text-[10px] text-olive-700/35 font-medium tracking-wide">
+          <div className="flex items-center gap-2 text-[10px] text-olive-700/55 font-medium tracking-wide">
             <span>P {vw.eiwitten}g</span>
             <span className="text-olive-700/15">·</span>
             <span>K {vw.koolhydraten}g</span>

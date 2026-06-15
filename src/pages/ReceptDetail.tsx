@@ -388,13 +388,13 @@ export default function ReceptDetail() {
               <button
                 onClick={() => setPersonen(Math.max(1, aantalPersonen - 1))}
                 aria-label="Minder personen"
-                className="w-6 h-6 rounded-full bg-cream border border-olive-700/10 hover:bg-olive-700/8 flex items-center justify-center font-bold text-olive-700 text-sm transition-all btn-magnetic"
+                className="w-8 h-8 rounded-full bg-cream border border-olive-700/10 hover:bg-olive-700/8 flex items-center justify-center font-bold text-olive-700 text-sm transition-all btn-magnetic"
               >−</button>
               <span className="font-semibold text-olive-700 min-w-[1.5rem] text-center tabular-nums">{aantalPersonen}</span>
               <button
                 onClick={() => setPersonen(aantalPersonen + 1)}
                 aria-label="Meer personen"
-                className="w-6 h-6 rounded-full bg-cream border border-olive-700/10 hover:bg-olive-700/8 flex items-center justify-center font-bold text-olive-700 text-sm transition-all btn-magnetic"
+                className="w-8 h-8 rounded-full bg-cream border border-olive-700/10 hover:bg-olive-700/8 flex items-center justify-center font-bold text-olive-700 text-sm transition-all btn-magnetic"
               >+</button>
               <span>personen</span>
               {personen !== null && (
@@ -440,12 +440,12 @@ export default function ReceptDetail() {
                       {kanTweaken(ing) ? (
                         <>
                           <button onClick={() => setMultiplier(ing._idx, ing, -1)} aria-label="Verminder hoeveelheid"
-                            className="w-5 h-5 rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 flex items-center justify-center text-olive-700/60 text-xs transition-all btn-magnetic flex-shrink-0">−</button>
+                            className="w-7 h-7 rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 flex items-center justify-center text-olive-700/60 text-xs transition-all btn-magnetic flex-shrink-0">−</button>
                           <span className="min-w-[3.5rem] text-center tabular-nums text-olive-700/70">
                             {formateerHoeveelheid(displayed, ing.eenheid)}
                           </span>
                           <button onClick={() => setMultiplier(ing._idx, ing, 1)} aria-label="Verhoog hoeveelheid"
-                            className="w-5 h-5 rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 flex items-center justify-center text-olive-700/60 text-xs transition-all btn-magnetic flex-shrink-0">+</button>
+                            className="w-7 h-7 rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 flex items-center justify-center text-olive-700/60 text-xs transition-all btn-magnetic flex-shrink-0">+</button>
                           <span>{ing.naam}</span>
                         </>
                       ) : (
@@ -453,7 +453,7 @@ export default function ReceptDetail() {
                       )}
                     </div>
                     {bijdrage && (
-                      <span className="block ml-7 text-[10px] text-olive-700/35 tabular-nums tracking-wide">
+                      <span className="block ml-7 text-[10px] text-olive-700/55 tabular-nums tracking-wide">
                         {Math.round(bijdrage.cal)} kcal · {Math.round(bijdrage.kh)}g KH · {Math.round(bijdrage.eiwit)}g E · {Math.round(bijdrage.vet)}g V
                       </span>
                     )}
@@ -475,12 +475,12 @@ export default function ReceptDetail() {
                   {kanTweaken(ing) ? (
                     <>
                       <button onClick={() => setMultiplier(ing._idx, ing, -1)} aria-label="Verminder hoeveelheid"
-                        className="w-5 h-5 rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 flex items-center justify-center text-olive-700 text-xs transition-all btn-magnetic flex-shrink-0">−</button>
+                        className="w-7 h-7 rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 flex items-center justify-center text-olive-700 text-xs transition-all btn-magnetic flex-shrink-0">−</button>
                       <span className="min-w-[3.5rem] text-center tabular-nums font-medium">
                         {formateerHoeveelheid(displayed, ing.eenheid)}
                       </span>
                       <button onClick={() => setMultiplier(ing._idx, ing, 1)} aria-label="Verhoog hoeveelheid"
-                        className="w-5 h-5 rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 flex items-center justify-center text-olive-700 text-xs transition-all btn-magnetic flex-shrink-0">+</button>
+                        className="w-7 h-7 rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 flex items-center justify-center text-olive-700 text-xs transition-all btn-magnetic flex-shrink-0">+</button>
                       <span>{ing.naam}</span>
                     </>
                   ) : (
@@ -488,7 +488,7 @@ export default function ReceptDetail() {
                   )}
                 </div>
                 {bijdrage && (
-                  <span className="block ml-7 text-[10px] text-olive-700/40 tabular-nums tracking-wide">
+                  <span className="block ml-7 text-[10px] text-olive-700/55 tabular-nums tracking-wide">
                     {Math.round(bijdrage.cal)} kcal · {Math.round(bijdrage.kh)}g KH · {Math.round(bijdrage.eiwit)}g E · {Math.round(bijdrage.vet)}g V
                   </span>
                 )}

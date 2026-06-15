@@ -399,7 +399,7 @@ export default function ReceptToevoegen() {
     }
   }
 
-  const inputCls = "w-full px-4 py-2.5 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 placeholder:text-olive-700/25 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25 transition-all"
+  const inputCls = "w-full px-4 py-2.5 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 placeholder:text-olive-700/50 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25 transition-all"
   const sectionCls = "rounded-4xl bg-white border border-olive-700/8 shadow-card p-7 mb-4"
   const labelCls = "block text-[10px] font-bold text-olive-700/40 uppercase tracking-widest mb-1.5"
 
@@ -429,7 +429,7 @@ export default function ReceptToevoegen() {
                 onChange={e => setImportUrl(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') importeerViaUrl() }}
                 placeholder="Recept-URL of TikTok-link plakken…"
-                className="flex-1 px-4 py-2.5 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 placeholder:text-olive-700/25 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25 transition-all"
+                className="flex-1 px-4 py-2.5 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 placeholder:text-olive-700/50 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25 transition-all"
               />
               <button
                 type="button"
@@ -452,7 +452,7 @@ export default function ReceptToevoegen() {
                   onChange={e => setTiktokBeschrijving(e.target.value)}
                   placeholder="Bijv: Pasta met kip en pesto&#10;&#10;Ingrediënten:&#10;300g pasta&#10;2 kipfilets&#10;..."
                   rows={5}
-                  className="w-full px-4 py-2.5 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 placeholder:text-olive-700/25 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25 transition-all resize-y"
+                  className="w-full px-4 py-2.5 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 placeholder:text-olive-700/50 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25 transition-all resize-y"
                 />
                 <button
                   type="button"
@@ -589,7 +589,7 @@ export default function ReceptToevoegen() {
               onChange={e => setNieuwTag(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), voegCustomTagToe())}
               placeholder="Eigen tag toevoegen…"
-              className="flex-1 px-3 py-2 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 placeholder:text-olive-700/25 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25"
+              className="flex-1 px-3 py-2 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 placeholder:text-olive-700/50 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25"
             />
             <button type="button" onClick={voegCustomTagToe}
               disabled={!nieuwTag.trim()}
@@ -614,7 +614,7 @@ export default function ReceptToevoegen() {
                         <input type="text" value={ing.naam}
                           onChange={e => updateIngredient(idx, 'naam', e.target.value)}
                           placeholder="Naam"
-                          className="flex-1 min-w-0 px-3 py-2 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 placeholder:text-olive-700/25 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25" />
+                          className="flex-1 min-w-0 px-3 py-2 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 placeholder:text-olive-700/50 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25" />
                         <input
                           type="number"
                           min={0}
@@ -622,7 +622,7 @@ export default function ReceptToevoegen() {
                           value={ing.hoeveelheid ?? ''}
                           onChange={e => updateIngredient(idx, 'hoeveelheid', e.target.value === '' ? null : parseFloat(e.target.value))}
                           placeholder="0"
-                          className="w-20 px-3 py-2 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 text-right tabular-nums placeholder:text-olive-700/25 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25" />
+                          className="w-20 px-3 py-2 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 text-right tabular-nums placeholder:text-olive-700/50 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25" />
                         <select
                           value={ing.eenheid ?? 'g'}
                           onChange={e => updateEenheid(idx, e.target.value as Eenheid)}
@@ -734,7 +734,7 @@ export default function ReceptToevoegen() {
                       <textarea value={stap.tekst}
                         onChange={e => setBereiding(prev => prev.map(s => s._key === stap._key ? { ...s, tekst: e.target.value } : s))}
                         placeholder={`Stap ${idx + 1}`} rows={2}
-                        className="flex-1 min-w-0 px-4 py-2.5 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 placeholder:text-olive-700/25 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25 resize-none" />
+                        className="flex-1 min-w-0 px-4 py-2.5 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 placeholder:text-olive-700/50 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25 resize-none" />
                       {bereiding.length > 1 && (
                         <button type="button" onClick={() => setBereiding(prev => prev.filter(s => s._key !== stap._key))}
                           aria-label={`Verwijder stap ${idx + 1}`}

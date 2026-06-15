@@ -45,7 +45,7 @@ export default function Weekmenu() {
       </div>
 
       {totalItems === 0 && (
-        <div className="text-center py-20 text-olive-700/40">
+        <div className="text-center py-20 text-olive-700/55">
           <p className="text-4xl mb-4">📅</p>
           <p className="mb-2 text-sm">Je weekmenu is leeg.</p>
           <p className="text-xs mb-5 max-w-xs mx-auto leading-relaxed">
@@ -102,7 +102,7 @@ export default function Weekmenu() {
                             onClick={() => setPorties(dag as Dag, recept.id, Math.max(1, item.porties - 1))}
                             disabled={item.porties <= 1}
                             aria-label="Minder personen"
-                            className="w-6 h-6 rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 disabled:opacity-30 flex items-center justify-center text-olive-700 text-xs transition-all btn-magnetic"
+                            className="w-8 h-8 rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 disabled:opacity-30 flex items-center justify-center text-olive-700 text-xs transition-all btn-magnetic"
                           >
                             −
                           </button>
@@ -122,14 +122,14 @@ export default function Weekmenu() {
                           <button
                             onClick={() => setPorties(dag as Dag, recept.id, item.porties + 1)}
                             aria-label="Meer personen"
-                            className="w-6 h-6 rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 flex items-center justify-center text-olive-700 text-xs transition-all btn-magnetic"
+                            className="w-8 h-8 rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 flex items-center justify-center text-olive-700 text-xs transition-all btn-magnetic"
                           >
                             +
                           </button>
                         </div>
                         <button
                           onClick={() => removeFromDay(dag as Dag, recept.id)}
-                          className="text-olive-700/20 hover:text-terracotta-600 transition-colors text-base btn-magnetic leading-none w-5 h-5 flex items-center justify-center"
+                          className="text-olive-700/30 hover:text-terracotta-600 transition-colors text-base btn-magnetic leading-none w-7 h-7 flex items-center justify-center"
                           title="Verwijder"
                           aria-label={`Verwijder ${recept.titel} van ${dag}`}
                         >
