@@ -53,22 +53,13 @@ export default function ReceptKaart({ recept }: Props) {
 
       {/* Footer: personen + macros + acties */}
       <div className="px-5 pb-4 flex items-end justify-between gap-2">
-        <div>
-          <div className="flex items-center gap-1.5 text-xs text-olive-700/50 mb-1">
-            <Users size={12} />
-            <span className="font-medium">{recept.personen} pers.</span>
-            <span className="mx-1 text-olive-700/20">·</span>
-            <span className="font-semibold text-olive-700/70">
-              {vw.calorieen}{recept.voedingswaarden.schatting ? ' ±' : ''} kcal
-            </span>
-          </div>
-          <div className="flex items-center gap-2 text-[10px] text-olive-700/55 font-medium tracking-wide">
-            <span>P {vw.eiwitten}g</span>
-            <span className="text-olive-700/15">·</span>
-            <span>K {vw.koolhydraten}g</span>
-            <span className="text-olive-700/15">·</span>
-            <span>V {vw.vetten}g</span>
-          </div>
+        <div className="flex items-center gap-1.5 text-xs text-olive-700/55">
+          <Users size={12} aria-hidden="true" />
+          <span className="font-medium">{recept.personen} pers.</span>
+          <span className="mx-1 text-olive-700/20">·</span>
+          <span className="font-semibold text-olive-700/70">
+            {vw.calorieen}{recept.voedingswaarden.schatting ? ' ±' : ''} kcal
+          </span>
         </div>
 
         <div className="flex items-center gap-1.5 flex-shrink-0">

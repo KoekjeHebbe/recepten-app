@@ -1,11 +1,13 @@
+// Twee-tonig in de huisstijl: maaltijdtypes krijgen een terracotta-tint,
+// alle overige (inhouds-)tags vallen terug op de olive-tint hieronder.
 const TAG_COLORS: Record<string, string> = {
   diner:      'bg-terracotta-100 text-terracotta-700 border-terracotta-200',
-  lunch:      'bg-amber-50 text-amber-700 border-amber-200',
-  bijgerecht: 'bg-yellow-50 text-yellow-700 border-yellow-200',
-  tapas:      'bg-orange-50 text-orange-700 border-orange-200',
-  ontbijt:    'bg-sky-50 text-sky-700 border-sky-200',
-  snack:      'bg-purple-50 text-purple-700 border-purple-200',
-  dessert:    'bg-pink-50 text-pink-700 border-pink-200',
+  lunch:      'bg-terracotta-50 text-terracotta-700 border-terracotta-200',
+  bijgerecht: 'bg-terracotta-50 text-terracotta-700 border-terracotta-200',
+  tapas:      'bg-terracotta-50 text-terracotta-700 border-terracotta-200',
+  ontbijt:    'bg-terracotta-50 text-terracotta-700 border-terracotta-200',
+  snack:      'bg-terracotta-50 text-terracotta-700 border-terracotta-200',
+  dessert:    'bg-terracotta-50 text-terracotta-700 border-terracotta-200',
 }
 
 interface Props {

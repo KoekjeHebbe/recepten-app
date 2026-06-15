@@ -209,7 +209,31 @@ export default function ReceptenLijst() {
       </p>
 
       {gesorteerd.length === 0 ? (
-        <p className="text-olive-700/55 text-center py-16 text-sm">Geen recepten gevonden.</p>
+        alleRecepten.length === 0 ? (
+          /* Eerste keer: nog geen enkel recept */
+          <div className="text-center py-16 text-olive-700/55">
+            <p className="text-4xl mb-4">🍳</p>
+            <p className="mb-2 text-sm font-medium text-olive-700">Nog een lege keuken</p>
+            <p className="text-xs mb-6 max-w-xs mx-auto leading-relaxed">
+              Voeg je eerste recept toe — handmatig, of importeer er een van een link of foto.
+            </p>
+            <Link to="/recept/nieuw" className="btn btn-primary btn-md inline-flex">Eerste recept toevoegen</Link>
+          </div>
+        ) : (
+          /* Wel recepten, maar filters/zoekterm laten niets zien */
+          <div className="text-center py-16 text-olive-700/55">
+            <p className="text-4xl mb-4">🔍</p>
+            <p className="mb-4 text-sm">Geen recepten voor deze filters.</p>
+            {(aantalActief > 0 || zoek.trim()) && (
+              <button
+                onClick={() => { setActieveTags([]); setAlleenFavorieten(false); setZoek('') }}
+                className="btn btn-outline btn-sm inline-flex"
+              >
+                Wis filters
+              </button>
+            )}
+          </div>
+        )
       ) : (
         <div ref={gridRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {gesorteerd.map(r => (
