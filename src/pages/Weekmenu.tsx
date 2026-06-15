@@ -6,6 +6,7 @@ import type { Recept, Dag, WeekmenuItem } from '../types'
 import { DAGEN } from '../types'
 import { useWeekMenu } from '../store/weekmenu'
 import { useRecepten } from '../store/aangepaste-recepten'
+import { verminderBeweging } from '../lib/motion'
 
 gsap.registerPlugin()
 
@@ -20,7 +21,7 @@ export default function Weekmenu() {
   }
 
   useGSAP(() => {
-    if (!containerRef.current) return
+    if (!containerRef.current || verminderBeweging()) return
     const rows = containerRef.current.querySelectorAll<HTMLElement>('.dag-rij')
     gsap.fromTo(
       rows,
@@ -100,6 +101,7 @@ export default function Weekmenu() {
                           <button
                             onClick={() => setPorties(dag as Dag, recept.id, Math.max(1, item.porties - 1))}
                             disabled={item.porties <= 1}
+                            aria-label="Minder personen"
                             className="w-6 h-6 rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 disabled:opacity-30 flex items-center justify-center text-olive-700 text-xs transition-all btn-magnetic"
                           >
                             −
@@ -119,6 +121,7 @@ export default function Weekmenu() {
                           />
                           <button
                             onClick={() => setPorties(dag as Dag, recept.id, item.porties + 1)}
+                            aria-label="Meer personen"
                             className="w-6 h-6 rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 flex items-center justify-center text-olive-700 text-xs transition-all btn-magnetic"
                           >
                             +
@@ -128,8 +131,9 @@ export default function Weekmenu() {
                           onClick={() => removeFromDay(dag as Dag, recept.id)}
                           className="text-olive-700/20 hover:text-terracotta-600 transition-colors text-base btn-magnetic leading-none w-5 h-5 flex items-center justify-center"
                           title="Verwijder"
+                          aria-label={`Verwijder ${recept.titel} van ${dag}`}
                         >
-                          ×
+                          <span aria-hidden="true">×</span>
                         </button>
                       </div>
                     </li>

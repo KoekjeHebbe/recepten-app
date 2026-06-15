@@ -110,8 +110,10 @@ export default function ReceptKaart({ recept }: Props) {
                   : 'bg-white border-olive-700/15 text-olive-700/40 hover:border-olive-700/30 hover:text-olive-700'
               }`}
               title="Voeg toe aan weekmenu"
+              aria-label="Voeg toe aan weekmenu"
+              aria-expanded={dagPickerOpen}
             >
-              <Plus size={14} />
+              <Plus size={14} aria-hidden="true" />
             </button>
             {dagPickerOpen && (
               <div className="absolute right-0 bottom-full mb-2 bg-white rounded-3xl shadow-card-hover border border-olive-700/8 z-50 min-w-[220px] py-2 overflow-hidden">
@@ -153,7 +155,8 @@ export default function ReceptKaart({ recept }: Props) {
                           }
                         }}
                         title="Aantal personen"
-                        className={`w-12 text-xs text-right tabular-nums border rounded-lg px-1.5 py-1 focus:outline-none focus:border-olive-700/40 transition-opacity ${
+                        aria-label={`Aantal personen op ${dag}`}
+                        className={`w-12 text-base sm:text-xs text-right tabular-nums border rounded-lg px-1.5 py-1 focus:outline-none focus:border-olive-700/40 transition-opacity ${
                           geselecteerd
                             ? 'border-olive-700/20 bg-cream text-olive-700'
                             : 'border-olive-700/10 bg-white text-olive-700/50 opacity-60'
@@ -171,9 +174,12 @@ export default function ReceptKaart({ recept }: Props) {
             onClick={e => { e.preventDefault(); toggleFavoriet(recept.id) }}
             className="w-8 h-8 rounded-full bg-white border border-olive-700/15 hover:border-terracotta-300 flex items-center justify-center btn-magnetic transition-all"
             title={favoriet ? 'Verwijder uit favorieten' : 'Voeg toe aan favorieten'}
+            aria-label={favoriet ? 'Verwijder uit favorieten' : 'Voeg toe aan favorieten'}
+            aria-pressed={favoriet}
           >
             <Heart
               size={14}
+              aria-hidden="true"
               className={favoriet ? 'text-terracotta-600 fill-terracotta-600' : 'text-olive-700/30'}
             />
           </button>

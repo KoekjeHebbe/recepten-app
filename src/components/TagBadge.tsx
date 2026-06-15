@@ -22,6 +22,7 @@ export default function TagBadge({ tag, onClick, active }: Props) {
     return (
       <button
         onClick={onClick}
+        aria-pressed={!!active}
         className={`text-[11px] px-2.5 py-0.5 rounded-full font-semibold tracking-wide border transition-all btn-magnetic ${
           active
             ? 'bg-olive-700 text-cream border-olive-700 ring-2 ring-olive-700/20 ring-offset-1'

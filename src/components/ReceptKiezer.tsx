@@ -67,8 +67,9 @@ export default function ReceptKiezer({
             onClick={wis}
             className="w-6 h-6 rounded-full text-olive-700/40 hover:text-terracotta-600 hover:bg-terracotta-600/10 flex items-center justify-center transition-all flex-shrink-0"
             title="Verwijder selectie"
+            aria-label="Verwijder gekozen recept"
           >
-            <X size={12} />
+            <X size={12} aria-hidden="true" />
           </button>
         </div>
       ) : (

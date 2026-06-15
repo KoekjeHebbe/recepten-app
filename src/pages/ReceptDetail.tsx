@@ -9,6 +9,7 @@ import type { Eenheid } from '../lib/eenheden'
 import { DAGEN } from '../types'
 import TagBadge from '../components/TagBadge'
 import Afbeelding from '../components/Afbeelding'
+import { verminderBeweging } from '../lib/motion'
 import { useWeekMenu } from '../store/weekmenu'
 import { useFavorieten } from '../store/favorieten'
 import { useRecepten, maakId } from '../store/aangepaste-recepten'
@@ -131,7 +132,7 @@ export default function ReceptDetail() {
 
   // Flash-animatie op de macrosaarden bij elke update
   useEffect(() => {
-    if (!macrosTabelRef.current || !berekendeTotalen) return
+    if (!macrosTabelRef.current || !berekendeTotalen || verminderBeweging()) return
     gsap.fromTo(
       macrosTabelRef.current.querySelectorAll('td'),
       { opacity: 0.35 },
@@ -140,7 +141,7 @@ export default function ReceptDetail() {
   }, [berekendeTotalen])
 
   useGSAP(() => {
-    if (!containerRef.current) return
+    if (!containerRef.current || verminderBeweging()) return
     const els = containerRef.current.querySelectorAll<HTMLElement>('.anim-in')
     gsap.fromTo(
       els,
@@ -294,9 +295,12 @@ export default function ReceptDetail() {
                 onClick={() => toggleFavoriet(recept.id)}
                 className="w-9 h-9 rounded-full border border-olive-700/15 hover:border-terracotta-300 flex items-center justify-center transition-all btn-magnetic"
                 title={favoriet ? 'Verwijder uit favorieten' : 'Voeg toe aan favorieten'}
+                aria-label={favoriet ? 'Verwijder uit favorieten' : 'Voeg toe aan favorieten'}
+                aria-pressed={favoriet}
               >
                 <Heart
                   size={16}
+                  aria-hidden="true"
                   className={favoriet ? 'text-terracotta-600 fill-terracotta-600' : 'text-olive-700/30'}
                 />
               </button>
@@ -305,6 +309,8 @@ export default function ReceptDetail() {
               <div className="relative" ref={dagPickerRef}>
                 <button
                   onClick={() => setDagPickerOpen(p => !p)}
+                  aria-expanded={dagPickerOpen}
+                  aria-label="Voeg toe aan weekmenu"
                   className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-full transition-all btn-magnetic border ${
                     dagenMetRecept.length > 0
                       ? 'bg-olive-700 text-cream border-olive-700'
@@ -354,7 +360,8 @@ export default function ReceptDetail() {
                               }
                             }}
                             title="Aantal personen"
-                            className={`w-12 text-xs text-right tabular-nums border rounded-lg px-1.5 py-1 focus:outline-none focus:border-olive-700/40 transition-opacity ${
+                            aria-label={`Aantal personen op ${dag}`}
+                            className={`w-12 text-base sm:text-xs text-right tabular-nums border rounded-lg px-1.5 py-1 focus:outline-none focus:border-olive-700/40 transition-opacity ${
                               geselecteerd
                                 ? 'border-olive-700/20 bg-cream text-olive-700'
                                 : 'border-olive-700/10 bg-white text-olive-700/50 opacity-60'
@@ -380,11 +387,13 @@ export default function ReceptDetail() {
               <Users size={15} className="text-olive-700/40" />
               <button
                 onClick={() => setPersonen(Math.max(1, aantalPersonen - 1))}
+                aria-label="Minder personen"
                 className="w-6 h-6 rounded-full bg-cream border border-olive-700/10 hover:bg-olive-700/8 flex items-center justify-center font-bold text-olive-700 text-sm transition-all btn-magnetic"
               >−</button>
               <span className="font-semibold text-olive-700 min-w-[1.5rem] text-center tabular-nums">{aantalPersonen}</span>
               <button
                 onClick={() => setPersonen(aantalPersonen + 1)}
+                aria-label="Meer personen"
                 className="w-6 h-6 rounded-full bg-cream border border-olive-700/10 hover:bg-olive-700/8 flex items-center justify-center font-bold text-olive-700 text-sm transition-all btn-magnetic"
               >+</button>
               <span>personen</span>
@@ -430,12 +439,12 @@ export default function ReceptDetail() {
                       <span className="text-olive-700/20 font-light mr-1">—</span>
                       {kanTweaken(ing) ? (
                         <>
-                          <button onClick={() => setMultiplier(ing._idx, ing, -1)}
+                          <button onClick={() => setMultiplier(ing._idx, ing, -1)} aria-label="Verminder hoeveelheid"
                             className="w-5 h-5 rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 flex items-center justify-center text-olive-700/60 text-xs transition-all btn-magnetic flex-shrink-0">−</button>
                           <span className="min-w-[3.5rem] text-center tabular-nums text-olive-700/70">
                             {formateerHoeveelheid(displayed, ing.eenheid)}
                           </span>
-                          <button onClick={() => setMultiplier(ing._idx, ing, 1)}
+                          <button onClick={() => setMultiplier(ing._idx, ing, 1)} aria-label="Verhoog hoeveelheid"
                             className="w-5 h-5 rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 flex items-center justify-center text-olive-700/60 text-xs transition-all btn-magnetic flex-shrink-0">+</button>
                           <span>{ing.naam}</span>
                         </>
@@ -465,12 +474,12 @@ export default function ReceptDetail() {
                   <span className="text-olive-700/20 font-light mr-1">—</span>
                   {kanTweaken(ing) ? (
                     <>
-                      <button onClick={() => setMultiplier(ing._idx, ing, -1)}
+                      <button onClick={() => setMultiplier(ing._idx, ing, -1)} aria-label="Verminder hoeveelheid"
                         className="w-5 h-5 rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 flex items-center justify-center text-olive-700 text-xs transition-all btn-magnetic flex-shrink-0">−</button>
                       <span className="min-w-[3.5rem] text-center tabular-nums font-medium">
                         {formateerHoeveelheid(displayed, ing.eenheid)}
                       </span>
-                      <button onClick={() => setMultiplier(ing._idx, ing, 1)}
+                      <button onClick={() => setMultiplier(ing._idx, ing, 1)} aria-label="Verhoog hoeveelheid"
                         className="w-5 h-5 rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 flex items-center justify-center text-olive-700 text-xs transition-all btn-magnetic flex-shrink-0">+</button>
                       <span>{ing.naam}</span>
                     </>

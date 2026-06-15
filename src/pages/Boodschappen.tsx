@@ -143,12 +143,14 @@ function SortabeleCategorie({ groep }: { groep: CategoriGroep }) {
           {...listeners}
           className="text-olive-700/20 hover:text-olive-700/50 cursor-grab active:cursor-grabbing touch-none flex-shrink-0"
           tabIndex={-1}
+          aria-label={`Versleep categorie ${groep.id}`}
         >
-          <GripVertical size={15} />
+          <GripVertical size={15} aria-hidden="true" />
         </button>
 
         <button
           onClick={() => setOpen(p => !p)}
+          aria-expanded={open}
           className="flex items-center gap-1.5 flex-1 text-left"
         >
           <p className="text-[10px] font-bold text-olive-700/40 uppercase tracking-widest">{groep.id}</p>
@@ -321,9 +323,10 @@ export default function Boodschappen() {
       {/* Voorraadkast toggle */}
       <button
         onClick={() => setVoorraadTonen(p => !p)}
+        aria-expanded={voorraadTonen}
         className="w-full text-xs text-olive-700/40 hover:text-olive-700 mb-2 flex items-center gap-2 px-2 py-1 transition-colors btn-magnetic font-medium tracking-wide"
       >
-        <ChevronDown size={13} className={`transition-transform duration-200 ${voorraadTonen ? '' : '-rotate-90'}`} />
+        <ChevronDown size={13} aria-hidden="true" className={`transition-transform duration-200 ${voorraadTonen ? '' : '-rotate-90'}`} />
         Voorraadkast items ({voorraad.length})
       </button>
 

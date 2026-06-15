@@ -80,9 +80,10 @@ function DragHandle({ attributes, listeners }: HandleProps) {
       {...listeners}
       tabIndex={-1}
       title="Versleep om te herordenen"
+      aria-label="Versleep om te herordenen"
       className="self-center w-7 h-9 flex items-center justify-center text-olive-700/20 hover:text-olive-700/50 cursor-grab active:cursor-grabbing touch-none flex-shrink-0"
     >
-      <GripVertical size={15} />
+      <GripVertical size={15} aria-hidden="true" />
     </button>
   )
 }
@@ -544,6 +545,7 @@ export default function ReceptToevoegen() {
           <div className="flex flex-wrap gap-2">
             {MAALTIJD_TYPES.map(tag => (
               <button key={tag} type="button" onClick={() => toggleMaaltijd(tag)}
+                aria-pressed={geselecteerdeMaaltijd.includes(tag)}
                 className={`text-[11px] px-3 py-1 rounded-full border font-semibold tracking-wide transition-all btn-magnetic ${
                   geselecteerdeMaaltijd.includes(tag)
                     ? 'bg-terracotta-600 text-white border-terracotta-600'
@@ -561,6 +563,7 @@ export default function ReceptToevoegen() {
           <div className="flex flex-wrap gap-2 mb-2">
             {BESCHIKBARE_TAGS.map(tag => (
               <button key={tag} type="button" onClick={() => toggleTag(tag)}
+                aria-pressed={geselecteerdeTags.includes(tag)}
                 className={`text-[11px] px-3 py-1 rounded-full border font-semibold tracking-wide transition-all btn-magnetic ${
                   geselecteerdeTags.includes(tag)
                     ? 'bg-olive-700 text-cream border-olive-700'
@@ -636,11 +639,14 @@ export default function ReceptToevoegen() {
                         <button type="button"
                           onClick={() => updateIngredient(idx, 'voorraadkast', !ing.voorraadkast)}
                           title="Voorraadkast"
+                          aria-label="Voorraadkast-item"
+                          aria-pressed={ing.voorraadkast}
                           className={`w-9 h-9 rounded-xl border text-sm transition-all btn-magnetic flex-shrink-0 flex items-center justify-center ${ing.voorraadkast ? 'bg-olive-50 border-olive-700/20' : 'bg-white border-olive-700/8 opacity-30'}`}>
-                          🏠
+                          <span aria-hidden="true">🏠</span>
                         </button>
                         {ingredienten.length > 1 && (
                           <button type="button" onClick={() => setIngredienten(prev => prev.filter((_, i) => i !== idx))}
+                            aria-label={`Verwijder ingrediënt ${idx + 1}`}
                             className="w-9 h-9 rounded-xl border border-olive-700/8 text-olive-700/25 hover:text-terracotta-600 hover:border-terracotta-200 text-sm transition-all btn-magnetic flex-shrink-0 flex items-center justify-center">
                             ✕
                           </button>
@@ -699,6 +705,7 @@ export default function ReceptToevoegen() {
               />
               <span className="text-xs text-olive-700/50 font-medium whitespace-nowrap">porties</span>
               <button type="button" onClick={() => setOnderdelen(prev => prev.filter((_, i) => i !== idx))}
+                aria-label={`Verwijder onderdeel ${idx + 1}`}
                 className="w-9 h-9 rounded-xl border border-olive-700/8 text-olive-700/25 hover:text-terracotta-600 hover:border-terracotta-200 text-sm transition-all btn-magnetic flex-shrink-0 flex items-center justify-center">
                 ✕
               </button>
@@ -730,6 +737,7 @@ export default function ReceptToevoegen() {
                         className="flex-1 min-w-0 px-4 py-2.5 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 placeholder:text-olive-700/25 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25 resize-none" />
                       {bereiding.length > 1 && (
                         <button type="button" onClick={() => setBereiding(prev => prev.filter(s => s._key !== stap._key))}
+                          aria-label={`Verwijder stap ${idx + 1}`}
                           className="w-9 h-9 mt-1 rounded-xl border border-olive-700/8 text-olive-700/25 hover:text-terracotta-600 hover:border-terracotta-200 text-sm transition-all btn-magnetic flex-shrink-0 flex items-center justify-center">
                           ✕
                         </button>

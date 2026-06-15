@@ -90,9 +90,10 @@ export default function Nav() {
             <button
               onClick={() => { logout(); navigate('/') }}
               title={`Uitloggen (${gebruiker?.naam})`}
+              aria-label={`Uitloggen (${gebruiker?.naam ?? ''})`}
               className="text-sm px-3 py-1.5 rounded-full text-olive-700/40 hover:text-olive-700 hover:bg-olive-700/8 transition-all btn-magnetic flex-shrink-0"
             >
-              {gebruiker?.naam?.split(' ')[0]} ↩
+              {gebruiker?.naam?.split(' ')[0]} <span aria-hidden="true">↩</span>
             </button>
           </>
         ) : (

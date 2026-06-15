@@ -61,7 +61,7 @@ export default function Login() {
               <div>
                 <label className={labelCls}>Naam</label>
                 <input type="text" value={naam} onChange={e => setNaam(e.target.value)}
-                  placeholder="Jouw naam" required className={inputCls} />
+                  placeholder="Jouw naam" required autoComplete="name" className={inputCls} />
               </div>
               <div>
                 <label className={labelCls}>Uitnodigingscode</label>
@@ -73,12 +73,13 @@ export default function Login() {
           <div>
             <label className={labelCls}>E-mailadres</label>
             <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-              placeholder="naam@voorbeeld.be" required className={inputCls} />
+              placeholder="naam@voorbeeld.be" required autoComplete="email" className={inputCls} />
           </div>
           <div>
             <label className={labelCls}>Wachtwoord</label>
             <input type="password" value={wachtwoord} onChange={e => setWachtwoord(e.target.value)}
-              placeholder="••••••••" required minLength={8} className={inputCls} />
+              placeholder="••••••••" required minLength={8}
+              autoComplete={modus === 'login' ? 'current-password' : 'new-password'} className={inputCls} />
           </div>
           <button type="submit" disabled={laden}
             className="w-full py-3 bg-terracotta-600 text-white font-semibold rounded-full transition-all btn-magnetic shadow-card text-sm disabled:opacity-50">

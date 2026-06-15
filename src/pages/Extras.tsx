@@ -3,6 +3,7 @@ import { useGSAP } from '@gsap/react'
 import gsap from 'gsap'
 import { Search, Trash2, Pencil, Check, X, Plus } from 'lucide-react'
 import { api } from '../api/client'
+import { verminderBeweging } from '../lib/motion'
 import type { Macros } from '../types'
 
 interface CacheEntry {
@@ -62,7 +63,7 @@ export default function Extras() {
   const [fout, setFout]               = useState('')
 
   useGSAP(() => {
-    if (!containerRef.current) return
+    if (!containerRef.current || verminderBeweging()) return
     gsap.fromTo(
       containerRef.current.querySelectorAll<HTMLElement>('.anim-in'),
       { y: 40, opacity: 0 },
@@ -424,18 +425,20 @@ export default function Extras() {
                   <td className="px-4 py-3 text-right tabular-nums text-olive-700/60">{entry.macros.vetten}</td>
                   <td className="px-4 py-3 text-right text-[10px] text-olive-700/30 font-medium">{referentieLabel(entry.naam)}</td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-1 justify-end opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center gap-1 justify-end opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 transition-opacity">
                       <button
                         onClick={() => startBewerken(entry)}
+                        aria-label={`Bewerk ${entry.naam}`}
                         className="w-8 h-8 rounded-full border border-olive-700/15 text-olive-700/50 flex items-center justify-center hover:bg-olive-700/8 hover:text-olive-700 transition-all"
                       >
-                        <Pencil size={12} />
+                        <Pencil size={12} aria-hidden="true" />
                       </button>
                       <button
                         onClick={() => verwijder(entry.naam_hash)}
+                        aria-label={`Verwijder ${entry.naam}`}
                         className="w-8 h-8 rounded-full border border-olive-700/15 text-olive-700/30 flex items-center justify-center hover:bg-terracotta-600/10 hover:text-terracotta-600 hover:border-terracotta-300 transition-all"
                       >
-                        <Trash2 size={12} />
+                        <Trash2 size={12} aria-hidden="true" />
                       </button>
                     </div>
                   </td>
