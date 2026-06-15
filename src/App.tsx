@@ -49,7 +49,7 @@ function Shell() {
   return (
     <div className="min-h-screen">
       <Nav />
-      <main className="max-w-5xl mx-auto w-full px-4 pt-28 pb-16">
+      <main className="max-w-5xl mx-auto w-full px-4 pt-20 sm:pt-28 pb-28 sm:pb-16">
         <ErrorBoundary>
           <Routes>
             <Route path="/" element={<ReceptenLijst />} />
