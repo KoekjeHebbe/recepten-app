@@ -4,6 +4,7 @@ import gsap from 'gsap'
 import { Search, Trash2, Pencil, Check, X, Plus } from 'lucide-react'
 import { api } from '../api/client'
 import { verminderBeweging } from '../lib/motion'
+import Bevestiging from '../components/Bevestiging'
 import type { Macros } from '../types'
 
 interface CacheEntry {
@@ -61,6 +62,7 @@ export default function Extras() {
   const [nieuwMacros, setNieuwMacros] = useState<Macros>(LEEG_MACROS)
   const [opslaan, setOpslaan]         = useState(false)
   const [fout, setFout]               = useState('')
+  const [teVerwijderen, setTeVerwijderen] = useState<CacheEntry | null>(null)
 
   useGSAP(() => {
     if (!containerRef.current || verminderBeweging()) return
@@ -142,7 +144,6 @@ export default function Extras() {
   }
 
   async function verwijder(hash: string) {
-    if (!confirm('Deze entry verwijderen uit de cache?')) return
     setFout('')
     try {
       await api.delete(`/cache/${hash}`)
@@ -434,7 +435,7 @@ export default function Extras() {
                         <Pencil size={12} aria-hidden="true" />
                       </button>
                       <button
-                        onClick={() => verwijder(entry.naam_hash)}
+                        onClick={() => setTeVerwijderen(entry)}
                         aria-label={`Verwijder ${entry.naam}`}
                         className="w-8 h-8 rounded-full border border-olive-700/15 text-olive-700/30 flex items-center justify-center hover:bg-terracotta-600/10 hover:text-terracotta-600 hover:border-terracotta-300 transition-all"
                       >
@@ -449,6 +450,16 @@ export default function Extras() {
           </table>
         )}
       </div>
+
+      <Bevestiging
+        open={!!teVerwijderen}
+        titel="Verwijderen uit cache?"
+        melding={teVerwijderen ? `"${teVerwijderen.naam}" wordt uit de macro-cache verwijderd.` : undefined}
+        bevestigLabel="Verwijderen"
+        gevaarlijk
+        onAnnuleer={() => setTeVerwijderen(null)}
+        onBevestig={() => { if (teVerwijderen) verwijder(teVerwijderen.naam_hash); setTeVerwijderen(null) }}
+      />
     </div>
   )
 }

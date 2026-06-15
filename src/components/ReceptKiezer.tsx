@@ -1,6 +1,7 @@
-import { useState, useMemo, useRef, useEffect } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { X, Search } from 'lucide-react'
 import { useRecepten } from '../store/aangepaste-recepten'
+import { useClickOutside } from '../lib/useClickOutside'
 import Afbeelding from './Afbeelding'
 
 interface Props {
@@ -34,16 +35,7 @@ export default function ReceptKiezer({
     return { matches: pool.slice(0, 10), verborgen }
   }, [alleRecepten, excludeIds, zoek])
 
-  useEffect(() => {
-    if (!open) return
-    function onClick(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', onClick)
-    return () => document.removeEventListener('mousedown', onClick)
-  }, [open])
+  useClickOutside(containerRef, open, () => setOpen(false))
 
   function kies(id: string) {
     onChange(id)

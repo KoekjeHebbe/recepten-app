@@ -2,15 +2,14 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useState, useRef, useMemo, useEffect } from 'react'
 import { useGSAP } from '@gsap/react'
 import gsap from 'gsap'
-import { Heart, CalendarDays, Users, ChevronLeft, ExternalLink, Pencil, Check, Copy } from 'lucide-react'
-import type { Recept, Dag, Ingredient } from '../types'
+import { Heart, CalendarDays, Users, ChevronLeft, ExternalLink, Pencil, Copy } from 'lucide-react'
+import type { Recept, Ingredient } from '../types'
 import { NAAR_CANONICAL, STAP, formateerHoeveelheid } from '../lib/eenheden'
 import type { Eenheid } from '../lib/eenheden'
-import { DAGEN } from '../types'
 import TagBadge from '../components/TagBadge'
 import Afbeelding from '../components/Afbeelding'
+import DagPicker from '../components/DagPicker'
 import { verminderBeweging } from '../lib/motion'
-import { useWeekMenu } from '../store/weekmenu'
 import { useFavorieten } from '../store/favorieten'
 import { useRecepten, maakId } from '../store/aangepaste-recepten'
 import { useAuth } from '../store/auth'
@@ -39,13 +38,9 @@ export default function ReceptDetail() {
   const [heroMislukt, setHeroMislukt] = useState(false)
   const { gebruiker } = useAuth()
   const recept = alleRecepten.find((r: Recept) => r.id === id)
-  const { menu, addToDay, removeFromDay, setPorties: setMenuPorties } = useWeekMenu()
   const { isFavoriet, toggleFavoriet } = useFavorieten()
-  const [dagPickerOpen, setDagPickerOpen] = useState(false)
   const [personen, setPersonen] = useState<number | null>(null)
-  const [pendingPorties, setPendingPorties] = useState<Record<string, number>>({})
   const containerRef = useRef<HTMLDivElement>(null)
-  const dagPickerRef = useRef<HTMLDivElement>(null)
 
   // Per-ingrediënt aanpassingsmultiplicators (1.0 = originele hoeveelheid)
   const [aanpassingMultipliers, setAanpassingMultipliers] = useState<Record<number, number>>({})
@@ -118,18 +113,6 @@ export default function ReceptDetail() {
   // Reset de hero-afbeelding-foutstatus wanneer we naar een ander recept gaan
   useEffect(() => { setHeroMislukt(false) }, [id])
 
-  // Sluit day-picker bij click buiten
-  useEffect(() => {
-    if (!dagPickerOpen) return
-    function onClick(e: MouseEvent) {
-      if (dagPickerRef.current && !dagPickerRef.current.contains(e.target as Node)) {
-        setDagPickerOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', onClick)
-    return () => document.removeEventListener('mousedown', onClick)
-  }, [dagPickerOpen])
-
   // Flash-animatie op de macrosaarden bij elke update
   useEffect(() => {
     if (!macrosTabelRef.current || !berekendeTotalen || verminderBeweging()) return
@@ -169,7 +152,6 @@ export default function ReceptDetail() {
   const aantalPersonen = personen ?? recept.personen
   const factor = aantalPersonen / recept.personen
   const favoriet = isFavoriet(recept.id)
-  const dagenMetRecept = DAGEN.filter(dag => menu[dag].some(it => it.recept_id === recept.id))
   const vw = recept.voedingswaarden
   const isEigenaar = !!gebruiker
 
@@ -226,16 +208,6 @@ export default function ReceptDetail() {
     } catch (err) {
       console.error('Dupliceren mislukt', err)
       setDupliceerLaden(false)
-    }
-  }
-
-  function handleToggleDay(dag: Dag) {
-    const reeds = menu[dag].some(it => it.recept_id === recept!.id)
-    if (reeds) {
-      removeFromDay(dag, recept!.id)
-    } else {
-      const porties = pendingPorties[dag] ?? recept!.personen
-      addToDay(dag, recept!.id, porties)
     }
   }
 
@@ -306,73 +278,26 @@ export default function ReceptDetail() {
               </button>
 
               {/* Weekmenu picker */}
-              <div className="relative" ref={dagPickerRef}>
-                <button
-                  onClick={() => setDagPickerOpen(p => !p)}
-                  aria-expanded={dagPickerOpen}
-                  aria-label="Voeg toe aan weekmenu"
-                  className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-full transition-all btn-magnetic border ${
-                    dagenMetRecept.length > 0
-                      ? 'bg-olive-700 text-cream border-olive-700'
-                      : 'bg-cream border-olive-700/15 text-olive-700 hover:bg-olive-700/8'
-                  }`}
-                >
-                  <CalendarDays size={13} />
-                  {dagenMetRecept.length > 0 ? dagenMetRecept.map(d => d.slice(0, 2)).join(', ') : 'Voeg toe'}
-                </button>
-                {dagPickerOpen && (
-                  <div className="absolute right-0 top-full mt-2 bg-white rounded-3xl shadow-card-hover border border-olive-700/8 z-50 min-w-[220px] py-2">
-                    {DAGEN.map(dag => {
-                      const item = menu[dag].find(it => it.recept_id === recept.id)
-                      const geselecteerd = !!item
-                      const portiesWaarde = item ? item.porties : (pendingPorties[dag] ?? recept.personen)
-                      return (
-                        <div
-                          key={dag}
-                          className={`flex items-center gap-2 px-4 py-2 hover:bg-cream transition-colors ${
-                            geselecteerd ? 'text-olive-700' : 'text-olive-700/70'
-                          }`}
-                        >
-                          <button
-                            onClick={() => handleToggleDay(dag)}
-                            className="flex-1 text-left text-sm flex items-center gap-2"
-                          >
-                            {geselecteerd ? (
-                              <Check size={12} className="text-terracotta-600 flex-shrink-0" />
-                            ) : (
-                              <span className="w-3 h-3 flex-shrink-0" />
-                            )}
-                            <span className={`capitalize ${geselecteerd ? 'font-semibold' : ''}`}>{dag}</span>
-                          </button>
-                          <input
-                            type="number"
-                            min={1}
-                            value={portiesWaarde}
-                            onClick={e => e.stopPropagation()}
-                            onFocus={e => e.target.select()}
-                            onChange={e => {
-                              const n = Math.round(parseFloat(e.target.value))
-                              if (!Number.isFinite(n) || n <= 0) return
-                              if (geselecteerd) {
-                                setMenuPorties(dag, recept.id, n)
-                              } else {
-                                setPendingPorties(prev => ({ ...prev, [dag]: n }))
-                              }
-                            }}
-                            title="Aantal personen"
-                            aria-label={`Aantal personen op ${dag}`}
-                            className={`w-12 text-base sm:text-xs text-right tabular-nums border rounded-lg px-1.5 py-1 focus:outline-none focus:border-olive-700/40 transition-opacity ${
-                              geselecteerd
-                                ? 'border-olive-700/20 bg-cream text-olive-700'
-                                : 'border-olive-700/10 bg-white text-olive-700/50 opacity-60'
-                            }`}
-                          />
-                        </div>
-                      )
-                    })}
-                  </div>
+              <DagPicker
+                recept={recept}
+                richting="onder"
+                align="rechts"
+                renderTrigger={({ open, toggle, actieveDagen }) => (
+                  <button
+                    onClick={toggle}
+                    aria-expanded={open}
+                    aria-label="Voeg toe aan weekmenu"
+                    className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-full transition-all btn-magnetic border ${
+                      actieveDagen.length > 0
+                        ? 'bg-olive-700 text-cream border-olive-700'
+                        : 'bg-cream border-olive-700/15 text-olive-700 hover:bg-olive-700/8'
+                    }`}
+                  >
+                    <CalendarDays size={13} aria-hidden="true" />
+                    {actieveDagen.length > 0 ? actieveDagen.map(d => d.slice(0, 2)).join(', ') : 'Voeg toe'}
+                  </button>
                 )}
-              </div>
+              />
             </div>
           </div>
 

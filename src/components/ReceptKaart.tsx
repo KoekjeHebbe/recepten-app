@@ -1,12 +1,10 @@
-import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { Heart, Plus, Users, Check } from 'lucide-react'
-import type { Recept, Dag } from '../types'
-import { DAGEN } from '../types'
+import { Heart, Plus, Users } from 'lucide-react'
+import type { Recept } from '../types'
 import TagBadge from './TagBadge'
 import Afbeelding from './Afbeelding'
+import DagPicker from './DagPicker'
 import { useFavorieten } from '../store/favorieten'
-import { useWeekMenu } from '../store/weekmenu'
 
 interface Props {
   recept: Recept
@@ -16,37 +14,11 @@ const MAALTIJD_TAGS = ['diner', 'lunch', 'bijgerecht', 'tapas', 'ontbijt', 'snac
 
 export default function ReceptKaart({ recept }: Props) {
   const { isFavoriet, toggleFavoriet } = useFavorieten()
-  const { menu, addToDay, removeFromDay, setPorties } = useWeekMenu()
-  const [dagPickerOpen, setDagPickerOpen] = useState(false)
-  const [pendingPorties, setPendingPorties] = useState<Record<string, number>>({})
-  const dagPickerRef = useRef<HTMLDivElement>(null)
 
   const favoriet = isFavoriet(recept.id)
   const maaltijdTag = recept.tags.find(t => MAALTIJD_TAGS.includes(t))
   const overigeTags = recept.tags.filter(t => t !== 'recept' && t !== maaltijdTag)
-  const dagenMetRecept = DAGEN.filter(dag => menu[dag].some(it => it.recept_id === recept.id))
   const vw = recept.voedingswaarden.per_portie
-
-  useEffect(() => {
-    if (!dagPickerOpen) return
-    function onClick(e: MouseEvent) {
-      if (dagPickerRef.current && !dagPickerRef.current.contains(e.target as Node)) {
-        setDagPickerOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', onClick)
-    return () => document.removeEventListener('mousedown', onClick)
-  }, [dagPickerOpen])
-
-  function handleToggleDay(dag: Dag) {
-    const reeds = menu[dag].some(it => it.recept_id === recept.id)
-    if (reeds) {
-      removeFromDay(dag, recept.id)
-    } else {
-      const porties = pendingPorties[dag] ?? recept.personen
-      addToDay(dag, recept.id, porties)
-    }
-  }
 
   return (
     <div className="recept-kaart relative rounded-4xl bg-white border border-olive-700/8 shadow-card card-lift group">
@@ -101,73 +73,26 @@ export default function ReceptKaart({ recept }: Props) {
 
         <div className="flex items-center gap-1.5 flex-shrink-0">
           {/* Weekmenu picker */}
-          <div className="relative" ref={dagPickerRef}>
-            <button
-              onClick={e => { e.preventDefault(); setDagPickerOpen(p => !p) }}
-              className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all btn-magnetic ${
-                dagenMetRecept.length > 0
-                  ? 'bg-olive-700 border-olive-700 text-white'
-                  : 'bg-white border-olive-700/15 text-olive-700/40 hover:border-olive-700/30 hover:text-olive-700'
-              }`}
-              title="Voeg toe aan weekmenu"
-              aria-label="Voeg toe aan weekmenu"
-              aria-expanded={dagPickerOpen}
-            >
-              <Plus size={14} aria-hidden="true" />
-            </button>
-            {dagPickerOpen && (
-              <div className="absolute right-0 bottom-full mb-2 bg-white rounded-3xl shadow-card-hover border border-olive-700/8 z-50 min-w-[220px] py-2 overflow-hidden">
-                {DAGEN.map(dag => {
-                  const item = menu[dag].find(it => it.recept_id === recept.id)
-                  const geselecteerd = !!item
-                  const portiesWaarde = item ? item.porties : (pendingPorties[dag] ?? recept.personen)
-                  return (
-                    <div
-                      key={dag}
-                      className={`flex items-center gap-2 px-4 py-2 hover:bg-cream transition-colors ${
-                        geselecteerd ? 'text-olive-700' : 'text-olive-700/70'
-                      }`}
-                    >
-                      <button
-                        onClick={e => { e.preventDefault(); handleToggleDay(dag) }}
-                        className="flex-1 text-left text-sm flex items-center gap-2"
-                      >
-                        {geselecteerd ? (
-                          <Check size={12} className="text-terracotta-600 flex-shrink-0" />
-                        ) : (
-                          <span className="w-3 h-3 flex-shrink-0" />
-                        )}
-                        <span className={`capitalize ${geselecteerd ? 'font-semibold' : ''}`}>{dag}</span>
-                      </button>
-                      <input
-                        type="number"
-                        min={1}
-                        value={portiesWaarde}
-                        onClick={e => { e.preventDefault(); e.stopPropagation() }}
-                        onFocus={e => e.target.select()}
-                        onChange={e => {
-                          const n = Math.round(parseFloat(e.target.value))
-                          if (!Number.isFinite(n) || n <= 0) return
-                          if (geselecteerd) {
-                            setPorties(dag, recept.id, n)
-                          } else {
-                            setPendingPorties(prev => ({ ...prev, [dag]: n }))
-                          }
-                        }}
-                        title="Aantal personen"
-                        aria-label={`Aantal personen op ${dag}`}
-                        className={`w-12 text-base sm:text-xs text-right tabular-nums border rounded-lg px-1.5 py-1 focus:outline-none focus:border-olive-700/40 transition-opacity ${
-                          geselecteerd
-                            ? 'border-olive-700/20 bg-cream text-olive-700'
-                            : 'border-olive-700/10 bg-white text-olive-700/50 opacity-60'
-                        }`}
-                      />
-                    </div>
-                  )
-                })}
-              </div>
+          <DagPicker
+            recept={recept}
+            richting="boven"
+            align="rechts"
+            renderTrigger={({ open, toggle, actieveDagen }) => (
+              <button
+                onClick={toggle}
+                className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all btn-magnetic ${
+                  actieveDagen.length > 0
+                    ? 'bg-olive-700 border-olive-700 text-white'
+                    : 'bg-white border-olive-700/15 text-olive-700/40 hover:border-olive-700/30 hover:text-olive-700'
+                }`}
+                title="Voeg toe aan weekmenu"
+                aria-label="Voeg toe aan weekmenu"
+                aria-expanded={open}
+              >
+                <Plus size={14} aria-hidden="true" />
+              </button>
             )}
-          </div>
+          />
 
           {/* Favoriet */}
           <button
