@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import type { ReactNode } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
-import { Link2, Loader2, Camera, X, GripVertical } from 'lucide-react'
+import { Link2, Loader2, Camera, X, GripVertical, ChevronDown } from 'lucide-react'
 import {
   DndContext,
   closestCenter,
@@ -147,6 +147,7 @@ export default function ReceptToevoegen() {
   const [schatting, setSchatting] = useState(true)
   const [fout, setFout] = useState('')
   const [laden, setLaden] = useState(false)
+  const [toonImport, setToonImport] = useState(false)
   const [importUrl, setImportUrl] = useState('')
   const [importLaden, setImportLaden] = useState(false)
   const [importFout, setImportFout] = useState('')
@@ -408,10 +409,23 @@ export default function ReceptToevoegen() {
     <div className="max-w-2xl mx-auto">
       <PageHeader terug titel={isBewerkModus ? 'Recept bewerken' : 'Recept toevoegen'} />
 
-      {/* Importeer — alleen bij nieuw recept */}
+      {/* Importeer — alleen bij nieuw recept, ingeklapt zodat handmatig invoeren vooropstaat */}
       {!isBewerkModus && (
-        <div className="rounded-4xl bg-white border border-olive-700/8 shadow-card p-7 mb-4 space-y-5">
-          <h2 className="font-semibold text-olive-700 text-sm uppercase tracking-widest">Automatisch importeren</h2>
+        <div className="rounded-4xl bg-white border border-olive-700/8 shadow-card mb-4 overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setToonImport(p => !p)}
+            aria-expanded={toonImport}
+            className="w-full flex items-center justify-between gap-2 p-6 text-left hover:bg-cream/40 transition-colors"
+          >
+            <span className="font-semibold text-olive-700 text-sm uppercase tracking-widest">Automatisch importeren</span>
+            <span className="text-xs text-olive-700/50 flex items-center gap-1.5">
+              van link of foto
+              <ChevronDown size={14} aria-hidden="true" className={`transition-transform duration-200 ${toonImport ? '' : '-rotate-90'}`} />
+            </span>
+          </button>
+          {toonImport && (
+          <div className="px-6 pb-6 space-y-5">
 
           {/* URL import */}
           <div>
@@ -501,6 +515,8 @@ export default function ReceptToevoegen() {
             )}
             {fotoFout && <p className="mt-2 text-xs text-terracotta-600">{fotoFout}</p>}
           </div>
+          </div>
+          )}
         </div>
       )}
 
@@ -511,7 +527,7 @@ export default function ReceptToevoegen() {
       )}
 
       <div className={sectionCls + ' space-y-4'}>
-        <h2 className="font-semibold text-olive-700 text-sm uppercase tracking-widest">Basisinfo</h2>
+        <h2 className="font-semibold text-olive-700 text-sm uppercase tracking-widest">Basis</h2>
         <div>
           <label className={labelCls}>Titel *</label>
           <input type="text" value={titel} onChange={e => setTitel(e.target.value)}
@@ -533,6 +549,10 @@ export default function ReceptToevoegen() {
           <input type="url" value={afbeeldingUrl} onChange={e => setAfbeeldingUrl(e.target.value)}
             placeholder="https://..." className={inputCls} />
         </div>
+      </div>
+
+      <div className={sectionCls + ' space-y-4'}>
+        <h2 className="font-semibold text-olive-700 text-sm uppercase tracking-widest">Categorisering</h2>
         {/* Maaltijdtype */}
         <div>
           <label className={labelCls}>Maaltijdtype</label>
