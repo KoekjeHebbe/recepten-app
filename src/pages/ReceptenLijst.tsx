@@ -19,10 +19,10 @@ const FILTER_GROEPEN: { id: string; label: string; tags: string[] }[] = [
 ]
 
 const SORT_OPTIES: { id: string; label: string }[] = [
-  { id: 'titel-az', label: 'Naam (A→Z)' },
-  { id: 'titel-za', label: 'Naam (Z→A)' },
   { id: 'nieuwste', label: 'Nieuwste eerst' },
   { id: 'oudste', label: 'Oudste eerst' },
+  { id: 'titel-az', label: 'Naam (A→Z)' },
+  { id: 'titel-za', label: 'Naam (Z→A)' },
   { id: 'kcal-op', label: 'Calorieën (laag→hoog)' },
   { id: 'kcal-af', label: 'Calorieën (hoog→laag)' },
 ]
@@ -36,7 +36,7 @@ export default function ReceptenLijst() {
   const [zoek, setZoek] = useState('')
   const [actieveTags, setActieveTags] = useState<string[]>([])
   const [alleenFavorieten, setAlleenFavorieten] = useState(false)
-  const [sortering, setSortering] = useState('titel-az')
+  const [sortering, setSortering] = useState('nieuwste')
   const [toonFilters, setToonFilters] = useState(false)
   const gridRef = useRef<HTMLDivElement>(null)
 
