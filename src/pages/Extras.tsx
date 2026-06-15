@@ -310,90 +310,109 @@ export default function Extras() {
             <tbody className="divide-y divide-olive-700/4">
               {entries.map(entry => {
                 const inBewerking = bewerkHash === entry.naam_hash
+                if (inBewerking) {
+                  return (
+                    <tr key={entry.naam_hash} className="bg-cream/50">
+                      <td colSpan={7} className="px-4 sm:px-6 py-4">
+                        <div className="flex flex-col gap-4">
+                          {/* Naam + eenheid */}
+                          <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
+                            <div className="flex-1">
+                              <label className="text-[10px] text-olive-700/40 uppercase tracking-widest font-semibold block mb-1">Ingrediënt</label>
+                              <input
+                                type="text"
+                                value={bewerkBasis}
+                                onChange={e => setBewerkBasis(e.target.value)}
+                                className="w-full text-base sm:text-sm border border-olive-700/20 rounded-2xl px-4 py-2.5 bg-white text-olive-700 focus:outline-none focus:border-olive-700/40"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[10px] text-olive-700/40 uppercase tracking-widest font-semibold block mb-1">Per</label>
+                              <select
+                                value={bewerkEenheid}
+                                onChange={e => setBewerkEenheid(e.target.value as CanoniekeEenheid)}
+                                className="w-full sm:w-auto text-base sm:text-sm border border-olive-700/20 rounded-2xl px-3 py-2.5 bg-white text-olive-700 focus:outline-none focus:border-olive-700/40 cursor-pointer"
+                              >
+                                {CANONIEKE_EENHEDEN.map(e => (
+                                  <option key={e} value={e}>{eenheidLabel(e)}</option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+
+                          {/* Macros — stapelt op mobiel, 4 kolommen op desktop */}
+                          <div>
+                            <p className="text-[10px] text-olive-700/35 mb-2">Waarden gelden per {eenheidLabel(bewerkEenheid)}</p>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                              {([
+                                ['calorieen', 'Calorieën (kcal)'],
+                                ['koolhydraten', 'Koolhydraten (g)'],
+                                ['eiwitten', 'Eiwitten (g)'],
+                                ['vetten', 'Vetten (g)'],
+                              ] as [keyof Macros, string][]).map(([key, label]) => (
+                                <div key={key} className="flex flex-col gap-1">
+                                  <label className="text-[10px] text-olive-700/40 uppercase tracking-widest font-semibold">{label}</label>
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    inputMode="decimal"
+                                    value={bewerkMacros[key]}
+                                    onFocus={e => e.target.select()}
+                                    onChange={e => setBewerkMacros(prev => ({ ...prev, [key]: Number(e.target.value) }))}
+                                    className="w-full text-base sm:text-sm text-right tabular-nums border border-olive-700/20 rounded-2xl px-3 py-2.5 bg-white focus:outline-none focus:border-olive-700/40"
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Knoppen — volle breedte op mobiel */}
+                          <div className="flex gap-2 justify-end">
+                            <button
+                              onClick={() => setBewerkHash(null)}
+                              className="flex items-center justify-center gap-1.5 text-sm font-semibold px-4 py-2.5 rounded-full border border-olive-700/15 text-olive-700/60 hover:bg-olive-700/8 transition-all"
+                            >
+                              <X size={14} /> Annuleer
+                            </button>
+                            <button
+                              onClick={slaBewerkenOp}
+                              disabled={opslaan || !bewerkBasis.trim()}
+                              className="flex items-center justify-center gap-1.5 text-sm font-semibold px-5 py-2.5 rounded-full bg-olive-700 text-cream hover:bg-olive-800 transition-all disabled:opacity-40"
+                            >
+                              <Check size={14} /> {opslaan ? 'Opslaan…' : 'Opslaan'}
+                            </button>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                }
                 return (
                 <tr key={entry.naam_hash} className="hover:bg-cream/60 transition-colors group align-middle">
                   <td className="px-6 py-3 max-w-xs">
-                    {inBewerking ? (
-                      <div className="flex gap-2 items-center">
-                        <input
-                          type="text"
-                          value={bewerkBasis}
-                          onChange={e => setBewerkBasis(e.target.value)}
-                          className="flex-1 text-sm border border-olive-700/20 rounded-lg px-2 py-1 bg-cream text-olive-700 focus:outline-none focus:border-olive-700/40"
-                        />
-                        <select
-                          value={bewerkEenheid}
-                          onChange={e => setBewerkEenheid(e.target.value as CanoniekeEenheid)}
-                          className="text-xs border border-olive-700/20 rounded-lg px-1.5 py-1 bg-cream text-olive-700 focus:outline-none focus:border-olive-700/40 cursor-pointer"
-                        >
-                          {CANONIEKE_EENHEDEN.map(e => (
-                            <option key={e} value={e}>{e}</option>
-                          ))}
-                        </select>
-                      </div>
-                    ) : (
-                      <span className="text-olive-700 font-medium truncate block">{entry.naam}</span>
-                    )}
+                    <span className="text-olive-700 font-medium truncate block">{entry.naam}</span>
                   </td>
-
-                  {inBewerking ? (
-                    <>
-                      {(['calorieen', 'koolhydraten', 'eiwitten', 'vetten'] as (keyof Macros)[]).map(key => (
-                        <td key={key} className="px-2 py-2 text-right">
-                          <input
-                            type="number"
-                            min={0}
-                            value={bewerkMacros[key]}
-                            onFocus={e => e.target.select()}
-                            onChange={e => setBewerkMacros(prev => ({ ...prev, [key]: Number(e.target.value) }))}
-                            className="w-16 text-right tabular-nums border border-olive-700/20 rounded-lg px-2 py-1 bg-cream text-sm focus:outline-none focus:border-olive-700/40"
-                          />
-                        </td>
-                      ))}
-                      <td className="px-4 py-3 text-right text-[10px] text-olive-700/30 font-medium">{eenheidLabel(bewerkEenheid)}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1 justify-end">
-                          <button
-                            onClick={slaBewerkenOp}
-                            disabled={opslaan || !bewerkBasis.trim()}
-                            className="w-7 h-7 rounded-full bg-olive-700 text-cream flex items-center justify-center hover:bg-olive-800 transition-all disabled:opacity-40"
-                          >
-                            <Check size={12} />
-                          </button>
-                          <button
-                            onClick={() => setBewerkHash(null)}
-                            className="w-7 h-7 rounded-full border border-olive-700/15 text-olive-700/50 flex items-center justify-center hover:bg-olive-700/8 transition-all"
-                          >
-                            <X size={12} />
-                          </button>
-                        </div>
-                      </td>
-                    </>
-                  ) : (
-                    <>
-                      <td className="px-4 py-3 text-right tabular-nums text-olive-700">{entry.macros.calorieen}</td>
-                      <td className="px-4 py-3 text-right tabular-nums text-olive-700/60">{entry.macros.koolhydraten}</td>
-                      <td className="px-4 py-3 text-right tabular-nums text-olive-700/60">{entry.macros.eiwitten}</td>
-                      <td className="px-4 py-3 text-right tabular-nums text-olive-700/60">{entry.macros.vetten}</td>
-                      <td className="px-4 py-3 text-right text-[10px] text-olive-700/30 font-medium">{referentieLabel(entry.naam)}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            onClick={() => startBewerken(entry)}
-                            className="w-7 h-7 rounded-full border border-olive-700/15 text-olive-700/50 flex items-center justify-center hover:bg-olive-700/8 hover:text-olive-700 transition-all"
-                          >
-                            <Pencil size={11} />
-                          </button>
-                          <button
-                            onClick={() => verwijder(entry.naam_hash)}
-                            className="w-7 h-7 rounded-full border border-olive-700/15 text-olive-700/30 flex items-center justify-center hover:bg-terracotta-600/10 hover:text-terracotta-600 hover:border-terracotta-300 transition-all"
-                          >
-                            <Trash2 size={11} />
-                          </button>
-                        </div>
-                      </td>
-                    </>
-                  )}
+                  <td className="px-4 py-3 text-right tabular-nums text-olive-700">{entry.macros.calorieen}</td>
+                  <td className="px-4 py-3 text-right tabular-nums text-olive-700/60">{entry.macros.koolhydraten}</td>
+                  <td className="px-4 py-3 text-right tabular-nums text-olive-700/60">{entry.macros.eiwitten}</td>
+                  <td className="px-4 py-3 text-right tabular-nums text-olive-700/60">{entry.macros.vetten}</td>
+                  <td className="px-4 py-3 text-right text-[10px] text-olive-700/30 font-medium">{referentieLabel(entry.naam)}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-1 justify-end opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => startBewerken(entry)}
+                        className="w-8 h-8 rounded-full border border-olive-700/15 text-olive-700/50 flex items-center justify-center hover:bg-olive-700/8 hover:text-olive-700 transition-all"
+                      >
+                        <Pencil size={12} />
+                      </button>
+                      <button
+                        onClick={() => verwijder(entry.naam_hash)}
+                        className="w-8 h-8 rounded-full border border-olive-700/15 text-olive-700/30 flex items-center justify-center hover:bg-terracotta-600/10 hover:text-terracotta-600 hover:border-terracotta-300 transition-all"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
                 )
               })}

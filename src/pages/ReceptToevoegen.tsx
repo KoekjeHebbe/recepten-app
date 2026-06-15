@@ -1,6 +1,24 @@
 import { useState, useEffect } from 'react'
+import type { ReactNode } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
-import { Link2, Loader2, ChevronLeft, Camera, X } from 'lucide-react'
+import { Link2, Loader2, ChevronLeft, Camera, X, GripVertical } from 'lucide-react'
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type UniqueIdentifier,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import type { Recept, Ingredient, Onderdeel } from '../types'
 import { useRecepten, maakId } from '../store/aangepaste-recepten'
 import { useAuth } from '../store/auth'
@@ -15,9 +33,58 @@ const BESCHIKBARE_TAGS = ['kip', 'lamsvlees', 'rund', 'varken', 'vis', 'garnalen
   'pasta', 'rijst', 'soep', 'salade', 'wrap', 'flatbread', 'gemengd_gehakt', 'low_carb', 'snel']
 
 type IngredientRij = Ingredient & { _key: number; _manuelleCategorie?: boolean }
+type StapRij = { _key: number; tekst: string }
+
+let _keyTeller = 0
+function nieuweKey(): number {
+  return Date.now() + (_keyTeller++) + Math.random()
+}
 
 function leegIngredient(): IngredientRij {
-  return { naam: '', hoeveelheid: null, eenheid: 'g', voorraadkast: false, _key: Date.now() + Math.random() }
+  return { naam: '', hoeveelheid: null, eenheid: 'g', voorraadkast: false, _key: nieuweKey() }
+}
+
+function leegStap(tekst = ''): StapRij {
+  return { _key: nieuweKey(), tekst }
+}
+
+// Drag-handle props, afgeleid van de useSortable-return zodat de types kloppen.
+type SortableReturn = ReturnType<typeof useSortable>
+type HandleProps = { attributes: SortableReturn['attributes']; listeners: SortableReturn['listeners'] }
+
+// Versleepbare rij — levert de drag-handle props aan via render-prop.
+function Sorteerbaar({ id, children }: {
+  id: UniqueIdentifier
+  children: (handle: HandleProps) => ReactNode
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+    zIndex: isDragging ? 10 : undefined,
+    position: 'relative' as const,
+  }
+  return (
+    <div ref={setNodeRef} style={style}>
+      {children({ attributes, listeners })}
+    </div>
+  )
+}
+
+function DragHandle({ attributes, listeners }: HandleProps) {
+  return (
+    <button
+      type="button"
+      {...attributes}
+      {...listeners}
+      tabIndex={-1}
+      title="Versleep om te herordenen"
+      className="self-center w-7 h-9 flex items-center justify-center text-olive-700/20 hover:text-olive-700/50 cursor-grab active:cursor-grabbing touch-none flex-shrink-0"
+    >
+      <GripVertical size={15} />
+    </button>
+  )
 }
 
 function arrowStap(waarde: number | null): number {
@@ -45,7 +112,32 @@ export default function ReceptToevoegen() {
   const [nieuwTag, setNieuwTag] = useState('')
   const [ingredienten, setIngredienten] = useState<IngredientRij[]>([leegIngredient()])
   const [onderdelen, setOnderdelen] = useState<Onderdeel[]>([])
-  const [bereiding, setBereiding] = useState([''])
+  const [bereiding, setBereiding] = useState<StapRij[]>([leegStap()])
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } })
+  )
+
+  function handleIngredientDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    setIngredienten(prev => {
+      const oud = prev.findIndex(i => i._key === active.id)
+      const nieuw = prev.findIndex(i => i._key === over.id)
+      return oud === -1 || nieuw === -1 ? prev : arrayMove(prev, oud, nieuw)
+    })
+  }
+
+  function handleStapDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    setBereiding(prev => {
+      const oud = prev.findIndex(s => s._key === active.id)
+      const nieuw = prev.findIndex(s => s._key === over.id)
+      return oud === -1 || nieuw === -1 ? prev : arrayMove(prev, oud, nieuw)
+    })
+  }
   const [calorieen, setCalorieen] = useState('')
   const [koolhydraten, setKoolhydraten] = useState('')
   const [eiwitten, setEiwitten] = useState('')
@@ -75,7 +167,7 @@ export default function ReceptToevoegen() {
     setGeselecteerdeTags(tagsZonderRecept.filter(t => !MAALTIJD_TYPES.includes(t)))
     setIngredienten(bestaandRecept.ingredienten.map(i => ({ ...i, _key: Math.random(), categorie: i.categorie || categoriseer(i.naam), _manuelleCategorie: !!i.categorie })))
     setOnderdelen(bestaandRecept.onderdelen ?? [])
-    setBereiding(bestaandRecept.bereiding)
+    setBereiding(bestaandRecept.bereiding.map(t => leegStap(t)))
     setCalorieen(String(bestaandRecept.voedingswaarden.per_portie.calorieen || ''))
     setKoolhydraten(String(bestaandRecept.voedingswaarden.per_portie.koolhydraten || ''))
     setEiwitten(String(bestaandRecept.voedingswaarden.per_portie.eiwitten || ''))
@@ -124,7 +216,7 @@ export default function ReceptToevoegen() {
         const parsed = typeof i.hoeveelheid === 'string' ? parseerOudeHoeveelheid(i.hoeveelheid) : null
         return { ...i, _key: Math.random(), categorie: i.categorie || categoriseer(i.naam), _manuelleCategorie: !!i.categorie, hoeveelheid: parsed?.hoeveelheid ?? (typeof i.hoeveelheid === 'number' ? i.hoeveelheid : null), eenheid: i.eenheid ?? parsed?.eenheid ?? 'g' }
       }))
-      if (res.bereiding?.length) setBereiding(res.bereiding)
+      if (res.bereiding?.length) setBereiding(res.bereiding.map((t: string) => leegStap(t)))
       const vw = res.voedingswaarden?.per_portie
       if (vw) {
         setCalorieen(String(vw.calorieen || ''))
@@ -171,7 +263,7 @@ export default function ReceptToevoegen() {
           return { ...i, _key: Math.random(), _manuelleCategorie: !!i.categorie, hoeveelheid: parsed?.hoeveelheid ?? (typeof i.hoeveelheid === 'number' ? i.hoeveelheid : null), eenheid: i.eenheid ?? parsed?.eenheid ?? 'g' }
         }))
       }
-      if (res.bereiding?.length) setBereiding(res.bereiding)
+      if (res.bereiding?.length) setBereiding(res.bereiding.map((t: string) => leegStap(t)))
       const vw = res.voedingswaarden?.per_portie
       if (vw) {
         setCalorieen(String(vw.calorieen || ''))
@@ -237,7 +329,7 @@ export default function ReceptToevoegen() {
   async function opslaan() {
     if (!titel.trim()) { setFout('Vul een titel in.'); return }
     if (ingredienten.every(i => !i.naam.trim())) { setFout('Voeg minstens één ingrediënt toe.'); return }
-    if (bereiding.every(s => !s.trim())) { setFout('Voeg minstens één bereidingsstap toe.'); return }
+    if (bereiding.every(s => !s.tekst.trim())) { setFout('Voeg minstens één bereidingsstap toe.'); return }
     setFout('')
     setLaden(true)
 
@@ -265,7 +357,7 @@ export default function ReceptToevoegen() {
           categorie: categorie || categoriseer(naam.trim()),
         })),
       onderdelen: onderdelen.filter(od => od.recept_id && od.porties > 0),
-      bereiding: bereiding.filter(s => s.trim()),
+      bereiding: bereiding.map(s => s.tekst.trim()).filter(Boolean),
       voedingswaarden: {
         per_portie: { calorieen: cal, koolhydraten: kh, eiwitten: eiw, vetten: vet },
         totaal: { calorieen: cal * personen, koolhydraten: kh * personen, eiwitten: eiw * personen, vetten: vet * personen },
@@ -489,65 +581,74 @@ export default function ReceptToevoegen() {
 
       <div className={sectionCls}>
         <h2 className="font-semibold text-olive-700 text-sm uppercase tracking-widest mb-4">Ingrediënten</h2>
-        <div className="space-y-2">
-          {ingredienten.map((ing, idx) => (
-            <div key={ing._key} className="space-y-1">
-              <div className="flex gap-2 items-center">
-                <input type="text" value={ing.naam}
-                  onChange={e => updateIngredient(idx, 'naam', e.target.value)}
-                  placeholder="Naam"
-                  className="flex-1 px-3 py-2 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 placeholder:text-olive-700/25 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25" />
-                <input
-                  type="number"
-                  min={0}
-                  step={arrowStap(ing.hoeveelheid)}
-                  value={ing.hoeveelheid ?? ''}
-                  onChange={e => updateIngredient(idx, 'hoeveelheid', e.target.value === '' ? null : parseFloat(e.target.value))}
-                  placeholder="0"
-                  className="w-20 px-3 py-2 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 text-right tabular-nums placeholder:text-olive-700/25 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25" />
-                <select
-                  value={ing.eenheid ?? 'g'}
-                  onChange={e => updateEenheid(idx, e.target.value as Eenheid)}
-                  className="w-24 px-2 py-2 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25 cursor-pointer"
-                >
-                  {EENHEID_GROEPEN.map(groep => (
-                    <optgroup key={groep.label} label={groep.label}>
-                      {groep.eenheden.map(e => (
-                        <option key={e} value={e}>{e === '' ? '—' : e}</option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </select>
-                <button type="button"
-                  onClick={() => updateIngredient(idx, 'voorraadkast', !ing.voorraadkast)}
-                  title="Voorraadkast"
-                  className={`w-9 h-9 rounded-xl border text-sm transition-all btn-magnetic flex-shrink-0 flex items-center justify-center ${ing.voorraadkast ? 'bg-olive-50 border-olive-700/20' : 'bg-white border-olive-700/8 opacity-30'}`}>
-                  🏠
-                </button>
-                {ingredienten.length > 1 && (
-                  <button type="button" onClick={() => setIngredienten(prev => prev.filter((_, i) => i !== idx))}
-                    className="w-9 h-9 rounded-xl border border-olive-700/8 text-olive-700/25 hover:text-terracotta-600 hover:border-terracotta-200 text-sm transition-all btn-magnetic flex-shrink-0 flex items-center justify-center">
-                    ✕
-                  </button>
-                )}
-              </div>
-              {ing.naam.trim() && (
-                <div className="pl-1 flex items-center gap-1.5">
-                  <span className="text-[10px] text-olive-700/30 uppercase tracking-widest font-semibold">Categorie:</span>
-                  <select
-                    value={ing.categorie || 'Overig'}
-                    onChange={e => setIngredientCategorie(idx, e.target.value)}
-                    className="text-[11px] text-olive-700/60 bg-transparent border-none focus:outline-none cursor-pointer hover:text-olive-700 transition-colors font-medium"
-                  >
-                    {CATEGORIE_NAMEN.map(c => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleIngredientDragEnd}>
+          <SortableContext items={ingredienten.map(i => i._key)} strategy={verticalListSortingStrategy}>
+            <div className="space-y-2">
+              {ingredienten.map((ing, idx) => (
+                <Sorteerbaar key={ing._key} id={ing._key}>
+                  {handle => (
+                    <div className="space-y-1">
+                      <div className="flex gap-2 items-center">
+                        <DragHandle {...handle} />
+                        <input type="text" value={ing.naam}
+                          onChange={e => updateIngredient(idx, 'naam', e.target.value)}
+                          placeholder="Naam"
+                          className="flex-1 min-w-0 px-3 py-2 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 placeholder:text-olive-700/25 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25" />
+                        <input
+                          type="number"
+                          min={0}
+                          step={arrowStap(ing.hoeveelheid)}
+                          value={ing.hoeveelheid ?? ''}
+                          onChange={e => updateIngredient(idx, 'hoeveelheid', e.target.value === '' ? null : parseFloat(e.target.value))}
+                          placeholder="0"
+                          className="w-20 px-3 py-2 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 text-right tabular-nums placeholder:text-olive-700/25 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25" />
+                        <select
+                          value={ing.eenheid ?? 'g'}
+                          onChange={e => updateEenheid(idx, e.target.value as Eenheid)}
+                          className="w-24 px-2 py-2 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25 cursor-pointer"
+                        >
+                          {EENHEID_GROEPEN.map(groep => (
+                            <optgroup key={groep.label} label={groep.label}>
+                              {groep.eenheden.map(e => (
+                                <option key={e} value={e}>{e === '' ? '—' : e}</option>
+                              ))}
+                            </optgroup>
+                          ))}
+                        </select>
+                        <button type="button"
+                          onClick={() => updateIngredient(idx, 'voorraadkast', !ing.voorraadkast)}
+                          title="Voorraadkast"
+                          className={`w-9 h-9 rounded-xl border text-sm transition-all btn-magnetic flex-shrink-0 flex items-center justify-center ${ing.voorraadkast ? 'bg-olive-50 border-olive-700/20' : 'bg-white border-olive-700/8 opacity-30'}`}>
+                          🏠
+                        </button>
+                        {ingredienten.length > 1 && (
+                          <button type="button" onClick={() => setIngredienten(prev => prev.filter((_, i) => i !== idx))}
+                            className="w-9 h-9 rounded-xl border border-olive-700/8 text-olive-700/25 hover:text-terracotta-600 hover:border-terracotta-200 text-sm transition-all btn-magnetic flex-shrink-0 flex items-center justify-center">
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                      {ing.naam.trim() && (
+                        <div className="pl-9 flex items-center gap-1.5">
+                          <span className="text-[10px] text-olive-700/30 uppercase tracking-widest font-semibold">Categorie:</span>
+                          <select
+                            value={ing.categorie || 'Overig'}
+                            onChange={e => setIngredientCategorie(idx, e.target.value)}
+                            className="text-[11px] text-olive-700/60 bg-transparent border-none focus:outline-none cursor-pointer hover:text-olive-700 transition-colors font-medium"
+                          >
+                            {CATEGORIE_NAMEN.map(c => (
+                              <option key={c} value={c}>{c}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </Sorteerbaar>
+              ))}
             </div>
-          ))}
-        </div>
+          </SortableContext>
+        </DndContext>
         <button type="button" onClick={() => setIngredienten(prev => [...prev, leegIngredient()])}
           className="mt-4 text-sm text-terracotta-600 hover:text-terracotta-700 font-semibold btn-magnetic transition-colors">
           + Ingrediënt toevoegen
@@ -594,25 +695,35 @@ export default function ReceptToevoegen() {
 
       <div className={sectionCls}>
         <h2 className="font-semibold text-olive-700 text-sm uppercase tracking-widest mb-4">Bereiding</h2>
-        <div className="space-y-3">
-          {bereiding.map((stap, idx) => (
-            <div key={idx} className="flex gap-3 items-start">
-              <span className="w-6 h-6 mt-2.5 flex-shrink-0 rounded-full bg-terracotta-600/10 text-terracotta-600 text-xs font-bold flex items-center justify-center">
-                {idx + 1}
-              </span>
-              <textarea value={stap} onChange={e => setBereiding(prev => prev.map((s, i) => i === idx ? e.target.value : s))}
-                placeholder={`Stap ${idx + 1}`} rows={2}
-                className="flex-1 px-4 py-2.5 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 placeholder:text-olive-700/25 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25 resize-none" />
-              {bereiding.length > 1 && (
-                <button type="button" onClick={() => setBereiding(prev => prev.filter((_, i) => i !== idx))}
-                  className="w-9 h-9 mt-1 rounded-xl border border-olive-700/8 text-olive-700/25 hover:text-terracotta-600 hover:border-terracotta-200 text-sm transition-all btn-magnetic flex-shrink-0 flex items-center justify-center">
-                  ✕
-                </button>
-              )}
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleStapDragEnd}>
+          <SortableContext items={bereiding.map(s => s._key)} strategy={verticalListSortingStrategy}>
+            <div className="space-y-3">
+              {bereiding.map((stap, idx) => (
+                <Sorteerbaar key={stap._key} id={stap._key}>
+                  {handle => (
+                    <div className="flex gap-2 items-start">
+                      <DragHandle {...handle} />
+                      <span className="w-6 h-6 mt-2.5 flex-shrink-0 rounded-full bg-terracotta-600/10 text-terracotta-600 text-xs font-bold flex items-center justify-center">
+                        {idx + 1}
+                      </span>
+                      <textarea value={stap.tekst}
+                        onChange={e => setBereiding(prev => prev.map(s => s._key === stap._key ? { ...s, tekst: e.target.value } : s))}
+                        placeholder={`Stap ${idx + 1}`} rows={2}
+                        className="flex-1 min-w-0 px-4 py-2.5 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 placeholder:text-olive-700/25 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25 resize-none" />
+                      {bereiding.length > 1 && (
+                        <button type="button" onClick={() => setBereiding(prev => prev.filter(s => s._key !== stap._key))}
+                          className="w-9 h-9 mt-1 rounded-xl border border-olive-700/8 text-olive-700/25 hover:text-terracotta-600 hover:border-terracotta-200 text-sm transition-all btn-magnetic flex-shrink-0 flex items-center justify-center">
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </Sorteerbaar>
+              ))}
             </div>
-          ))}
-        </div>
-        <button type="button" onClick={() => setBereiding(prev => [...prev, ''])}
+          </SortableContext>
+        </DndContext>
+        <button type="button" onClick={() => setBereiding(prev => [...prev, leegStap()])}
           className="mt-4 text-sm text-terracotta-600 hover:text-terracotta-700 font-semibold btn-magnetic transition-colors">
           + Stap toevoegen
         </button>
