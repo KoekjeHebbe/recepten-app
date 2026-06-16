@@ -84,7 +84,7 @@ function DragHandle({ attributes, listeners }: HandleProps) {
       aria-label="Versleep om te herordenen"
       className="self-center w-7 h-9 flex items-center justify-center text-olive-700/20 hover:text-olive-700/50 cursor-grab active:cursor-grabbing touch-none flex-shrink-0"
     >
-      <GripVertical size={15} aria-hidden="true" />
+      <GripVertical size={16} aria-hidden="true" />
     </button>
   )
 }
@@ -480,7 +480,7 @@ export default function ReceptToevoegen() {
             <p className="text-xs text-olive-700/40 mb-2.5 flex items-center gap-1.5"><Camera size={12} /> Via foto van kookboek</p>
             {!fotoPreview ? (
               <label className="flex flex-col items-center justify-center gap-2 w-full py-8 rounded-2xl border-2 border-dashed border-olive-700/15 hover:border-olive-700/30 hover:bg-olive-50/50 cursor-pointer transition-all">
-                <Camera size={22} className="text-olive-700/25" />
+                <Camera size={24} className="text-olive-700/25" />
                 <span className="text-sm text-olive-700/40">Klik om een foto te kiezen</span>
                 <span className="text-xs text-olive-700/25">JPG, PNG, WEBP — max 5MB</span>
                 <input
@@ -498,7 +498,7 @@ export default function ReceptToevoegen() {
                   onClick={() => { setFotoPreview(null); setFotoFout('') }}
                   className="absolute top-2 right-2 w-7 h-7 rounded-full bg-white/90 border border-olive-700/10 flex items-center justify-center hover:bg-cream transition-all"
                 >
-                  <X size={13} className="text-olive-700/60" />
+                  <X size={14} className="text-olive-700/60" />
                 </button>
                 <div className="p-3 flex gap-2 justify-end bg-white">
                   <button
@@ -591,7 +591,7 @@ export default function ReceptToevoegen() {
               <button key={tag} type="button" onClick={() => toggleTag(tag)}
                 className="text-[11px] px-3 py-1 rounded-full border font-semibold tracking-wide transition-all btn-magnetic bg-olive-700 text-cream border-olive-700 flex items-center gap-1">
                 {tag.replace(/_/g, ' ')}
-                <X size={10} />
+                <X size={12} />
               </button>
             ))}
           </div>

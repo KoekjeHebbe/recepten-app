@@ -80,7 +80,7 @@ export default function DagPicker({ recept, align = 'rechts', richting = 'onder'
                   }}
                   aria-label={`Aantal personen op ${dag}`}
                   title="Aantal personen"
-                  className={`w-12 text-base sm:text-xs text-right tabular-nums border rounded-lg px-1.5 py-1 focus:outline-none focus:border-olive-700/40 transition-opacity ${
+                  className={`w-12 text-base sm:text-xs text-right tabular-nums border rounded-xl px-1.5 py-1 focus:outline-none focus:border-olive-700/40 transition-opacity ${
                     geselecteerd ? 'border-olive-700/20 bg-cream text-olive-700' : 'border-olive-700/10 bg-white text-olive-700/50 opacity-60'
                   }`}
                 />

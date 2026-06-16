@@ -67,7 +67,7 @@ export default function ReceptKiezer({
       ) : (
         <>
           <div className="relative">
-            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-olive-700/30 pointer-events-none" />
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-olive-700/30 pointer-events-none" />
             <input
               type="text"
               value={zoek}

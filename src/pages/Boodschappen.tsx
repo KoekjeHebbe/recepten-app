@@ -146,7 +146,7 @@ function SortabeleCategorie({ groep }: { groep: CategoriGroep }) {
           tabIndex={-1}
           aria-label={`Versleep categorie ${groep.id}`}
         >
-          <GripVertical size={15} aria-hidden="true" />
+          <GripVertical size={16} aria-hidden="true" />
         </button>
 
         <button
@@ -327,7 +327,7 @@ export default function Boodschappen() {
         aria-expanded={voorraadTonen}
         className="w-full text-xs text-olive-700/40 hover:text-olive-700 mb-2 flex items-center gap-2 px-2 py-1 transition-colors btn-magnetic font-medium tracking-wide"
       >
-        <ChevronDown size={13} aria-hidden="true" className={`transition-transform duration-200 ${voorraadTonen ? '' : '-rotate-90'}`} />
+        <ChevronDown size={14} aria-hidden="true" className={`transition-transform duration-200 ${voorraadTonen ? '' : '-rotate-90'}`} />
         Voorraadkast items ({voorraad.length})
       </button>
 

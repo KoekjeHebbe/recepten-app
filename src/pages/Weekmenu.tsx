@@ -111,7 +111,7 @@ export default function Weekmenu() {
                               const n = Math.round(parseFloat(e.target.value))
                               if (Number.isFinite(n) && n > 0) setPorties(dag as Dag, recept.id, n)
                             }}
-                            className="w-10 text-xs text-center tabular-nums border border-olive-700/15 rounded-lg px-1 py-0.5 bg-white text-olive-700 focus:outline-none focus:border-olive-700/40"
+                            className="w-10 text-base sm:text-xs text-center tabular-nums border border-olive-700/15 rounded-xl px-1 py-0.5 bg-white text-olive-700 focus:outline-none focus:border-olive-700/40"
                             aria-label={`Aantal personen voor ${recept.titel}`}
                             title="Aantal personen"
                           />

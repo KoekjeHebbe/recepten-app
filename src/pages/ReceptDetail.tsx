@@ -290,7 +290,7 @@ export default function ReceptDetail() {
                         : 'bg-cream border-olive-700/15 text-olive-700 hover:bg-olive-700/8'
                     }`}
                   >
-                    <CalendarDays size={13} aria-hidden="true" />
+                    <CalendarDays size={14} aria-hidden="true" />
                     {actieveDagen.length > 0 ? actieveDagen.map(d => d.slice(0, 2)).join(', ') : 'Voeg toe'}
                   </button>
                 )}
@@ -306,7 +306,7 @@ export default function ReceptDetail() {
 
           <div className="flex items-center gap-4 text-sm text-olive-700/60 flex-wrap">
             <div className="flex items-center gap-2">
-              <Users size={15} className="text-olive-700/40" />
+              <Users size={16} className="text-olive-700/40" />
               <button
                 onClick={() => setPersonen(Math.max(1, aantalPersonen - 1))}
                 aria-label="Minder personen"
@@ -328,7 +328,7 @@ export default function ReceptDetail() {
             {recept.bron_url && (
               <a href={recept.bron_url} target="_blank" rel="noopener noreferrer"
                 className="flex items-center gap-1 text-terracotta-600 hover:underline text-xs font-medium ml-auto transition-colors">
-                Bron <ExternalLink size={11} />
+                Bron <ExternalLink size={12} />
               </a>
             )}
           </div>
@@ -445,7 +445,7 @@ export default function ReceptDetail() {
                     <span className="text-olive-700/50 tabular-nums text-sm">
                       {geschaaldePorties % 1 === 0 ? geschaaldePorties : geschaaldePorties.toFixed(2).replace(/\.?0+$/, '').replace('.', ',')} {geschaaldePorties === 1 ? 'portie' : 'porties'}
                     </span>
-                    <ExternalLink size={13} className="text-olive-700/30 group-hover:text-terracotta-600 transition-colors" />
+                    <ExternalLink size={14} className="text-olive-700/30 group-hover:text-terracotta-600 transition-colors" />
                   </Link>
                 </li>
               )

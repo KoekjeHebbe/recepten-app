@@ -168,7 +168,7 @@ export default function ReceptenLijst() {
 
         {/* Sortering — rechts uitgelijnd */}
         <div className="relative ml-auto">
-          <ArrowUpDown size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-olive-700/40 pointer-events-none" />
+          <ArrowUpDown size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-olive-700/40 pointer-events-none" />
           <select
             value={sortering}
             onChange={e => setSortering(e.target.value)}
