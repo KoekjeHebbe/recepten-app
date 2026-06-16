@@ -191,12 +191,96 @@ export default function Extras() {
         <input
           type="number"
           min={0}
+          inputMode="decimal"
           value={state[key]}
           onFocus={e => e.target.select()}
           onChange={e => setState({ ...state, [key]: Number(e.target.value) })}
-          className="w-20 text-sm text-right tabular-nums border border-olive-700/15 rounded-xl px-2 py-1 bg-cream focus:outline-none focus:border-olive-700/40"
+          className="w-full sm:w-20 text-base sm:text-sm text-right tabular-nums border border-olive-700/15 rounded-xl px-2 py-1.5 bg-cream focus:outline-none focus:border-olive-700/40"
         />
       </div>
+    )
+  }
+
+  // Bewerk-formulier — gedeeld door de desktop-tabelrij én de mobiele kaart
+  function bewerkPaneel() {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
+          <div className="flex-1">
+            <label className="text-[10px] text-olive-700/40 uppercase tracking-widest font-semibold block mb-1">Ingrediënt</label>
+            <input
+              type="text"
+              value={bewerkBasis}
+              onChange={e => setBewerkBasis(e.target.value)}
+              className="w-full text-base sm:text-sm border border-olive-700/20 rounded-2xl px-4 py-2.5 bg-white text-olive-700 focus:outline-none focus:border-olive-700/40"
+            />
+          </div>
+          <div>
+            <label className="text-[10px] text-olive-700/40 uppercase tracking-widest font-semibold block mb-1">Per</label>
+            <select
+              value={bewerkEenheid}
+              onChange={e => setBewerkEenheid(e.target.value as CanoniekeEenheid)}
+              className="w-full sm:w-auto text-base sm:text-sm border border-olive-700/20 rounded-2xl px-3 py-2.5 bg-white text-olive-700 focus:outline-none focus:border-olive-700/40 cursor-pointer"
+            >
+              {CANONIEKE_EENHEDEN.map(e => (<option key={e} value={e}>{eenheidLabel(e)}</option>))}
+            </select>
+          </div>
+        </div>
+        <div>
+          <p className="text-[10px] text-olive-700/45 mb-2">Waarden gelden per {eenheidLabel(bewerkEenheid)}</p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {([
+              ['calorieen', 'Calorieën (kcal)'],
+              ['koolhydraten', 'Koolhydraten (g)'],
+              ['eiwitten', 'Eiwitten (g)'],
+              ['vetten', 'Vetten (g)'],
+            ] as [keyof Macros, string][]).map(([key, label]) => (
+              <div key={key} className="flex flex-col gap-1">
+                <label className="text-[10px] text-olive-700/40 uppercase tracking-widest font-semibold">{label}</label>
+                <input
+                  type="number"
+                  min={0}
+                  inputMode="decimal"
+                  value={bewerkMacros[key]}
+                  onFocus={e => e.target.select()}
+                  onChange={e => setBewerkMacros(prev => ({ ...prev, [key]: Number(e.target.value) }))}
+                  className="w-full text-base sm:text-sm text-right tabular-nums border border-olive-700/20 rounded-2xl px-3 py-2.5 bg-white focus:outline-none focus:border-olive-700/40"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="flex gap-2 justify-end">
+          <button onClick={() => setBewerkHash(null)} className="btn btn-outline btn-md">
+            <X size={14} aria-hidden="true" /> Annuleer
+          </button>
+          <button onClick={slaBewerkenOp} disabled={opslaan || !bewerkBasis.trim()} className="btn btn-secondary btn-md">
+            <Check size={14} aria-hidden="true" /> {opslaan ? 'Opslaan…' : 'Opslaan'}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // Bewerk/verwijder-knoppen — gedeeld
+  function acties(entry: CacheEntry) {
+    return (
+      <>
+        <button
+          onClick={() => startBewerken(entry)}
+          aria-label={`Bewerk ${entry.naam}`}
+          className="w-8 h-8 rounded-full border border-olive-700/15 text-olive-700/50 flex items-center justify-center hover:bg-olive-700/8 hover:text-olive-700 transition-all"
+        >
+          <Pencil size={12} aria-hidden="true" />
+        </button>
+        <button
+          onClick={() => setTeVerwijderen(entry)}
+          aria-label={`Verwijder ${entry.naam}`}
+          className="w-8 h-8 rounded-full border border-olive-700/15 text-olive-700/40 flex items-center justify-center hover:bg-terracotta-600/10 hover:text-terracotta-600 hover:border-terracotta-300 transition-all"
+        >
+          <Trash2 size={12} aria-hidden="true" />
+        </button>
+      </>
     )
   }
 
@@ -238,7 +322,7 @@ export default function Extras() {
       </div>
 
       {/* Limit selector */}
-      <div className="anim-in flex items-center gap-2 mb-4">
+      <div className="anim-in flex flex-wrap items-center gap-2 mb-4">
         <span className="text-xs text-olive-700/40 font-medium">Toon</span>
         {[50, 100, 250, 500, 5000].map(n => (
           <button
@@ -253,7 +337,7 @@ export default function Extras() {
             {n === 5000 ? 'Alles' : n}
           </button>
         ))}
-        <span className="text-xs text-olive-700/25 ml-1">
+        <span className="text-xs text-olive-700/45 ml-1">
           {entries.length < totaal ? `(${entries.length} van ${totaal})` : `(${totaal})`}
         </span>
       </div>
@@ -317,131 +401,65 @@ export default function Extras() {
             {zoek ? 'Geen resultaten gevonden.' : 'Cache is nog leeg — sla een recept op om te beginnen.'}
           </div>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-[10px] text-olive-700/40 uppercase tracking-widest border-b border-olive-700/6">
-                <th className="text-left px-4 sm:px-6 py-3 font-semibold">Ingrediënt</th>
-                <th className="text-right px-4 py-3 font-semibold">kcal</th>
-                <th className="text-right px-4 py-3 font-semibold hidden sm:table-cell">KH&nbsp;g</th>
-                <th className="text-right px-4 py-3 font-semibold hidden sm:table-cell">Eiw&nbsp;g</th>
-                <th className="text-right px-4 py-3 font-semibold hidden sm:table-cell">Vet&nbsp;g</th>
-                <th className="text-right px-4 py-3 font-semibold text-olive-700/40 hidden sm:table-cell">Per</th>
-                <th className="px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-olive-700/4">
-              {entries.map(entry => {
-                const inBewerking = bewerkHash === entry.naam_hash
-                if (inBewerking) {
-                  return (
-                    <tr key={entry.naam_hash} className="bg-cream/50">
-                      <td colSpan={7} className="px-4 sm:px-6 py-4">
-                        <div className="flex flex-col gap-4">
-                          {/* Naam + eenheid */}
-                          <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
-                            <div className="flex-1">
-                              <label className="text-[10px] text-olive-700/40 uppercase tracking-widest font-semibold block mb-1">Ingrediënt</label>
-                              <input
-                                type="text"
-                                value={bewerkBasis}
-                                onChange={e => setBewerkBasis(e.target.value)}
-                                className="w-full text-base sm:text-sm border border-olive-700/20 rounded-2xl px-4 py-2.5 bg-white text-olive-700 focus:outline-none focus:border-olive-700/40"
-                              />
-                            </div>
-                            <div>
-                              <label className="text-[10px] text-olive-700/40 uppercase tracking-widest font-semibold block mb-1">Per</label>
-                              <select
-                                value={bewerkEenheid}
-                                onChange={e => setBewerkEenheid(e.target.value as CanoniekeEenheid)}
-                                className="w-full sm:w-auto text-base sm:text-sm border border-olive-700/20 rounded-2xl px-3 py-2.5 bg-white text-olive-700 focus:outline-none focus:border-olive-700/40 cursor-pointer"
-                              >
-                                {CANONIEKE_EENHEDEN.map(e => (
-                                  <option key={e} value={e}>{eenheidLabel(e)}</option>
-                                ))}
-                              </select>
-                            </div>
-                          </div>
-
-                          {/* Macros — stapelt op mobiel, 4 kolommen op desktop */}
-                          <div>
-                            <p className="text-[10px] text-olive-700/35 mb-2">Waarden gelden per {eenheidLabel(bewerkEenheid)}</p>
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                              {([
-                                ['calorieen', 'Calorieën (kcal)'],
-                                ['koolhydraten', 'Koolhydraten (g)'],
-                                ['eiwitten', 'Eiwitten (g)'],
-                                ['vetten', 'Vetten (g)'],
-                              ] as [keyof Macros, string][]).map(([key, label]) => (
-                                <div key={key} className="flex flex-col gap-1">
-                                  <label className="text-[10px] text-olive-700/40 uppercase tracking-widest font-semibold">{label}</label>
-                                  <input
-                                    type="number"
-                                    min={0}
-                                    inputMode="decimal"
-                                    value={bewerkMacros[key]}
-                                    onFocus={e => e.target.select()}
-                                    onChange={e => setBewerkMacros(prev => ({ ...prev, [key]: Number(e.target.value) }))}
-                                    className="w-full text-base sm:text-sm text-right tabular-nums border border-olive-700/20 rounded-2xl px-3 py-2.5 bg-white focus:outline-none focus:border-olive-700/40"
-                                  />
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-
-                          {/* Knoppen — volle breedte op mobiel */}
-                          <div className="flex gap-2 justify-end">
-                            <button
-                              onClick={() => setBewerkHash(null)}
-                              className="flex items-center justify-center gap-1.5 text-sm font-semibold px-4 py-2.5 rounded-full border border-olive-700/15 text-olive-700/60 hover:bg-olive-700/8 transition-all"
-                            >
-                              <X size={14} /> Annuleer
-                            </button>
-                            <button
-                              onClick={slaBewerkenOp}
-                              disabled={opslaan || !bewerkBasis.trim()}
-                              className="flex items-center justify-center gap-1.5 text-sm font-semibold px-5 py-2.5 rounded-full bg-olive-700 text-cream hover:bg-olive-800 transition-all disabled:opacity-40"
-                            >
-                              <Check size={14} /> {opslaan ? 'Opslaan…' : 'Opslaan'}
-                            </button>
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                }
-                return (
-                <tr key={entry.naam_hash} className="hover:bg-cream/60 transition-colors group align-middle">
-                  <td className="px-4 sm:px-6 py-3 max-w-xs">
-                    <span className="text-olive-700 font-medium truncate block">{entry.naam}</span>
-                  </td>
-                  <td className="px-4 py-3 text-right tabular-nums text-olive-700">{entry.macros.calorieen}</td>
-                  <td className="px-4 py-3 text-right tabular-nums text-olive-700/60 hidden sm:table-cell">{entry.macros.koolhydraten}</td>
-                  <td className="px-4 py-3 text-right tabular-nums text-olive-700/60 hidden sm:table-cell">{entry.macros.eiwitten}</td>
-                  <td className="px-4 py-3 text-right tabular-nums text-olive-700/60 hidden sm:table-cell">{entry.macros.vetten}</td>
-                  <td className="px-4 py-3 text-right text-[10px] text-olive-700/40 font-medium hidden sm:table-cell">{referentieLabel(entry.naam)}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1 justify-end opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 transition-opacity">
-                      <button
-                        onClick={() => startBewerken(entry)}
-                        aria-label={`Bewerk ${entry.naam}`}
-                        className="w-8 h-8 rounded-full border border-olive-700/15 text-olive-700/50 flex items-center justify-center hover:bg-olive-700/8 hover:text-olive-700 transition-all"
-                      >
-                        <Pencil size={12} aria-hidden="true" />
-                      </button>
-                      <button
-                        onClick={() => setTeVerwijderen(entry)}
-                        aria-label={`Verwijder ${entry.naam}`}
-                        className="w-8 h-8 rounded-full border border-olive-700/15 text-olive-700/30 flex items-center justify-center hover:bg-terracotta-600/10 hover:text-terracotta-600 hover:border-terracotta-300 transition-all"
-                      >
-                        <Trash2 size={12} aria-hidden="true" />
-                      </button>
-                    </div>
-                  </td>
+          <>
+            {/* Desktop: tabel */}
+            <table className="hidden sm:table w-full text-sm">
+              <thead>
+                <tr className="text-[10px] text-olive-700/40 uppercase tracking-widest border-b border-olive-700/6">
+                  <th className="text-left px-6 py-3 font-semibold">Ingrediënt</th>
+                  <th className="text-right px-4 py-3 font-semibold">kcal</th>
+                  <th className="text-right px-4 py-3 font-semibold">KH&nbsp;g</th>
+                  <th className="text-right px-4 py-3 font-semibold">Eiw&nbsp;g</th>
+                  <th className="text-right px-4 py-3 font-semibold">Vet&nbsp;g</th>
+                  <th className="text-right px-4 py-3 font-semibold text-olive-700/40">Per</th>
+                  <th className="px-4 py-3" />
                 </tr>
-                )
-              })}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-olive-700/4">
+                {entries.map(entry => bewerkHash === entry.naam_hash ? (
+                  <tr key={entry.naam_hash} className="bg-cream/50">
+                    <td colSpan={7} className="px-6 py-4">{bewerkPaneel()}</td>
+                  </tr>
+                ) : (
+                  <tr key={entry.naam_hash} className="hover:bg-cream/60 transition-colors group align-middle">
+                    <td className="px-6 py-3 max-w-xs">
+                      <span className="text-olive-700 font-medium truncate block">{entry.naam}</span>
+                    </td>
+                    <td className="px-4 py-3 text-right tabular-nums text-olive-700">{entry.macros.calorieen}</td>
+                    <td className="px-4 py-3 text-right tabular-nums text-olive-700/60">{entry.macros.koolhydraten}</td>
+                    <td className="px-4 py-3 text-right tabular-nums text-olive-700/60">{entry.macros.eiwitten}</td>
+                    <td className="px-4 py-3 text-right tabular-nums text-olive-700/60">{entry.macros.vetten}</td>
+                    <td className="px-4 py-3 text-right text-[10px] text-olive-700/40 font-medium">{referentieLabel(entry.naam)}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
+                        {acties(entry)}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {/* Mobiel: kaartlijst */}
+            <ul className="sm:hidden divide-y divide-olive-700/6">
+              {entries.map(entry => (
+                <li key={entry.naam_hash} className="px-4 py-3">
+                  {bewerkHash === entry.naam_hash ? bewerkPaneel() : (
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-olive-700 truncate">{entry.naam}</p>
+                        <p className="text-[11px] text-olive-700/55 tabular-nums mt-0.5">
+                          {entry.macros.calorieen} kcal · {entry.macros.koolhydraten} KH · {entry.macros.eiwitten} E · {entry.macros.vetten} V
+                          <span className="text-olive-700/35"> · per {referentieLabel(entry.naam)}</span>
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1 flex-shrink-0">{acties(entry)}</div>
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </>
         )}
       </div>
 
