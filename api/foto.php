@@ -57,11 +57,18 @@ $payload = json_encode([
     ]],
     'generationConfig' => [
         'temperature' => 0.1,
-        'maxOutputTokens' => 2048,
+        // flash-lite "denkt" niet, dus de tokens gaan naar de JSON; ruim budget
+        // zodat langere recepten niet afgekapt worden. responseMimeType dwingt
+        // zuivere JSON af (geen markdown-codeblok).
+        'maxOutputTokens' => 8192,
+        'responseMimeType' => 'application/json',
     ],
 ]);
 
-$apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' . GOOGLE_API_KEY;
+// gemini-2.5-flash is een "thinking"-model: de redeneer-tokens vraten het
+// output-budget op waardoor de JSON afgekapt/onleesbaar terugkwam. flash-lite
+// denkt niet en is hier betrouwbaarder (zie ook recepten.php).
+$apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=' . GOOGLE_API_KEY;
 
 $ch = curl_init($apiUrl);
 curl_setopt_array($ch, [

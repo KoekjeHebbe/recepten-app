@@ -5,6 +5,31 @@ vereisLogin();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') error('Methode niet toegestaan', 405);
 
+// Breng een (mogelijk in woorden uitgeschreven) eenheid terug naar een canonieke
+// code die de frontend kent. Onbekend → '' (vrije eenheid). Vangnet voor het geval
+// het model toch "gram"/"eetlepel" i.p.v. "g"/"el" teruggeeft.
+function canoniseerEenheid(string $e): string {
+    $e = strtolower(trim($e));
+    if ($e === '') return '';
+    static $map = [
+        'g'=>'g','gram'=>'g','grammen'=>'g','gr'=>'g',
+        'kg'=>'kg','kilo'=>'kg','kilogram'=>'kg',
+        'ml'=>'ml','milliliter'=>'ml',
+        'l'=>'l','liter'=>'l','ltr'=>'l',
+        'el'=>'el','eetlepel'=>'el','eetlepels'=>'el','tbsp'=>'el','tablespoon'=>'el',
+        'tl'=>'tl','theelepel'=>'tl','theelepels'=>'tl','tsp'=>'tl','teaspoon'=>'tl',
+        'kl'=>'kl','koffielepel'=>'kl',
+        'cup'=>'cup','cups'=>'cup','kop'=>'cup',
+        'stuk'=>'stuk','stuks'=>'stuk','st'=>'stuk','piece'=>'stuk','pieces'=>'stuk',
+        'teen'=>'teen','tenen'=>'teen','teentje'=>'teen','teentjes'=>'teen','clove'=>'teen','cloves'=>'teen',
+        'plak'=>'plak','plakken'=>'plak','plakje'=>'plak','plakjes'=>'plak','slice'=>'plak','slices'=>'plak',
+        'sneetje'=>'sneetje','sneetjes'=>'sneetje','snee'=>'sneetje',
+        'handvol'=>'handvol','handje'=>'handvol','handful'=>'handvol',
+        'snufje'=>'snufje','snuf'=>'snufje','pinch'=>'snufje',
+    ];
+    return $map[$e] ?? '';
+}
+
 $data = body();
 $url = trim($data['url'] ?? '');
 
@@ -38,7 +63,7 @@ if (preg_match('/tiktok\.com/i', $url)) {
 
     $payload = json_encode([
         'contents'         => [['parts' => [['text' => $prompt]]]],
-        'generationConfig' => ['temperature' => 0.2, 'maxOutputTokens' => 4096],
+        'generationConfig' => ['temperature' => 0.2, 'maxOutputTokens' => 8192, 'responseMimeType' => 'application/json'],
     ]);
     $apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=' . GOOGLE_API_KEY;
     $ch = curl_init($apiUrl);
@@ -72,7 +97,7 @@ if (preg_match('/tiktok\.com/i', $url)) {
         $ingredienten[] = [
             'naam'         => $ing['naam'] ?? '',
             'hoeveelheid'  => isset($ing['hoeveelheid']) && is_numeric($ing['hoeveelheid']) ? (float)$ing['hoeveelheid'] : null,
-            'eenheid'      => $ing['eenheid'] ?? '',
+            'eenheid'      => canoniseerEenheid((string)($ing['eenheid'] ?? '')),
             'voorraadkast' => (bool)($ing['voorraadkast'] ?? false),
         ];
     }
@@ -84,7 +109,7 @@ if (preg_match('/tiktok\.com/i', $url)) {
         $vraag = "Bereken de voedingswaarden per portie voor $personen personen van dit recept: $ingLijst. Geef alleen JSON terug: {\"calorieen\": 0, \"koolhydraten\": 0, \"eiwitten\": 0, \"vetten\": 0}. Alle waarden als gehele getallen.";
         $macroPayload = json_encode([
             'contents' => [['parts' => [['text' => $vraag]]]],
-            'generationConfig' => ['temperature' => 0.1, 'maxOutputTokens' => 100],
+            'generationConfig' => ['temperature' => 0.1, 'maxOutputTokens' => 200, 'responseMimeType' => 'application/json'],
         ]);
         $ch2 = curl_init('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=' . GOOGLE_API_KEY);
         curl_setopt_array($ch2, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => $macroPayload, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 15, CURLOPT_HTTPHEADER => ['Content-Type: application/json']]);
@@ -225,7 +250,7 @@ if (defined('GOOGLE_API_KEY') && GOOGLE_API_KEY && !empty($ingredienten)) {
         . "Regels:\n"
         . "- titel: korte Nederlandse receptnaam.\n"
         . "- ingredienten: parse hoeveelheid (getal) + eenheid + naam uit elke input-regel. Behoud volgorde.\n"
-        . "  eenheid moet uit deze lijst komen of leeg zijn: [g, kg, ml, l, el, tl, kl, cup, stuk, teen, plak, sneetje, handvol, snufje].\n"
+        . "  eenheid moet EXACT een van deze codes zijn of leeg: [g, kg, ml, l, el, tl, kl, cup, stuk, teen, plak, sneetje, handvol, snufje]. Gebruik de code, niet het woord (dus 'g' niet 'gram', 'el' niet 'eetlepel', 'tl' niet 'theelepel').\n"
         . "  Imperial → metric: 1 lb ≈ 454 g, 1 oz ≈ 28 g, 1 tbsp = 1 el, 1 tsp = 1 tl, 1 fl oz ≈ 30 ml, 1 quart ≈ 950 ml, 1 pint ≈ 470 ml.\n"
         . "  Verwerk fracties (1/2, 1/4, etc.) als decimalen (0.5, 0.25).\n"
         . "  Vertaal ingrediënt-namen naar Nederlands; behoud merknamen onveranderd.\n"
@@ -234,12 +259,20 @@ if (defined('GOOGLE_API_KEY') && GOOGLE_API_KEY && !empty($ingredienten)) {
 
     $payload = json_encode([
         'contents'         => [['parts' => [['text' => $prompt]]]],
-        'generationConfig' => ['temperature' => 0.1, 'maxOutputTokens' => 4096],
+        'generationConfig' => ['temperature' => 0.1, 'maxOutputTokens' => 8192, 'responseMimeType' => 'application/json'],
     ]);
     $ch = curl_init('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=' . GOOGLE_API_KEY);
-    curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => $payload, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 30, CURLOPT_HTTPHEADER => ['Content-Type: application/json']]);
+    curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => $payload, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 45, CURLOPT_HTTPHEADER => ['Content-Type: application/json']]);
     $resp = curl_exec($ch);
     curl_close($ch);
+    // Eén retry bij een lege/mislukte respons — voorkomt dat een tijdelijke hapering
+    // terugvalt op de ruwe Engelse scrape.
+    if (!$resp) {
+        $ch = curl_init('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=' . GOOGLE_API_KEY);
+        curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => $payload, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 45, CURLOPT_HTTPHEADER => ['Content-Type: application/json']]);
+        $resp = curl_exec($ch);
+        curl_close($ch);
+    }
 
     if ($resp) {
         $respData = json_decode($resp, true);
@@ -267,7 +300,7 @@ if (defined('GOOGLE_API_KEY') && GOOGLE_API_KEY && !empty($ingredienten)) {
                         $genormaliseerd[] = [
                             'naam'         => $naam,
                             'hoeveelheid'  => $hoeveelheid,
-                            'eenheid'      => trim((string)($ing['eenheid'] ?? '')),
+                            'eenheid'      => canoniseerEenheid((string)($ing['eenheid'] ?? '')),
                             'voorraadkast' => false,
                         ];
                     }
