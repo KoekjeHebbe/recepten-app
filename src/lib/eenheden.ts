@@ -41,7 +41,7 @@ export function converteer(
 
 // Stapgrootte voor +/- knoppen
 export const STAP: Record<Eenheid, number> = {
-  g: 10,    kg: 0.05,
+  g: 5,     kg: 0.05,
   ml: 10,   l: 0.05, el: 0.5, tl: 0.25, kl: 0.25, cup: 0.25,
   stuk: 1,  teen: 1, plak: 1, sneetje: 1, handvol: 0.5, snufje: 0.5,
   '': 1,

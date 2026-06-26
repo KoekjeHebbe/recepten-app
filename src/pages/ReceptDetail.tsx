@@ -188,6 +188,12 @@ export default function ReceptDetail() {
     const bijdrage  = ingredientBijdrage(ing, ing._idx, factor)
     const knop = `w-[14px] h-[14px] rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 flex items-center justify-center leading-none ${gedempt ? 'text-olive-700/60' : 'text-olive-700'} text-[10px] transition-all btn-magnetic flex-shrink-0`
     const label = toonVoorraad ? <span className="text-olive-700/30"> · voorraad</span> : null
+    // Referentie-macros (zoals opgeslagen: per 100 g/ml of per 1 stuk)
+    const e = ing.eenheid ?? ''
+    const refLabel = (e === 'g' || e === 'kg') ? 'per 100 g'
+      : (['ml', 'l', 'el', 'tl', 'kl', 'cup'].includes(e)) ? 'per 100 ml'
+      : `per ${e || 'stuk'}`
+    const m = ing.macros_referentie
     return (
       <li key={ing._idx} className={`text-sm ${gedempt ? 'text-olive-700/50' : 'text-olive-700'}`}>
         <div className="flex items-center gap-1.5">
@@ -208,6 +214,11 @@ export default function ReceptDetail() {
         {bijdrage && (
           <span className="block ml-7 text-[10px] text-olive-700/55 tabular-nums tracking-wide">
             {Math.round(bijdrage.cal)} kcal · {Math.round(bijdrage.kh)}g KH · {Math.round(bijdrage.eiwit)}g E · {Math.round(bijdrage.vet)}g V
+          </span>
+        )}
+        {m && (
+          <span className="block ml-7 text-[10px] text-olive-700/35 tabular-nums tracking-wide">
+            {Math.round(m.calorieen)} kcal · {Math.round(m.koolhydraten)}g KH · {Math.round(m.eiwitten)}g E · {Math.round(m.vetten)}g V · {refLabel}
           </span>
         )}
       </li>
