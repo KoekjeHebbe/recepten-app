@@ -33,7 +33,10 @@ const MAALTIJD_TYPES = ['diner', 'lunch', 'bijgerecht', 'tapas', 'ontbijt', 'sna
 const BESCHIKBARE_TAGS = ['kip', 'kalkoen', 'rund', 'kalf', 'varken', 'lamsvlees', 'konijn', 'vis', 'garnalen',
   'vegetarisch', 'vegan', 'pasta', 'rijst', 'soep', 'salade', 'wrap', 'flatbread', 'gemengd_gehakt', 'low_carb', 'snel']
 
-type IngredientRij = Ingredient & { _key: number; _manuelleCategorie?: boolean }
+// Een rij in de ingrediënteneditor is óf een ingrediënt, óf een sectie-kop
+// (bijv. "Burgers", "Slaw"). Sectiekoppen worden niet als ingrediënt opgeslagen;
+// ze bepalen de `groep` van de ingrediënten eronder.
+type IngredientRij = Ingredient & { _key: number; _manuelleCategorie?: boolean; _sectie?: boolean }
 type StapRij = { _key: number; tekst: string }
 
 let _keyTeller = 0
@@ -43,6 +46,31 @@ function nieuweKey(): number {
 
 function leegIngredient(): IngredientRij {
   return { naam: '', hoeveelheid: null, eenheid: 'g', voorraadkast: false, _key: nieuweKey() }
+}
+
+function leegSectie(naam = ''): IngredientRij {
+  return { naam, hoeveelheid: null, eenheid: 'g', voorraadkast: false, _key: nieuweKey(), _sectie: true }
+}
+
+// Zet opgeslagen ingrediënten om naar editor-rijen: voegt een sectie-kop in
+// telkens de `groep` verandert, zodat de groepen weer zichtbaar/bewerkbaar zijn.
+function bouwIngredientRijen(ingredienten: Ingredient[]): IngredientRij[] {
+  const rijen: IngredientRij[] = []
+  let huidigeGroep = ''
+  for (const ing of ingredienten) {
+    const groep = (ing.groep ?? '').trim()
+    if (groep !== huidigeGroep) {
+      if (groep !== '') rijen.push(leegSectie(groep))
+      huidigeGroep = groep
+    }
+    rijen.push({
+      ...ing,
+      _key: nieuweKey(),
+      categorie: ing.categorie || categoriseer(ing.naam),
+      _manuelleCategorie: !!ing.categorie,
+    })
+  }
+  return rijen
 }
 
 function leegStap(tekst = ''): StapRij {
@@ -168,7 +196,7 @@ export default function ReceptToevoegen() {
     const tagsZonderRecept = bestaandRecept.tags.filter(t => t !== 'recept')
     setGeselecteerdeMaaltijd(tagsZonderRecept.filter(t => MAALTIJD_TYPES.includes(t)))
     setGeselecteerdeTags(tagsZonderRecept.filter(t => !MAALTIJD_TYPES.includes(t)))
-    setIngredienten(bestaandRecept.ingredienten.map(i => ({ ...i, _key: Math.random(), categorie: i.categorie || categoriseer(i.naam), _manuelleCategorie: !!i.categorie })))
+    setIngredienten(bouwIngredientRijen(bestaandRecept.ingredienten))
     setOnderdelen(bestaandRecept.onderdelen ?? [])
     setBereiding(bestaandRecept.bereiding.map(t => leegStap(t)))
     setCalorieen(String(bestaandRecept.voedingswaarden.per_portie.calorieen || ''))
@@ -233,10 +261,10 @@ export default function ReceptToevoegen() {
       const importTags = (res.tags ?? []).filter((t: string) => t !== 'recept')
       setGeselecteerdeMaaltijd(importTags.filter((t: string) => MAALTIJD_TYPES.includes(t)))
       setGeselecteerdeTags(importTags.filter((t: string) => !MAALTIJD_TYPES.includes(t)))
-      if (res.ingredienten?.length) setIngredienten(res.ingredienten.map((i: Ingredient) => {
+      if (res.ingredienten?.length) setIngredienten(bouwIngredientRijen(res.ingredienten.map((i: Ingredient) => {
         const parsed = typeof i.hoeveelheid === 'string' ? parseerOudeHoeveelheid(i.hoeveelheid) : null
-        return { ...i, _key: Math.random(), categorie: i.categorie || categoriseer(i.naam), _manuelleCategorie: !!i.categorie, hoeveelheid: parsed?.hoeveelheid ?? (typeof i.hoeveelheid === 'number' ? i.hoeveelheid : null), eenheid: i.eenheid ?? parsed?.eenheid ?? 'g' }
-      }))
+        return { ...i, hoeveelheid: parsed?.hoeveelheid ?? (typeof i.hoeveelheid === 'number' ? i.hoeveelheid : null), eenheid: i.eenheid ?? parsed?.eenheid ?? 'g' }
+      })))
       if (res.bereiding?.length) setBereiding(res.bereiding.map((t: string) => leegStap(t)))
       const vw = res.voedingswaarden?.per_portie
       if (vw) {
@@ -279,10 +307,10 @@ export default function ReceptToevoegen() {
       setGeselecteerdeMaaltijd(importTags.filter((t: string) => MAALTIJD_TYPES.includes(t)))
       setGeselecteerdeTags(importTags.filter((t: string) => !MAALTIJD_TYPES.includes(t)))
       if (res.ingredienten?.length) {
-        setIngredienten(res.ingredienten.map((i: Ingredient) => {
+        setIngredienten(bouwIngredientRijen(res.ingredienten.map((i: Ingredient) => {
           const parsed = typeof i.hoeveelheid === 'string' ? parseerOudeHoeveelheid(i.hoeveelheid) : null
-          return { ...i, _key: Math.random(), _manuelleCategorie: !!i.categorie, hoeveelheid: parsed?.hoeveelheid ?? (typeof i.hoeveelheid === 'number' ? i.hoeveelheid : null), eenheid: i.eenheid ?? parsed?.eenheid ?? 'g' }
-        }))
+          return { ...i, hoeveelheid: parsed?.hoeveelheid ?? (typeof i.hoeveelheid === 'number' ? i.hoeveelheid : null), eenheid: i.eenheid ?? parsed?.eenheid ?? 'g' }
+        })))
       }
       if (res.bereiding?.length) setBereiding(res.bereiding.map((t: string) => leegStap(t)))
       const vw = res.voedingswaarden?.per_portie
@@ -325,6 +353,8 @@ export default function ReceptToevoegen() {
     setIngredienten(prev => prev.map((ing, i) => {
       if (i !== idx) return ing
       const updated = { ...ing, [veld]: waarde }
+      // Sectiekoppen: enkel de naam bijwerken, geen categorie-logica
+      if (ing._sectie) return updated
       // Auto-detect categorie bij naam-wijziging, tenzij al handmatig ingesteld
       if (veld === 'naam' && typeof waarde === 'string' && !ing._manuelleCategorie) {
         const gesuggereerd = categoriseer(waarde)
@@ -349,7 +379,7 @@ export default function ReceptToevoegen() {
 
   async function opslaan() {
     if (!titel.trim()) { setFout('Vul een titel in.'); return }
-    if (ingredienten.every(i => !i.naam.trim())) { setFout('Voeg minstens één ingrediënt toe.'); return }
+    if (ingredienten.filter(i => !i._sectie).every(i => !i.naam.trim())) { setFout('Voeg minstens één ingrediënt toe.'); return }
     if (bereiding.every(s => !s.tekst.trim())) { setFout('Voeg minstens één bereidingsstap toe.'); return }
     setFout('')
     setLaden(true)
@@ -368,15 +398,23 @@ export default function ReceptToevoegen() {
       bron_url: bronUrl.trim() || null,
       afbeelding_url: afbeeldingUrl.trim() || null,
       tags: ['recept', ...geselecteerdeMaaltijd, ...geselecteerdeTags],
-      ingredienten: ingredienten
-        .filter(i => i.naam.trim())
-        .map(({ naam, hoeveelheid, eenheid, voorraadkast, categorie }) => ({
-          naam: naam.trim(),
-          hoeveelheid: hoeveelheid !== null && hoeveelheid !== undefined ? Number(hoeveelheid) : null,
-          eenheid: eenheid ?? 'g',
-          voorraadkast,
-          categorie: categorie || categoriseer(naam.trim()),
-        })),
+      ingredienten: (() => {
+        const uit: Ingredient[] = []
+        let huidigeGroep = ''
+        for (const rij of ingredienten) {
+          if (rij._sectie) { huidigeGroep = rij.naam.trim(); continue }
+          if (!rij.naam.trim()) continue
+          uit.push({
+            naam: rij.naam.trim(),
+            hoeveelheid: rij.hoeveelheid !== null && rij.hoeveelheid !== undefined ? Number(rij.hoeveelheid) : null,
+            eenheid: rij.eenheid ?? 'g',
+            voorraadkast: rij.voorraadkast,
+            categorie: rij.categorie || categoriseer(rij.naam.trim()),
+            ...(huidigeGroep ? { groep: huidigeGroep } : {}),
+          })
+        }
+        return uit
+      })(),
       onderdelen: onderdelen.filter(od => od.recept_id && od.porties > 0),
       bereiding: bereiding.map(s => s.tekst.trim()).filter(Boolean),
       voedingswaarden: {
@@ -621,7 +659,21 @@ export default function ReceptToevoegen() {
             <div className="space-y-2">
               {ingredienten.map((ing, idx) => (
                 <Sorteerbaar key={ing._key} id={ing._key}>
-                  {handle => (
+                  {handle => ing._sectie ? (
+                    /* Sectie-kop (bijv. "Burgers", "Slaw", "Saus") */
+                    <div className="flex gap-2 items-center pt-2">
+                      <DragHandle {...handle} />
+                      <input type="text" value={ing.naam}
+                        onChange={e => updateIngredient(idx, 'naam', e.target.value)}
+                        placeholder="Sectienaam (bijv. Saus)"
+                        className="flex-1 min-w-0 px-3 py-2 rounded-2xl border border-terracotta-600/20 bg-terracotta-50/50 text-sm font-bold uppercase tracking-widest text-terracotta-700 placeholder:text-terracotta-600/40 placeholder:font-normal placeholder:normal-case placeholder:tracking-normal focus:outline-none focus:ring-2 focus:ring-terracotta-600/25" />
+                      <button type="button" onClick={() => setIngredienten(prev => prev.filter((_, i) => i !== idx))}
+                        aria-label="Verwijder sectie"
+                        className="w-9 h-9 rounded-xl border border-olive-700/8 text-olive-700/25 hover:text-terracotta-600 hover:border-terracotta-200 text-sm transition-all btn-magnetic flex-shrink-0 flex items-center justify-center">
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
                     <div className="space-y-1">
                       <div className="flex gap-2 items-center">
                         <DragHandle {...handle} />
@@ -687,10 +739,16 @@ export default function ReceptToevoegen() {
             </div>
           </SortableContext>
         </DndContext>
-        <button type="button" onClick={() => setIngredienten(prev => [...prev, leegIngredient()])}
-          className="mt-4 text-sm text-terracotta-600 hover:text-terracotta-700 font-semibold btn-magnetic transition-colors">
-          + Ingrediënt toevoegen
-        </button>
+        <div className="mt-4 flex items-center gap-4">
+          <button type="button" onClick={() => setIngredienten(prev => [...prev, leegIngredient()])}
+            className="text-sm text-terracotta-600 hover:text-terracotta-700 font-semibold btn-magnetic transition-colors">
+            + Ingrediënt toevoegen
+          </button>
+          <button type="button" onClick={() => setIngredienten(prev => [...prev, leegSectie()])}
+            className="text-sm text-olive-700/50 hover:text-olive-700 font-semibold btn-magnetic transition-colors">
+            + Sectie toevoegen
+          </button>
+        </div>
       </div>
 
       <div className={sectionCls}>

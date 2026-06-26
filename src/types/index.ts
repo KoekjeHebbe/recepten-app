@@ -4,6 +4,7 @@ export interface Ingredient {
   eenheid: string              // eenheid (bijv. 'g', 'el', 'stuk', '' voor vrij)
   voorraadkast: boolean
   categorie?: string
+  groep?: string               // optionele sectie binnen het recept (bijv. 'Burgers', 'Slaw', 'Saus')
   macros_referentie?: Macros | null  // macros per 1 canonieke eenheid (float)
 }
 

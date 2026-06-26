@@ -181,6 +181,49 @@ export default function ReceptDetail() {
 
   const heeftAanpassingen = Object.values(aanpassingMultipliers).some(m => m !== 1)
 
+  // Eén ingrediëntregel — gedeeld door de gegroepeerde en de voorraad/boodschappen-weergave.
+  // gedempt = lichtere stijl (voorraadkast); toonVoorraad = klein 'voorraad'-label tonen.
+  function ingredientItem(ing: typeof ingredientenMetIndex[number], gedempt: boolean, toonVoorraad: boolean) {
+    const displayed = displayHoeveelheid(ing.hoeveelheid, factor, aanpassingMultipliers[ing._idx] ?? 1)
+    const bijdrage  = ingredientBijdrage(ing, ing._idx, factor)
+    const knop = `w-7 h-7 rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 flex items-center justify-center ${gedempt ? 'text-olive-700/60' : 'text-olive-700'} text-xs transition-all btn-magnetic flex-shrink-0`
+    const label = toonVoorraad ? <span className="text-olive-700/30"> · voorraad</span> : null
+    return (
+      <li key={ing._idx} className={`text-sm ${gedempt ? 'text-olive-700/50' : 'text-olive-700'}`}>
+        <div className="flex items-center gap-1.5">
+          <span className="text-olive-700/20 font-light mr-1">—</span>
+          {kanTweaken(ing) ? (
+            <>
+              <button onClick={() => setMultiplier(ing._idx, ing, -1)} aria-label="Verminder hoeveelheid" className={knop}>−</button>
+              <span className={`min-w-[3.5rem] text-center tabular-nums ${gedempt ? 'text-olive-700/70' : 'font-medium'}`}>
+                {formateerHoeveelheid(displayed, ing.eenheid)}
+              </span>
+              <button onClick={() => setMultiplier(ing._idx, ing, 1)} aria-label="Verhoog hoeveelheid" className={knop}>+</button>
+              <span>{ing.naam}{label}</span>
+            </>
+          ) : (
+            <span>{displayed !== null ? `${formateerHoeveelheid(displayed, ing.eenheid)} ` : ''}{ing.naam}{label}</span>
+          )}
+        </div>
+        {bijdrage && (
+          <span className="block ml-7 text-[10px] text-olive-700/55 tabular-nums tracking-wide">
+            {Math.round(bijdrage.cal)} kcal · {Math.round(bijdrage.kh)}g KH · {Math.round(bijdrage.eiwit)}g E · {Math.round(bijdrage.vet)}g V
+          </span>
+        )}
+      </li>
+    )
+  }
+
+  // Groepeer opeenvolgende ingrediënten op `groep` (secties zoals "Burgers", "Slaw").
+  const heeftGroepen = ingredientenMetIndex.some(i => (i.groep ?? '').trim() !== '')
+  const ingredientGroepen: { naam: string; items: typeof ingredientenMetIndex }[] = []
+  for (const ing of ingredientenMetIndex) {
+    const g = (ing.groep ?? '').trim()
+    const laatste = ingredientGroepen[ingredientGroepen.length - 1]
+    if (laatste && laatste.naam === g) laatste.items.push(ing)
+    else ingredientGroepen.push({ naam: g, items: [ing] })
+  }
+
   // Voedingswaarden: gebruik dynamisch berekende waarden indien beschikbaar, anders opgeslagen
   const displayMacros = berekendeTotalen ?? {
     per_portie: vw.per_portie,
@@ -348,76 +391,37 @@ export default function ReceptDetail() {
             </button>
           )}
         </div>
-        {ingredientenMetIndex.some(i => i.voorraadkast) && (
+        {heeftGroepen ? (
+          /* Recept met secties (bijv. Burgers / Slaw / Saus) */
+          <div className="space-y-1">
+            {ingredientGroepen.map((groep, gi) => (
+              <div key={gi}>
+                {groep.naam && (
+                  <p className="text-xs font-bold uppercase tracking-widest text-terracotta-700 mb-2 mt-5 first:mt-0">{groep.naam}</p>
+                )}
+                <ul className="space-y-1.5">
+                  {groep.items.map(ing => ingredientItem(ing, ing.voorraadkast, ing.voorraadkast))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        ) : (
+          /* Geen secties: splitsen in voorraadkast en boodschappen */
           <>
-            <p className="text-[10px] text-olive-700/40 uppercase tracking-widest mb-2 font-semibold">Voorraadkast</p>
-            <ul className="mb-4 space-y-1.5">
-              {ingredientenMetIndex.filter(i => i.voorraadkast).map(ing => {
-                const displayed = displayHoeveelheid(ing.hoeveelheid, factor, aanpassingMultipliers[ing._idx] ?? 1)
-                const bijdrage  = ingredientBijdrage(ing, ing._idx, factor)
-                return (
-                  <li key={ing._idx} className="text-sm text-olive-700/50">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-olive-700/20 font-light mr-1">—</span>
-                      {kanTweaken(ing) ? (
-                        <>
-                          <button onClick={() => setMultiplier(ing._idx, ing, -1)} aria-label="Verminder hoeveelheid"
-                            className="w-7 h-7 rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 flex items-center justify-center text-olive-700/60 text-xs transition-all btn-magnetic flex-shrink-0">−</button>
-                          <span className="min-w-[3.5rem] text-center tabular-nums text-olive-700/70">
-                            {formateerHoeveelheid(displayed, ing.eenheid)}
-                          </span>
-                          <button onClick={() => setMultiplier(ing._idx, ing, 1)} aria-label="Verhoog hoeveelheid"
-                            className="w-7 h-7 rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 flex items-center justify-center text-olive-700/60 text-xs transition-all btn-magnetic flex-shrink-0">+</button>
-                          <span>{ing.naam}</span>
-                        </>
-                      ) : (
-                        <span>{displayed !== null ? `${formateerHoeveelheid(displayed, ing.eenheid)} ` : ''}{ing.naam}</span>
-                      )}
-                    </div>
-                    {bijdrage && (
-                      <span className="block ml-7 text-[10px] text-olive-700/55 tabular-nums tracking-wide">
-                        {Math.round(bijdrage.cal)} kcal · {Math.round(bijdrage.kh)}g KH · {Math.round(bijdrage.eiwit)}g E · {Math.round(bijdrage.vet)}g V
-                      </span>
-                    )}
-                  </li>
-                )
-              })}
+            {ingredientenMetIndex.some(i => i.voorraadkast) && (
+              <>
+                <p className="text-[10px] text-olive-700/40 uppercase tracking-widest mb-2 font-semibold">Voorraadkast</p>
+                <ul className="mb-4 space-y-1.5">
+                  {ingredientenMetIndex.filter(i => i.voorraadkast).map(ing => ingredientItem(ing, true, false))}
+                </ul>
+              </>
+            )}
+            <p className="text-[10px] text-olive-700/40 uppercase tracking-widest mb-2 font-semibold">Boodschappen</p>
+            <ul className="space-y-1.5">
+              {ingredientenMetIndex.filter(i => !i.voorraadkast).map(ing => ingredientItem(ing, false, false))}
             </ul>
           </>
         )}
-        <p className="text-[10px] text-olive-700/40 uppercase tracking-widest mb-2 font-semibold">Boodschappen</p>
-        <ul className="space-y-1.5">
-          {ingredientenMetIndex.filter(i => !i.voorraadkast).map(ing => {
-            const displayed = displayHoeveelheid(ing.hoeveelheid, factor, aanpassingMultipliers[ing._idx] ?? 1)
-            const bijdrage  = ingredientBijdrage(ing, ing._idx, factor)
-            return (
-              <li key={ing._idx} className="text-sm text-olive-700">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-olive-700/20 font-light mr-1">—</span>
-                  {kanTweaken(ing) ? (
-                    <>
-                      <button onClick={() => setMultiplier(ing._idx, ing, -1)} aria-label="Verminder hoeveelheid"
-                        className="w-7 h-7 rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 flex items-center justify-center text-olive-700 text-xs transition-all btn-magnetic flex-shrink-0">−</button>
-                      <span className="min-w-[3.5rem] text-center tabular-nums font-medium">
-                        {formateerHoeveelheid(displayed, ing.eenheid)}
-                      </span>
-                      <button onClick={() => setMultiplier(ing._idx, ing, 1)} aria-label="Verhoog hoeveelheid"
-                        className="w-7 h-7 rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 flex items-center justify-center text-olive-700 text-xs transition-all btn-magnetic flex-shrink-0">+</button>
-                      <span>{ing.naam}</span>
-                    </>
-                  ) : (
-                    <span>{displayed !== null ? `${formateerHoeveelheid(displayed, ing.eenheid)} ` : ''}{ing.naam}</span>
-                  )}
-                </div>
-                {bijdrage && (
-                  <span className="block ml-7 text-[10px] text-olive-700/55 tabular-nums tracking-wide">
-                    {Math.round(bijdrage.cal)} kcal · {Math.round(bijdrage.kh)}g KH · {Math.round(bijdrage.eiwit)}g E · {Math.round(bijdrage.vet)}g V
-                  </span>
-                )}
-              </li>
-            )
-          })}
-        </ul>
       </div>
 
       {/* Onderdelen */}
