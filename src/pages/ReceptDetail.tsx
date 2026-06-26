@@ -186,7 +186,7 @@ export default function ReceptDetail() {
   function ingredientItem(ing: typeof ingredientenMetIndex[number], gedempt: boolean, toonVoorraad: boolean) {
     const displayed = displayHoeveelheid(ing.hoeveelheid, factor, aanpassingMultipliers[ing._idx] ?? 1)
     const bijdrage  = ingredientBijdrage(ing, ing._idx, factor)
-    const knop = `w-7 h-7 rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 flex items-center justify-center ${gedempt ? 'text-olive-700/60' : 'text-olive-700'} text-xs transition-all btn-magnetic flex-shrink-0`
+    const knop = `w-[14px] h-[14px] rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 flex items-center justify-center leading-none ${gedempt ? 'text-olive-700/60' : 'text-olive-700'} text-[10px] transition-all btn-magnetic flex-shrink-0`
     const label = toonVoorraad ? <span className="text-olive-700/30"> · voorraad</span> : null
     return (
       <li key={ing._idx} className={`text-sm ${gedempt ? 'text-olive-700/50' : 'text-olive-700'}`}>
