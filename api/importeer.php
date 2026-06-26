@@ -52,7 +52,7 @@ if (preg_match('/tiktok\.com/i', $url)) {
         . "Als er geen duidelijk recept in staat, antwoord dan ALLEEN met het woord: GEEN_RECEPT\n\n"
         . "Beschrijving:\n" . $beschrijving . "\n\n"
         . "Geef ALLEEN een JSON-object terug (geen uitleg, geen markdown, geen codeblok):\n"
-        . "{\"titel\":\"...\",\"personen\":4,\"ingredienten\":[{\"naam\":\"...\",\"hoeveelheid\":null,\"eenheid\":\"\",\"voorraadkast\":false}],\"bereiding\":[\"stap 1\",\"stap 2\"],\"tags\":[]}\n\n"
+        . "{\"titel\":\"...\",\"personen\":4,\"ingredienten\":[{\"naam\":\"...\",\"hoeveelheid\":null,\"eenheid\":\"\",\"voorraadkast\":false,\"groep\":\"\"}],\"bereiding\":[\"stap 1\",\"stap 2\"],\"tags\":[]}\n\n"
         . "Regels:\n"
         . "- titel: korte receptnaam in het Nederlands\n"
         . "- personen: aantal porties (standaard 4 als niet vermeld)\n"
@@ -94,12 +94,13 @@ if (preg_match('/tiktok\.com/i', $url)) {
     $personen     = max(1, (int)($parsed['personen'] ?? 4));
     $ingredienten = [];
     foreach (($parsed['ingredienten'] ?? []) as $ing) {
+        $tgroep = trim((string)($ing['groep'] ?? ''));
         $ingredienten[] = [
             'naam'         => $ing['naam'] ?? '',
             'hoeveelheid'  => isset($ing['hoeveelheid']) && is_numeric($ing['hoeveelheid']) ? (float)$ing['hoeveelheid'] : null,
             'eenheid'      => canoniseerEenheid((string)($ing['eenheid'] ?? '')),
             'voorraadkast' => (bool)($ing['voorraadkast'] ?? false),
-        ];
+        ] + ($tgroep !== '' ? ['groep' => $tgroep] : []);
     }
 
     // Voedingswaarden schatten via Gemini
@@ -242,7 +243,7 @@ if (defined('GOOGLE_API_KEY') && GOOGLE_API_KEY && !empty($ingredienten)) {
     $bereidLijnen = $bereiding;
 
     $prompt = "Normaliseer en vertaal dit recept naar Nederlands. Geef ALLEEN een JSON-object terug, geen markdown:\n"
-        . "{\"titel\":\"...\",\"ingredienten\":[{\"naam\":\"...\",\"hoeveelheid\":null,\"eenheid\":\"\"}],\"bereiding\":[\"...\"]}\n\n"
+        . "{\"titel\":\"...\",\"ingredienten\":[{\"naam\":\"...\",\"hoeveelheid\":null,\"eenheid\":\"\",\"groep\":\"\"}],\"bereiding\":[\"...\"]}\n\n"
         . "Input:\n"
         . "Titel: " . $titel . "\n"
         . "Ingrediënten:\n- " . implode("\n- ", $ingLijnen) . "\n"
@@ -250,6 +251,7 @@ if (defined('GOOGLE_API_KEY') && GOOGLE_API_KEY && !empty($ingredienten)) {
         . "Regels:\n"
         . "- titel: korte Nederlandse receptnaam.\n"
         . "- ingredienten: parse hoeveelheid (getal) + eenheid + naam uit elke input-regel. Behoud volgorde.\n"
+        . "  groep: als het recept de ingrediënten onder kopjes groepeert (bijv. 'Burgers', 'Slaw', 'Saus'), zet de juiste kop bij elk ingrediënt; anders lege string. Verzin geen secties.\n"
         . "  eenheid moet EXACT een van deze codes zijn of leeg: [g, kg, ml, l, el, tl, kl, cup, stuk, teen, plak, sneetje, handvol, snufje]. Gebruik de code, niet het woord (dus 'g' niet 'gram', 'el' niet 'eetlepel', 'tl' niet 'theelepel').\n"
         . "  Imperial → metric: 1 lb ≈ 454 g, 1 oz ≈ 28 g, 1 tbsp = 1 el, 1 tsp = 1 tl, 1 fl oz ≈ 30 ml, 1 quart ≈ 950 ml, 1 pint ≈ 470 ml.\n"
         . "  Verwerk fracties (1/2, 1/4, etc.) als decimalen (0.5, 0.25).\n"
@@ -297,12 +299,13 @@ if (defined('GOOGLE_API_KEY') && GOOGLE_API_KEY && !empty($ingredienten)) {
                         if (isset($ing['hoeveelheid']) && is_numeric($ing['hoeveelheid'])) {
                             $hoeveelheid = (float)$ing['hoeveelheid'];
                         }
+                        $groep = trim((string)($ing['groep'] ?? ''));
                         $genormaliseerd[] = [
                             'naam'         => $naam,
                             'hoeveelheid'  => $hoeveelheid,
                             'eenheid'      => canoniseerEenheid((string)($ing['eenheid'] ?? '')),
                             'voorraadkast' => false,
-                        ];
+                        ] + ($groep !== '' ? ['groep' => $groep] : []);
                     }
                     if (!empty($genormaliseerd)) $ingredienten = $genormaliseerd;
                 }

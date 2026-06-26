@@ -21,8 +21,8 @@ Dit is een foto van een recept uit een kookboek of tijdschrift. Extraheer het re
   "titel": "Naam van het gerecht",
   "personen": 4,
   "ingredienten": [
-    { "naam": "kipfilet", "hoeveelheid": "500 g", "voorraadkast": false },
-    { "naam": "olijfolie", "hoeveelheid": "2 el", "voorraadkast": true }
+    { "naam": "kipfilet", "hoeveelheid": "500 g", "voorraadkast": false, "groep": "Burgers" },
+    { "naam": "olijfolie", "hoeveelheid": "2 el", "voorraadkast": true, "groep": "Burgers" }
   ],
   "bereiding": [
     "Verwarm de oven voor op 180°C.",
@@ -36,6 +36,7 @@ Dit is een foto van een recept uit een kookboek of tijdschrift. Extraheer het re
 
 Regels:
 - voorraadkast = true voor: olie, azijn, zout, peper, kruiden, specerijen, bloem, suiker, boter
+- groep = de sectiekop waaronder het ingrediënt staat (bijv. "Burgers", "Slaw", "Saus"). Als het recept de ingrediënten onder kopjes groepeert, zet de juiste kop bij elk ingrediënt; anders lege string "".
 - hoeveelheid altijd als string (bijv. "2 el", "500 g", "1 teen") of null als niet vermeld
 - bereiding: elke stap als aparte string, volledig uitgeschreven
 - voedingswaarden: als de foto macros vermeldt, gebruik die. Anders bereken zelf een realistische schatting op basis van de ingrediënten en hoeveelheden. Zet schatting altijd op true tenzij de foto expliciete voedingswaarden vermeldt.
