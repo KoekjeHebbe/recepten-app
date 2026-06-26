@@ -66,25 +66,28 @@ $payload = json_encode([
     ],
 ]);
 
-// gemini-2.5-flash is een "thinking"-model: de redeneer-tokens vraten het
-// output-budget op waardoor de JSON afgekapt/onleesbaar terugkwam. flash-lite
-// denkt niet en is hier betrouwbaarder (zie ook recepten.php).
-$apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=' . GOOGLE_API_KEY;
-
-$ch = curl_init($apiUrl);
-curl_setopt_array($ch, [
-    CURLOPT_POST => true,
-    CURLOPT_POSTFIELDS => $payload,
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_TIMEOUT => 30,
-    CURLOPT_HTTPHEADER => [
-        'Content-Type: application/json',
-    ],
-]);
-
-$antwoord = curl_exec($ch);
-$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-curl_close($ch);
+// flash-lite denkt niet (geen truncatie) en is primair; bij drukte (503) vallen we
+// terug op flash (aparte capaciteit). Elk model enkele pogingen met backoff.
+$antwoord = false;
+$httpCode = 0;
+foreach (['gemini-2.5-flash-lite', 'gemini-2.5-flash'] as $model) {
+    $apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=" . GOOGLE_API_KEY;
+    for ($poging = 0; $poging < 2; $poging++) {
+        $ch = curl_init($apiUrl);
+        curl_setopt_array($ch, [
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => $payload,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 45,
+            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+        ]);
+        $antwoord = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        if ($antwoord && $httpCode === 200) break 2;
+        if ($poging < 1) usleep(700000 * ($poging + 1)); // 0.7s, 1.4s
+    }
+}
 
 if (!$antwoord) error('Kon de AI-service niet bereiken', 503);
 

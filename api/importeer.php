@@ -30,6 +30,49 @@ function canoniseerEenheid(string $e): string {
     return $map[$e] ?? '';
 }
 
+// Modelketen: flash-lite is goedkoop/snel maar raakt bij drukte tijdelijk
+// overbelast (HTTP 503). Dan valt geminiGenerate terug op flash (aparte capaciteit),
+// zodat de vertaling/normalisatie toch lukt i.p.v. terug te vallen op ruwe Engelse scrape.
+const GEMINI_MODELLEN = ['gemini-2.5-flash-lite', 'gemini-2.5-flash'];
+
+// Probeer elk model uit de keten met enkele pogingen + backoff. Geeft de body terug
+// bij HTTP 200, anders null (na alle modellen/pogingen).
+function geminiGenerate(array $modellen, string $payload, int $pogingenPerModel = 2): ?string {
+    foreach ($modellen as $model) {
+        $apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=" . GOOGLE_API_KEY;
+        for ($i = 0; $i < $pogingenPerModel; $i++) {
+            $ch = curl_init($apiUrl);
+            curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => $payload, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 45, CURLOPT_HTTPHEADER => ['Content-Type: application/json']]);
+            $resp = curl_exec($ch);
+            $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            if ($resp && $code === 200) return $resp;
+            if ($i < $pogingenPerModel - 1) usleep(700000 * ($i + 1)); // 0.7s, 1.4s backoff
+        }
+    }
+    return null;
+}
+
+// Vlak recipeInstructions af tot losse stappen. Veel sites gebruiken HowToSection
+// (een kop zoals "CHICKEN BURGERS" met de echte stappen in itemListElement); zonder
+// deze afhandeling kwamen de sectiekoppen als "stappen" binnen i.p.v. de instructies.
+function extraheerStappen(mixed $items, array &$out): void {
+    foreach ((array) $items as $stap) {
+        if (is_string($stap)) {
+            if (trim($stap) !== '') $out[] = trim(strip_tags($stap));
+            continue;
+        }
+        if (!is_array($stap)) continue;
+        $type = $stap['@type'] ?? '';
+        if ($type === 'HowToSection' || isset($stap['itemListElement'])) {
+            extraheerStappen($stap['itemListElement'] ?? [], $out);
+        } else {
+            $tekst = $stap['text'] ?? $stap['name'] ?? '';
+            if (trim($tekst) !== '') $out[] = trim(strip_tags($tekst));
+        }
+    }
+}
+
 $data = body();
 $url = trim($data['url'] ?? '');
 
@@ -223,22 +266,17 @@ foreach ((array) ($schemaRecept['recipeIngredient'] ?? []) as $ing) {
     }
 }
 
-// --- Bereiding ---
+// --- Bereiding --- (incl. HowToSection-afhandeling)
 $bereiding = [];
-foreach ((array) ($schemaRecept['recipeInstructions'] ?? []) as $stap) {
-    if (is_string($stap) && trim($stap)) {
-        $bereiding[] = trim(strip_tags($stap));
-    } elseif (is_array($stap)) {
-        $tekst = $stap['text'] ?? $stap['name'] ?? '';
-        if (trim($tekst)) $bereiding[] = trim(strip_tags($tekst));
-    }
-}
+extraheerStappen($schemaRecept['recipeInstructions'] ?? [], $bereiding);
 
 // --- Normaliseer + vertaal naar Nederlands via Gemini ---
 // Lost twee problemen op tegelijk: (1) ingrediënten als ruwe string ("1 lb 90% lean ground beef"),
 // (2) recepten in een vreemde taal. Gemini parseert hoeveelheid + eenheid, converteert imperial
 // naar metric, vertaalt naar Nederlands.
-if (defined('GOOGLE_API_KEY') && GOOGLE_API_KEY && !empty($ingredienten)) {
+$normalisatieGeprobeerd = defined('GOOGLE_API_KEY') && GOOGLE_API_KEY && !empty($ingredienten);
+$genormaliseerdOk = false;
+if ($normalisatieGeprobeerd) {
     $ingLijnen   = array_map(fn($i) => $i['naam'], $ingredienten);
     $bereidLijnen = $bereiding;
 
@@ -263,18 +301,7 @@ if (defined('GOOGLE_API_KEY') && GOOGLE_API_KEY && !empty($ingredienten)) {
         'contents'         => [['parts' => [['text' => $prompt]]]],
         'generationConfig' => ['temperature' => 0.1, 'maxOutputTokens' => 8192, 'responseMimeType' => 'application/json'],
     ]);
-    $ch = curl_init('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=' . GOOGLE_API_KEY);
-    curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => $payload, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 45, CURLOPT_HTTPHEADER => ['Content-Type: application/json']]);
-    $resp = curl_exec($ch);
-    curl_close($ch);
-    // Eén retry bij een lege/mislukte respons — voorkomt dat een tijdelijke hapering
-    // terugvalt op de ruwe Engelse scrape.
-    if (!$resp) {
-        $ch = curl_init('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=' . GOOGLE_API_KEY);
-        curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => $payload, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 45, CURLOPT_HTTPHEADER => ['Content-Type: application/json']]);
-        $resp = curl_exec($ch);
-        curl_close($ch);
-    }
+    $resp = geminiGenerate(GEMINI_MODELLEN, $payload);
 
     if ($resp) {
         $respData = json_decode($resp, true);
@@ -287,6 +314,7 @@ if (defined('GOOGLE_API_KEY') && GOOGLE_API_KEY && !empty($ingredienten)) {
         if ($s !== false && $e > $s) {
             $parsed = json_decode(substr($tekst, $s, $e - $s + 1), true);
             if ($parsed && is_array($parsed)) {
+                $genormaliseerdOk = true;
                 if (!empty($parsed['titel'])) {
                     $titel = $parsed['titel'];
                 }
@@ -348,13 +376,9 @@ if (!$heeftMacros && defined('GOOGLE_API_KEY') && GOOGLE_API_KEY) {
 
     $payload = json_encode([
         'contents' => [['parts' => [['text' => $vraag]]]],
-        'generationConfig' => ['temperature' => 0.1, 'maxOutputTokens' => 100],
+        'generationConfig' => ['temperature' => 0.1, 'maxOutputTokens' => 200, 'responseMimeType' => 'application/json'],
     ]);
-    $apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=' . GOOGLE_API_KEY;
-    $ch = curl_init($apiUrl);
-    curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => $payload, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 15, CURLOPT_HTTPHEADER => ['Content-Type: application/json']]);
-    $resp = curl_exec($ch);
-    curl_close($ch);
+    $resp = geminiGenerate(GEMINI_MODELLEN, $payload);
 
     if ($resp) {
         $respData = json_decode($resp, true);
@@ -389,4 +413,8 @@ json([
         'totaal'     => ['calorieen' => (int) round($cal * $personen), 'koolhydraten' => (int) round($kh * $personen), 'eiwitten' => (int) round($eiw * $personen), 'vetten' => (int) round($vet * $personen)],
         'schatting'  => !$heeftMacros,
     ],
+    // Niet-blokkerende waarschuwing als de AI-normalisatie (vertaling/eenheden) niet lukte
+    'waarschuwing' => ($normalisatieGeprobeerd && !$genormaliseerdOk)
+        ? 'De automatische vertaling/normalisatie was even niet beschikbaar (drukte bij de AI-service). Het recept is in de oorspronkelijke vorm geïmporteerd — controleer hoeveelheden, eenheden en vertaling, of importeer zo dadelijk opnieuw.'
+        : null,
 ]);

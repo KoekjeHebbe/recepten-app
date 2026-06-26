@@ -290,7 +290,7 @@ export default function ReceptToevoegen() {
       const body: Record<string, string> = { url: importUrl.trim() }
       if (beschrijving) body.beschrijving = beschrijving
 
-      const res = await api.post<Recept & { voedingswaarden: Recept['voedingswaarden']; tiktok?: boolean }>('/importeer', body)
+      const res = await api.post<Recept & { voedingswaarden: Recept['voedingswaarden']; tiktok?: boolean; waarschuwing?: string | null }>('/importeer', body)
 
       // TikTok stap 1: backend vraagt om beschrijving
       if (res.tiktok) {
@@ -323,6 +323,7 @@ export default function ReceptToevoegen() {
       setImportUrl('')
       setTiktokModus(false)
       setTiktokBeschrijving('')
+      if (res.waarschuwing) setImportFout(res.waarschuwing)
     } catch (err) {
       setImportFout(err instanceof Error ? err.message : 'Importeren mislukt')
     } finally {
