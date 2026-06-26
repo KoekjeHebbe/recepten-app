@@ -196,7 +196,7 @@ export default function ReceptDetail() {
     const m = ing.macros_referentie
     return (
       <li key={ing._idx} className={`text-sm ${gedempt ? 'text-olive-700/50' : 'text-olive-700'}`}>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 flex-wrap">
           <span className="text-olive-700/20 font-light mr-1">—</span>
           {kanTweaken(ing) ? (
             <>
@@ -210,17 +210,17 @@ export default function ReceptDetail() {
           ) : (
             <span>{displayed !== null ? `${formateerHoeveelheid(displayed, ing.eenheid)} ` : ''}{ing.naam}{label}</span>
           )}
+          {bijdrage && (
+            <span className="text-[10px] text-olive-700/55 tabular-nums tracking-wide ml-1">
+              · {Math.round(bijdrage.cal)} kcal · {Math.round(bijdrage.kh)}g KH · {Math.round(bijdrage.eiwit)}g E · {Math.round(bijdrage.vet)}g V
+            </span>
+          )}
+          {m && (
+            <span className="text-[10px] text-olive-700/35 tabular-nums tracking-wide">
+              · {Math.round(m.calorieen)} kcal · {Math.round(m.koolhydraten)}g KH · {Math.round(m.eiwitten)}g E · {Math.round(m.vetten)}g V {refLabel}
+            </span>
+          )}
         </div>
-        {bijdrage && (
-          <span className="block ml-7 text-[10px] text-olive-700/55 tabular-nums tracking-wide">
-            {Math.round(bijdrage.cal)} kcal · {Math.round(bijdrage.kh)}g KH · {Math.round(bijdrage.eiwit)}g E · {Math.round(bijdrage.vet)}g V
-          </span>
-        )}
-        {m && (
-          <span className="block ml-7 text-[10px] text-olive-700/35 tabular-nums tracking-wide">
-            {Math.round(m.calorieen)} kcal · {Math.round(m.koolhydraten)}g KH · {Math.round(m.eiwitten)}g E · {Math.round(m.vetten)}g V · {refLabel}
-          </span>
-        )}
       </li>
     )
   }
