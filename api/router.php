@@ -18,6 +18,7 @@ match($endpoint) {
     'favorieten' => require __DIR__ . '/favorieten.php',
     'importeer'  => require __DIR__ . '/importeer.php',
     'foto'       => require __DIR__ . '/foto.php',
+    'tekst'      => require __DIR__ . '/tekst.php',
     'cache'      => require __DIR__ . '/cache.php',
     'weekmenu'   => require __DIR__ . '/weekmenu.php',
     'nevo'       => require __DIR__ . '/importeer-nevo.php',

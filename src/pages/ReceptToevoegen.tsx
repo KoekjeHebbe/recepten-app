@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import type { ReactNode } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
-import { Link2, Loader2, Camera, X, GripVertical, ChevronDown } from 'lucide-react'
+import { Link2, Loader2, Camera, X, GripVertical, ChevronDown, ClipboardPaste } from 'lucide-react'
 import {
   DndContext,
   closestCenter,
@@ -185,6 +185,9 @@ export default function ReceptToevoegen() {
   const [fotoMediaType, setFotoMediaType] = useState<string>('image/jpeg')
   const [fotoLaden, setFotoLaden] = useState(false)
   const [fotoFout, setFotoFout] = useState('')
+  const [plakTekst, setPlakTekst] = useState('')
+  const [tekstLaden, setTekstLaden] = useState(false)
+  const [tekstFout, setTekstFout] = useState('')
 
   // Vul formulier in bij bewerkingsmodus
   useEffect(() => {
@@ -246,6 +249,33 @@ export default function ReceptToevoegen() {
     reader.readAsDataURL(file)
   }
 
+  /** Vul het formulier met het resultaat van een import (URL, foto of tekst). */
+  function pasImportToe(res: Recept, opties: { bronUrl?: string } = {}) {
+    setTitel(res.titel || '')
+    setPersonen(res.personen || 4)
+    setBronUrl(opties.bronUrl ?? '')
+    setAfbeeldingUrl(res.afbeelding_url ?? '')
+    const importTags = (res.tags ?? []).filter((t: string) => t !== 'recept')
+    setGeselecteerdeMaaltijd(importTags.filter((t: string) => MAALTIJD_TYPES.includes(t)))
+    setGeselecteerdeTags(importTags.filter((t: string) => !MAALTIJD_TYPES.includes(t)))
+    if (res.ingredienten?.length) {
+      setIngredienten(bouwIngredientRijen(res.ingredienten.map((i: Ingredient) => {
+        const parsed = typeof i.hoeveelheid === 'string' ? parseerOudeHoeveelheid(i.hoeveelheid) : null
+        // Let op: || i.p.v. ?? — een lege eenheid uit de API mag de geparste niet overschrijven
+        return { ...i, hoeveelheid: parsed?.hoeveelheid ?? (typeof i.hoeveelheid === 'number' ? i.hoeveelheid : null), eenheid: i.eenheid || parsed?.eenheid || '' }
+      })))
+    }
+    if (res.bereiding?.length) setBereiding(res.bereiding.map((t: string) => leegStap(t)))
+    const vw = res.voedingswaarden?.per_portie
+    if (vw) {
+      setCalorieen(String(vw.calorieen || ''))
+      setKoolhydraten(String(vw.koolhydraten || ''))
+      setEiwitten(String(vw.eiwitten || ''))
+      setVetten(String(vw.vetten || ''))
+      setSchatting(res.voedingswaarden?.schatting ?? true)
+    }
+  }
+
   async function importeerViaFoto() {
     if (!fotoPreview) return
     setFotoFout('')
@@ -254,32 +284,27 @@ export default function ReceptToevoegen() {
       // Strip "data:image/jpeg;base64," prefix
       const base64 = fotoPreview.split(',')[1]
       const res = await api.post<Recept>('/foto', { afbeelding: base64, media_type: fotoMediaType })
-      setTitel(res.titel || '')
-      setPersonen(res.personen || 4)
-      setBronUrl('')
-      setAfbeeldingUrl('')
-      const importTags = (res.tags ?? []).filter((t: string) => t !== 'recept')
-      setGeselecteerdeMaaltijd(importTags.filter((t: string) => MAALTIJD_TYPES.includes(t)))
-      setGeselecteerdeTags(importTags.filter((t: string) => !MAALTIJD_TYPES.includes(t)))
-      if (res.ingredienten?.length) setIngredienten(bouwIngredientRijen(res.ingredienten.map((i: Ingredient) => {
-        const parsed = typeof i.hoeveelheid === 'string' ? parseerOudeHoeveelheid(i.hoeveelheid) : null
-        // Let op: || i.p.v. ?? — een lege eenheid uit de API mag de geparste niet overschrijven
-        return { ...i, hoeveelheid: parsed?.hoeveelheid ?? (typeof i.hoeveelheid === 'number' ? i.hoeveelheid : null), eenheid: i.eenheid || parsed?.eenheid || '' }
-      })))
-      if (res.bereiding?.length) setBereiding(res.bereiding.map((t: string) => leegStap(t)))
-      const vw = res.voedingswaarden?.per_portie
-      if (vw) {
-        setCalorieen(String(vw.calorieen || ''))
-        setKoolhydraten(String(vw.koolhydraten || ''))
-        setEiwitten(String(vw.eiwitten || ''))
-        setVetten(String(vw.vetten || ''))
-        setSchatting(true)
-      }
+      pasImportToe(res)
       setFotoPreview(null)
     } catch (err) {
       setFotoFout(err instanceof Error ? err.message : 'Importeren mislukt')
     } finally {
       setFotoLaden(false)
+    }
+  }
+
+  async function importeerViaTekst() {
+    if (!plakTekst.trim()) return
+    setTekstFout('')
+    setTekstLaden(true)
+    try {
+      const res = await api.post<Recept>('/tekst', { tekst: plakTekst.trim() })
+      pasImportToe(res)
+      setPlakTekst('')
+    } catch (err) {
+      setTekstFout(err instanceof Error ? err.message : 'Importeren mislukt')
+    } finally {
+      setTekstLaden(false)
     }
   }
 
@@ -300,28 +325,7 @@ export default function ReceptToevoegen() {
         return
       }
 
-      setTitel(res.titel || '')
-      setPersonen(res.personen || 4)
-      setBronUrl(res.bron_url ?? importUrl.trim())
-      setAfbeeldingUrl(res.afbeelding_url ?? '')
-      const importTags = (res.tags ?? []).filter((t: string) => t !== 'recept')
-      setGeselecteerdeMaaltijd(importTags.filter((t: string) => MAALTIJD_TYPES.includes(t)))
-      setGeselecteerdeTags(importTags.filter((t: string) => !MAALTIJD_TYPES.includes(t)))
-      if (res.ingredienten?.length) {
-        setIngredienten(bouwIngredientRijen(res.ingredienten.map((i: Ingredient) => {
-          const parsed = typeof i.hoeveelheid === 'string' ? parseerOudeHoeveelheid(i.hoeveelheid) : null
-          // Let op: || i.p.v. ?? — een lege eenheid uit de API mag de geparste niet overschrijven
-          return { ...i, hoeveelheid: parsed?.hoeveelheid ?? (typeof i.hoeveelheid === 'number' ? i.hoeveelheid : null), eenheid: i.eenheid || parsed?.eenheid || '' }
-        })))
-      }
-      if (res.bereiding?.length) setBereiding(res.bereiding.map((t: string) => leegStap(t)))
-      const vw = res.voedingswaarden?.per_portie
-      if (vw) {
-        setCalorieen(String(vw.calorieen || ''))
-        setKoolhydraten(String(vw.koolhydraten || ''))
-        setEiwitten(String(vw.eiwitten || ''))
-        setVetten(String(vw.vetten || ''))
-      }
+      pasImportToe(res, { bronUrl: res.bron_url ?? importUrl.trim() })
       setImportUrl('')
       setTiktokModus(false)
       setTiktokBeschrijving('')
@@ -461,7 +465,7 @@ export default function ReceptToevoegen() {
           >
             <span className="font-semibold text-olive-700 text-sm uppercase tracking-widest">Automatisch importeren</span>
             <span className="text-xs text-olive-700/50 flex items-center gap-1.5">
-              van link of foto
+              van link, tekst of foto
               <ChevronDown size={14} aria-hidden="true" className={`transition-transform duration-200 ${toonImport ? '' : '-rotate-90'}`} />
             </span>
           </button>
@@ -514,6 +518,33 @@ export default function ReceptToevoegen() {
                 </button>
               </div>
             )}
+          </div>
+
+          {/* Tekst import — plakken is nauwkeuriger dan een screenshot (geen OCR) */}
+          <div>
+            <p className="text-xs text-olive-700/40 mb-2.5 flex items-center gap-1.5"><ClipboardPaste size={12} aria-hidden="true" /> Via tekst plakken</p>
+            <textarea
+              value={plakTekst}
+              onChange={e => setPlakTekst(e.target.value)}
+              placeholder={'Plak hier de receptekst (ingrediënten én bereiding)…'}
+              rows={5}
+              className="w-full px-4 py-2.5 rounded-2xl border border-olive-700/10 bg-white text-base sm:text-sm text-olive-700 placeholder:text-olive-700/50 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25 transition-all resize-y"
+            />
+            <div className="mt-2 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={importeerViaTekst}
+                disabled={tekstLaden || !plakTekst.trim()}
+                className="btn btn-secondary btn-md"
+              >
+                {tekstLaden && <Loader2 size={14} className="animate-spin" aria-hidden="true" />}
+                {tekstLaden ? 'Bezig…' : 'Importeer tekst'}
+              </button>
+              {plakTekst.trim() && !tekstLaden && (
+                <span className="text-[11px] text-olive-700/40">{plakTekst.trim().length} tekens</span>
+              )}
+            </div>
+            {tekstFout && <p className="mt-2 text-xs text-terracotta-600">{tekstFout}</p>}
           </div>
 
           {/* Foto import */}
