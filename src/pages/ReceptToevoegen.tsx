@@ -263,7 +263,8 @@ export default function ReceptToevoegen() {
       setGeselecteerdeTags(importTags.filter((t: string) => !MAALTIJD_TYPES.includes(t)))
       if (res.ingredienten?.length) setIngredienten(bouwIngredientRijen(res.ingredienten.map((i: Ingredient) => {
         const parsed = typeof i.hoeveelheid === 'string' ? parseerOudeHoeveelheid(i.hoeveelheid) : null
-        return { ...i, hoeveelheid: parsed?.hoeveelheid ?? (typeof i.hoeveelheid === 'number' ? i.hoeveelheid : null), eenheid: i.eenheid ?? parsed?.eenheid ?? 'g' }
+        // Let op: || i.p.v. ?? — een lege eenheid uit de API mag de geparste niet overschrijven
+        return { ...i, hoeveelheid: parsed?.hoeveelheid ?? (typeof i.hoeveelheid === 'number' ? i.hoeveelheid : null), eenheid: i.eenheid || parsed?.eenheid || '' }
       })))
       if (res.bereiding?.length) setBereiding(res.bereiding.map((t: string) => leegStap(t)))
       const vw = res.voedingswaarden?.per_portie
@@ -309,7 +310,8 @@ export default function ReceptToevoegen() {
       if (res.ingredienten?.length) {
         setIngredienten(bouwIngredientRijen(res.ingredienten.map((i: Ingredient) => {
           const parsed = typeof i.hoeveelheid === 'string' ? parseerOudeHoeveelheid(i.hoeveelheid) : null
-          return { ...i, hoeveelheid: parsed?.hoeveelheid ?? (typeof i.hoeveelheid === 'number' ? i.hoeveelheid : null), eenheid: i.eenheid ?? parsed?.eenheid ?? 'g' }
+          // Let op: || i.p.v. ?? — een lege eenheid uit de API mag de geparste niet overschrijven
+          return { ...i, hoeveelheid: parsed?.hoeveelheid ?? (typeof i.hoeveelheid === 'number' ? i.hoeveelheid : null), eenheid: i.eenheid || parsed?.eenheid || '' }
         })))
       }
       if (res.bereiding?.length) setBereiding(res.bereiding.map((t: string) => leegStap(t)))

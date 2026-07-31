@@ -294,6 +294,7 @@ if ($normalisatieGeprobeerd) {
         . "  Imperial → metric: 1 lb ≈ 454 g, 1 oz ≈ 28 g, 1 tbsp = 1 el, 1 tsp = 1 tl, 1 fl oz ≈ 30 ml, 1 quart ≈ 950 ml, 1 pint ≈ 470 ml.\n"
         . "  Verwerk fracties (1/2, 1/4, etc.) als decimalen (0.5, 0.25).\n"
         . "  Vertaal ingrediënt-namen naar Nederlands; behoud merknamen onveranderd.\n"
+        . "  naam KORT en kaal houden: alleen het ingrediënt, zonder hoeveelheid en zonder snij-/bereidingsomschrijving ('1 onion, finely diced' → 'ui'). Korte namen zijn nodig voor de macro-database en de boodschappenlijst.\n"
         . "  Geen voorraadkast-veld toevoegen.\n"
         . "- bereiding: korte, duidelijke Nederlandse stappen in dezelfde volgorde als de input.\n";
 
