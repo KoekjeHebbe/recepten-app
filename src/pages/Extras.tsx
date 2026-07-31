@@ -6,6 +6,7 @@ import { api } from '../api/client'
 import { verminderBeweging } from '../lib/motion'
 import Bevestiging from '../components/Bevestiging'
 import PageHeader from '../components/PageHeader'
+import TagBeheer from '../components/TagBeheer'
 import type { Macros } from '../types'
 
 interface CacheEntry {
@@ -287,10 +288,16 @@ export default function Extras() {
   return (
     <div ref={containerRef} className="max-w-4xl mx-auto">
       {/* Header */}
-      <PageHeader
-        titel="Macro-cache"
-        ondertitel={`${totaal} gecachete ingrediënten — macros worden hergebruikt bij het opslaan van recepten.`}
-      />
+      <PageHeader titel="Extras" ondertitel="Beheer je tags en de macro-database." />
+
+      <TagBeheer />
+
+      <div className="anim-in mb-4">
+        <h2 className="font-semibold text-olive-700 text-sm uppercase tracking-widest mb-1">Macro-cache</h2>
+        <p className="text-xs text-olive-700/55">
+          {totaal} gecachete ingrediënten — macros worden hergebruikt bij het opslaan van recepten.
+        </p>
+      </div>
 
       {fout && (
         <div className="anim-in mb-4 px-4 py-3 bg-terracotta-50 border border-terracotta-200 rounded-2xl text-sm text-terracotta-700 flex items-center justify-between gap-3">

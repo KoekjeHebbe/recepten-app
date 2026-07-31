@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './store/auth'
 import { WeekMenuProvider } from './store/weekmenu'
 import { FavorietenProvider } from './store/favorieten'
 import { AangepasteReceptenProvider } from './store/aangepaste-recepten'
+import { TagsProvider } from './store/tags'
 import Nav from './components/Nav'
 import ErrorBoundary from './components/ErrorBoundary'
 import ReceptenLijst from './pages/ReceptenLijst'
@@ -72,11 +73,13 @@ export default function App() {
   return (
     <AuthProvider>
       <AangepasteReceptenProvider>
-        <FavorietenProvider>
-          <WeekMenuProvider>
-            <Shell />
-          </WeekMenuProvider>
-        </FavorietenProvider>
+        <TagsProvider>
+          <FavorietenProvider>
+            <WeekMenuProvider>
+              <Shell />
+            </WeekMenuProvider>
+          </FavorietenProvider>
+        </TagsProvider>
       </AangepasteReceptenProvider>
     </AuthProvider>
   )

@@ -28,10 +28,9 @@ import { EENHEID_GROEPEN, parseerOudeHoeveelheid } from '../lib/eenheden'
 import type { Eenheid } from '../lib/eenheden'
 import ReceptKiezer from '../components/ReceptKiezer'
 import PageHeader from '../components/PageHeader'
+import { useTags } from '../store/tags'
 
-const MAALTIJD_TYPES = ['diner', 'lunch', 'bijgerecht', 'tapas', 'ontbijt', 'snack', 'dessert']
-const BESCHIKBARE_TAGS = ['kip', 'kalkoen', 'rund', 'kalf', 'varken', 'lamsvlees', 'konijn', 'vis', 'garnalen',
-  'vegetarisch', 'vegan', 'pasta', 'rijst', 'soep', 'salade', 'wrap', 'flatbread', 'gemengd_gehakt', 'low_carb', 'snel']
+// Maaltijdtypes en tags komen uit de gedeelde woordenlijst (beheerbaar via Extras).
 
 // Een rij in de ingrediënteneditor is óf een ingrediënt, óf een sectie-kop
 // (bijv. "Burgers", "Slaw"). Sectiekoppen worden niet als ingrediënt opgeslagen;
@@ -130,6 +129,9 @@ export default function ReceptToevoegen() {
   const isBewerkModus = !!id
   const { voegReceptToe, updateRecept, alleRecepten, laden: receptenLaden } = useRecepten()
   const { isIngelogd } = useAuth()
+  const { maaltijden, tags: tagOpties, laden: tagsLaden } = useTags()
+  const MAALTIJD_TYPES = maaltijden.map(m => m.naam)
+  const BESCHIKBARE_TAGS = tagOpties.map(t => t.naam)
 
   const bestaandRecept = isBewerkModus ? alleRecepten.find(r => r.id === id) : undefined
 
@@ -189,9 +191,10 @@ export default function ReceptToevoegen() {
   const [tekstLaden, setTekstLaden] = useState(false)
   const [tekstFout, setTekstFout] = useState('')
 
-  // Vul formulier in bij bewerkingsmodus
+  // Vul formulier in bij bewerkingsmodus. Wacht tot de woordenlijst geladen is,
+  // anders belandt een zelf toegevoegd maaltijdtype bij de gewone tags.
   useEffect(() => {
-    if (!bestaandRecept) return
+    if (!bestaandRecept || tagsLaden) return
     setTitel(bestaandRecept.titel)
     setPersonen(bestaandRecept.personen)
     setBronUrl(bestaandRecept.bron_url ?? '')
@@ -207,7 +210,8 @@ export default function ReceptToevoegen() {
     setEiwitten(String(bestaandRecept.voedingswaarden.per_portie.eiwitten || ''))
     setVetten(String(bestaandRecept.voedingswaarden.per_portie.vetten || ''))
     setSchatting(bestaandRecept.voedingswaarden.schatting)
-  }, [bestaandRecept])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bestaandRecept, tagsLaden])
 
   if (!isIngelogd) {
     return (

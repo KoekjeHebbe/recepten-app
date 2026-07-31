@@ -6,14 +6,15 @@ import { SlidersHorizontal, ArrowUpDown } from 'lucide-react'
 import { verminderBeweging } from '../lib/motion'
 import { useRecepten } from '../store/aangepaste-recepten'
 import { useFavorieten } from '../store/favorieten'
+import { useTags } from '../store/tags'
 import ReceptKaart from '../components/ReceptKaart'
 import TagBadge from '../components/TagBadge'
 
 gsap.registerPlugin()
 
-// Logisch gegroepeerde filters. Binnen een groep geldt OF, tussen groepen EN.
-const FILTER_GROEPEN: { id: string; label: string; tags: string[] }[] = [
-  { id: 'maaltijd', label: 'Maaltijd', tags: ['diner', 'lunch', 'bijgerecht', 'tapas', 'ontbijt', 'snack', 'dessert'] },
+// Vaste thematische indeling voor de bekende inhoudstags. Maaltijdtypes komen uit
+// de woordenlijst (Extras), en zelf toegevoegde tags belanden onder "Overig".
+const VASTE_GROEPEN: { id: string; label: string; tags: string[] }[] = [
   { id: 'vlees', label: 'Vlees & vis', tags: ['kip', 'kalkoen', 'rund', 'kalf', 'varken', 'lamsvlees', 'konijn', 'wild', 'gemengd_gehakt', 'vis', 'garnalen'] },
   { id: 'soort', label: 'Soort', tags: ['pasta', 'rijst', 'soep', 'salade', 'wrap', 'flatbread'] },
   { id: 'dieet', label: 'Dieet', tags: ['vegetarisch', 'vegan', 'low_carb', 'snel'] },
@@ -38,6 +39,7 @@ const normaliseer = (s: string) =>
 export default function ReceptenLijst() {
   const { alleRecepten } = useRecepten()
   const { favorieten } = useFavorieten()
+  const { maaltijden, tags: tagOpties } = useTags()
   const [zoek, setZoek] = useState('')
   const [actieveTags, setActieveTags] = useState<string[]>([])
   const [alleenFavorieten, setAlleenFavorieten] = useState(false)
@@ -58,11 +60,23 @@ export default function ReceptenLijst() {
     return m
   }, [alleRecepten])
 
+  // Groepen opbouwen uit de woordenlijst: maaltijdtypes bovenaan, dan de vaste
+  // thema's, en zelf toegevoegde tags onder "Overig".
+  const filterGroepen = useMemo(() => {
+    const inVastGroep = new Set(VASTE_GROEPEN.flatMap(g => g.tags))
+    const overig = tagOpties.map(t => t.naam).filter(n => !inVastGroep.has(n))
+    return [
+      { id: 'maaltijd', label: 'Maaltijd', tags: maaltijden.map(m => m.naam) },
+      ...VASTE_GROEPEN,
+      { id: 'overig', label: 'Overig', tags: overig },
+    ]
+  }, [maaltijden, tagOpties])
+
   const zichtbareGroepen = useMemo(() =>
-    FILTER_GROEPEN
+    filterGroepen
       .map(g => ({ ...g, tags: g.tags.filter(t => (tagTellingen.get(t) ?? 0) > 0) }))
       .filter(g => g.tags.length > 0),
-    [tagTellingen]
+    [filterGroepen, tagTellingen]
   )
 
   const gefilterd = useMemo(() => {
@@ -74,7 +88,7 @@ export default function ReceptenLijst() {
         r.tags.some(t => normaliseer(t).includes(q)) ||
         r.ingredienten.some(i => normaliseer(i.naam).includes(q))
       // Binnen een groep OF, tussen groepen EN
-      const tagMatch = FILTER_GROEPEN.every(groep => {
+      const tagMatch = filterGroepen.every(groep => {
         const actiefInGroep = groep.tags.filter(t => actieveTags.includes(t))
         return actiefInGroep.length === 0 || actiefInGroep.some(t => r.tags.includes(t))
       })
