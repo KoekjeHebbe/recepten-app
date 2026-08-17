@@ -217,6 +217,24 @@ export default function ReceptToevoegen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bestaandRecept, tagsLaden])
 
+  // Plakken (Ctrl+V) van een screenshot — bijv. uit het Knipprogramma — terwijl het
+  // importpaneel open staat: behandel als foto-import. Er verschijnt eerst een
+  // preview, dus er gebeurt niets zonder bevestiging. Pastes in het afbeelding-veld
+  // stoppen de bubbel en worden daar als upload afgehandeld.
+  useEffect(() => {
+    if (isBewerkModus || !toonImport) return
+    function onPaste(e: ClipboardEvent) {
+      const item = Array.from(e.clipboardData?.items ?? []).find(i => i.type.startsWith('image/'))
+      const file = item?.getAsFile()
+      if (!file) return
+      e.preventDefault()
+      verwerkFoto(file)
+    }
+    document.addEventListener('paste', onPaste)
+    return () => document.removeEventListener('paste', onPaste)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isBewerkModus, toonImport])
+
   if (!isIngelogd) {
     return (
       <div className="text-center py-20 text-olive-700/40">
@@ -259,6 +277,12 @@ export default function ReceptToevoegen() {
     } catch (err) {
       setFotoFout(err instanceof Error ? err.message : 'Kon de afbeelding niet verwerken.')
     }
+  }
+
+  /** Pak een afbeelding uit een plak-event; null als er geen in zit. */
+  function afbeeldingUitPaste(e: React.ClipboardEvent): File | null {
+    const item = Array.from(e.clipboardData?.items ?? []).find(i => i.type.startsWith('image/'))
+    return item?.getAsFile() ?? null
   }
 
   /** Upload een receptfoto (gecomprimeerd) en zet de URL in het afbeelding-veld. */
@@ -581,8 +605,8 @@ export default function ReceptToevoegen() {
             {!fotoPreview ? (
               <label className="flex flex-col items-center justify-center gap-2 w-full py-8 rounded-2xl border-2 border-dashed border-olive-700/15 hover:border-olive-700/30 hover:bg-olive-50/50 cursor-pointer transition-all">
                 <Camera size={24} className="text-olive-700/25" />
-                <span className="text-sm text-olive-700/40">Klik om een foto te kiezen</span>
-                <span className="text-xs text-olive-700/25">JPG, PNG, WEBP — max 5MB</span>
+                <span className="text-sm text-olive-700/40">Klik om een foto te kiezen — of plak een screenshot (Ctrl+V)</span>
+                <span className="text-xs text-olive-700/25">JPG, PNG, WEBP — wordt automatisch verkleind</span>
                 <input
                   type="file"
                   accept="image/jpeg,image/png,image/webp,image/gif"
@@ -648,7 +672,11 @@ export default function ReceptToevoegen() {
           <label className={labelCls}>Afbeelding (optioneel)</label>
           <div className="flex gap-2">
             <input type="url" value={afbeeldingUrl} onChange={e => setAfbeeldingUrl(e.target.value)}
-              placeholder="https://... of upload een foto" className={inputCls + ' flex-1 min-w-0'} />
+              onPaste={e => {
+                const file = afbeeldingUitPaste(e)
+                if (file) { e.preventDefault(); e.stopPropagation(); uploadAfbeelding(file) }
+              }}
+              placeholder="https://... — upload, of plak een screenshot (Ctrl+V)" className={inputCls + ' flex-1 min-w-0'} />
             <label className={`btn btn-outline btn-md cursor-pointer flex-shrink-0 ${uploadLaden ? 'opacity-50 pointer-events-none' : ''}`}>
               {uploadLaden
                 ? <Loader2 size={14} className="animate-spin" aria-hidden="true" />
