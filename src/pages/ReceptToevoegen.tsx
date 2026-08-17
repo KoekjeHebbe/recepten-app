@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import type { ReactNode } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
-import { Link2, Loader2, Camera, X, GripVertical, ChevronDown, ClipboardPaste } from 'lucide-react'
+import { Link2, Loader2, Camera, X, GripVertical, ChevronDown, ClipboardPaste, Upload } from 'lucide-react'
 import {
   DndContext,
   closestCenter,
@@ -25,9 +25,11 @@ import { useAuth } from '../store/auth'
 import { api } from '../api/client'
 import { CATEGORIE_NAMEN, categoriseer } from '../lib/categorieen'
 import { EENHEID_GROEPEN, parseerOudeHoeveelheid } from '../lib/eenheden'
+import { comprimeerAfbeelding } from '../lib/afbeelding'
 import type { Eenheid } from '../lib/eenheden'
 import ReceptKiezer from '../components/ReceptKiezer'
 import PageHeader from '../components/PageHeader'
+import Afbeelding from '../components/Afbeelding'
 import { useTags } from '../store/tags'
 
 // Maaltijdtypes en tags komen uit de gedeelde woordenlijst (beheerbaar via Extras).
@@ -190,6 +192,8 @@ export default function ReceptToevoegen() {
   const [plakTekst, setPlakTekst] = useState('')
   const [tekstLaden, setTekstLaden] = useState(false)
   const [tekstFout, setTekstFout] = useState('')
+  const [uploadLaden, setUploadLaden] = useState(false)
+  const [uploadFout, setUploadFout] = useState('')
 
   // Vul formulier in bij bewerkingsmodus. Wacht tot de woordenlijst geladen is,
   // anders belandt een zelf toegevoegd maaltijdtype bij de gewone tags.
@@ -243,14 +247,34 @@ export default function ReceptToevoegen() {
     )
   }
 
-  function verwerkFoto(file: File) {
+  async function verwerkFoto(file: File) {
     if (!file.type.startsWith('image/')) { setFotoFout('Kies een afbeeldingsbestand.'); return }
-    if (file.size > 5 * 1024 * 1024) { setFotoFout('Afbeelding mag maximaal 5MB zijn.'); return }
     setFotoFout('')
-    setFotoMediaType(file.type)
-    const reader = new FileReader()
-    reader.onload = e => setFotoPreview(e.target?.result as string)
-    reader.readAsDataURL(file)
+    try {
+      // Comprimeer vóór verzending: grote telefoonfoto's passen dan altijd,
+      // en de upload naar Gemini is een stuk sneller.
+      const { base64, mediaType } = await comprimeerAfbeelding(file)
+      setFotoMediaType(mediaType)
+      setFotoPreview(`data:${mediaType};base64,${base64}`)
+    } catch (err) {
+      setFotoFout(err instanceof Error ? err.message : 'Kon de afbeelding niet verwerken.')
+    }
+  }
+
+  /** Upload een receptfoto (gecomprimeerd) en zet de URL in het afbeelding-veld. */
+  async function uploadAfbeelding(file: File) {
+    if (!file.type.startsWith('image/')) { setUploadFout('Kies een afbeeldingsbestand.'); return }
+    setUploadFout('')
+    setUploadLaden(true)
+    try {
+      const { base64, mediaType } = await comprimeerAfbeelding(file)
+      const res = await api.post<{ url: string }>('/afbeeldingen', { afbeelding: base64, media_type: mediaType })
+      setAfbeeldingUrl(res.url)
+    } catch (err) {
+      setUploadFout(err instanceof Error ? err.message : 'Uploaden mislukt')
+    } finally {
+      setUploadLaden(false)
+    }
   }
 
   /** Vul het formulier met het resultaat van een import (URL, foto of tekst). */
@@ -621,9 +645,34 @@ export default function ReceptToevoegen() {
             placeholder="https://..." className={inputCls} />
         </div>
         <div>
-          <label className={labelCls}>Afbeelding URL (optioneel)</label>
-          <input type="url" value={afbeeldingUrl} onChange={e => setAfbeeldingUrl(e.target.value)}
-            placeholder="https://..." className={inputCls} />
+          <label className={labelCls}>Afbeelding (optioneel)</label>
+          <div className="flex gap-2">
+            <input type="url" value={afbeeldingUrl} onChange={e => setAfbeeldingUrl(e.target.value)}
+              placeholder="https://... of upload een foto" className={inputCls + ' flex-1 min-w-0'} />
+            <label className={`btn btn-outline btn-md cursor-pointer flex-shrink-0 ${uploadLaden ? 'opacity-50 pointer-events-none' : ''}`}>
+              {uploadLaden
+                ? <Loader2 size={14} className="animate-spin" aria-hidden="true" />
+                : <Upload size={14} aria-hidden="true" />}
+              {uploadLaden ? 'Bezig…' : 'Upload'}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                className="hidden"
+                onChange={e => { const f = e.target.files?.[0]; if (f) uploadAfbeelding(f); e.target.value = '' }}
+              />
+            </label>
+          </div>
+          {uploadFout && <p className="mt-2 text-xs text-terracotta-600">{uploadFout}</p>}
+          {afbeeldingUrl.trim() && (
+            <div className="mt-3 relative inline-block">
+              <Afbeelding src={afbeeldingUrl} alt="Voorbeeld" className="h-28 w-44 rounded-2xl border border-olive-700/10" imgClassName="object-cover" fallbackClassName="text-2xl" />
+              <button type="button" onClick={() => setAfbeeldingUrl('')}
+                aria-label="Verwijder afbeelding"
+                className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-white border border-olive-700/15 text-olive-700/60 hover:text-terracotta-600 flex items-center justify-center shadow-card">
+                <X size={12} aria-hidden="true" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
