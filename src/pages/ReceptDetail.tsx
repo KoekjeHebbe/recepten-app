@@ -16,6 +16,8 @@ import { useAuth } from '../store/auth'
 
 gsap.registerPlugin()
 
+const hoofdletter = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
+
 function schaalMacro(waarde: number, factor: number): number {
   return Math.round(waarde * factor)
 }
@@ -44,6 +46,8 @@ export default function ReceptDetail() {
 
   // Per-ingrediënt aanpassingsmultiplicators (1.0 = originele hoeveelheid)
   const [aanpassingMultipliers, setAanpassingMultipliers] = useState<Record<number, number>>({})
+  // Referentie-macro's (per 100 g) staan op telefoon standaard verborgen: te veel regels.
+  const [toonReferentie, setToonReferentie] = useState(false)
   const macrosTabelRef = useRef<HTMLTableElement>(null)
 
   // Bijdrage van één ingrediënt aan de totale macro's, gegeven een schaalfactor f
@@ -186,8 +190,10 @@ export default function ReceptDetail() {
   function ingredientItem(ing: typeof ingredientenMetIndex[number], gedempt: boolean, toonVoorraad: boolean) {
     const displayed = displayHoeveelheid(ing.hoeveelheid, factor, aanpassingMultipliers[ing._idx] ?? 1)
     const bijdrage  = ingredientBijdrage(ing, ing._idx, factor)
-    const knop = `w-[14px] h-[14px] rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 flex items-center justify-center leading-none ${gedempt ? 'text-olive-700/60' : 'text-olive-700'} text-[10px] transition-all btn-magnetic flex-shrink-0`
-    const label = toonVoorraad ? <span className="text-olive-700/30"> · voorraad</span> : null
+    // Klein zichtbaar rondje, maar een onzichtbaar tikvlak van ±32px (after:-inset)
+    const knop = `relative after:content-[''] after:absolute after:-inset-[9px] w-[14px] h-[14px] rounded-full bg-cream border border-olive-700/15 hover:bg-olive-700/8 flex items-center justify-center leading-none ${gedempt ? 'text-olive-700/70' : 'text-olive-700'} text-[10px] transition-all btn-magnetic flex-shrink-0`
+    const label = toonVoorraad ? <span className="text-olive-700/45"> · voorraad</span> : null
+    const punt = <span className="hidden sm:inline">· </span>
     // Referentie-macros (zoals opgeslagen: per 100 g/ml of per 1 stuk)
     const e = ing.eenheid ?? ''
     const refLabel = (e === 'g' || e === 'kg') ? 'per 100 g'
@@ -195,29 +201,33 @@ export default function ReceptDetail() {
       : `per ${e || 'stuk'}`
     const m = ing.macros_referentie
     return (
-      <li key={ing._idx} className={`text-sm ${gedempt ? 'text-olive-700/50' : 'text-olive-700'}`}>
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-olive-700/20 font-light mr-1">—</span>
+      <li key={ing._idx} className={`text-[15px] sm:text-sm ${gedempt ? 'text-olive-700/65' : 'text-olive-700'}`}>
+        {/* Telefoon: hoeveelheid + naam op regel 1, macro's eronder. Vanaf sm: alles op één regel. */}
+        <div className="flex items-center gap-x-1.5 gap-y-0.5 flex-wrap">
+          <span className="hidden sm:inline text-olive-700/20 font-light mr-1" aria-hidden="true">—</span>
           {kanTweaken(ing) ? (
             <>
-              <button onClick={() => setMultiplier(ing._idx, ing, -1)} aria-label="Verminder hoeveelheid" className={knop}>−</button>
-              <span className={`min-w-[3.5rem] text-center tabular-nums ${gedempt ? 'text-olive-700/70' : 'font-medium'}`}>
+              <button onClick={() => setMultiplier(ing._idx, ing, -1)} aria-label={`Minder ${ing.naam}`} className={knop}>−</button>
+              <span className={`min-w-[3.5rem] text-center tabular-nums ${gedempt ? 'text-olive-700/75' : 'font-medium'}`}>
                 {formateerHoeveelheid(displayed, ing.eenheid)}
               </span>
-              <button onClick={() => setMultiplier(ing._idx, ing, 1)} aria-label="Verhoog hoeveelheid" className={knop}>+</button>
-              <span>{ing.naam}{label}</span>
+              <button onClick={() => setMultiplier(ing._idx, ing, 1)} aria-label={`Meer ${ing.naam}`} className={knop}>+</button>
+              <span className="min-w-0 flex-1 sm:flex-none">{ing.naam}{label}</span>
             </>
           ) : (
-            <span>{displayed !== null ? `${formateerHoeveelheid(displayed, ing.eenheid)} ` : ''}{ing.naam}{label}</span>
+            <span className="min-w-0 flex-1 sm:flex-none">{displayed !== null ? `${formateerHoeveelheid(displayed, ing.eenheid)} ` : ''}{ing.naam}{label}</span>
+          )}
+          {(bijdrage || (m && toonReferentie)) && (
+            <span className="basis-full h-0 sm:hidden" aria-hidden="true" />
           )}
           {bijdrage && (
-            <span className="text-[10px] text-olive-700/55 tabular-nums tracking-wide ml-1">
-              · {Math.round(bijdrage.cal)} kcal · {Math.round(bijdrage.kh)}g KH · {Math.round(bijdrage.eiwit)}g E · {Math.round(bijdrage.vet)}g V
+            <span className="text-[11px] text-olive-700/60 tabular-nums tracking-wide sm:ml-1">
+              {punt}{Math.round(bijdrage.cal)} kcal · {Math.round(bijdrage.kh)}g KH · {Math.round(bijdrage.eiwit)}g E · {Math.round(bijdrage.vet)}g V
             </span>
           )}
           {m && (
-            <span className="text-[10px] text-olive-700/35 tabular-nums tracking-wide">
-              · {Math.round(m.calorieen)} kcal · {Math.round(m.koolhydraten)}g KH · {Math.round(m.eiwitten)}g E · {Math.round(m.vetten)}g V {refLabel}
+            <span className={`${toonReferentie ? 'inline' : 'hidden sm:inline'} text-[11px] text-olive-700/45 tabular-nums tracking-wide`}>
+              {bijdrage ? '· ' : punt}{Math.round(m.calorieen)} kcal · {Math.round(m.koolhydraten)}g KH · {Math.round(m.eiwitten)}g E · {Math.round(m.vetten)}g V {refLabel}
             </span>
           )}
         </div>
@@ -270,9 +280,9 @@ export default function ReceptDetail() {
       <div className="anim-in flex items-center justify-between mb-5">
         <button
           onClick={() => navigate(-1)}
-          className="text-sm text-olive-700/50 hover:text-olive-700 flex items-center gap-1 transition-colors btn-magnetic"
+          className="text-sm text-olive-700/60 hover:text-olive-700 flex items-center gap-1 -ml-1 py-2 pr-3 transition-colors btn-magnetic"
         >
-          <ChevronLeft size={16} /> Terug
+          <ChevronLeft size={16} aria-hidden="true" /> Terug
         </button>
         {isEigenaar && (
           <div className="flex items-center gap-2">
@@ -309,7 +319,7 @@ export default function ReceptDetail() {
             🍽
           </div>
         )}
-        <div className="p-7">
+        <div className="p-5 sm:p-7">
           <div className="flex items-start justify-between gap-4 mb-4">
             <h1 className="font-serif text-2xl font-bold text-olive-700 leading-tight">{recept.titel}</h1>
             <div className="flex items-center gap-2 flex-shrink-0">
@@ -337,7 +347,7 @@ export default function ReceptDetail() {
                   <button
                     onClick={toggle}
                     aria-expanded={open}
-                    aria-label="Voeg toe aan weekmenu"
+                    aria-label={actieveDagen.length > 0 ? `Gepland op ${actieveDagen.join(', ')} — wijzig weekmenu` : 'Voeg toe aan weekmenu'}
                     className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-full transition-all btn-magnetic border ${
                       actieveDagen.length > 0
                         ? 'bg-olive-700 text-cream border-olive-700'
@@ -345,18 +355,20 @@ export default function ReceptDetail() {
                     }`}
                   >
                     <CalendarDays size={14} aria-hidden="true" />
-                    {actieveDagen.length > 0 ? actieveDagen.map(d => d.slice(0, 2)).join(', ') : 'Voeg toe'}
+                    {actieveDagen.length === 1 ? hoofdletter(actieveDagen[0]) : actieveDagen.length > 1 ? actieveDagen.map(d => hoofdletter(d.slice(0, 2))).join(', ') : 'Plan in'}
                   </button>
                 )}
               />
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-1.5 mb-5">
-            {recept.tags.filter(t => t !== 'recept').map(tag => (
-              <TagBadge key={tag} tag={tag} />
-            ))}
-          </div>
+          {recept.tags.some(t => t !== 'recept') && (
+            <div className="flex flex-wrap gap-1.5 mb-5">
+              {recept.tags.filter(t => t !== 'recept').map(tag => (
+                <TagBadge key={tag} tag={tag} />
+              ))}
+            </div>
+          )}
 
           <div className="flex items-center gap-4 text-sm text-olive-700/60 flex-wrap">
             <div className="flex items-center gap-2">
@@ -390,17 +402,28 @@ export default function ReceptDetail() {
       </div>
 
       {/* Ingrediënten */}
-      <div className="anim-in rounded-4xl bg-white border border-olive-700/8 shadow-card p-7 mb-4">
-        <div className="flex items-center justify-between mb-4">
+      <div className="anim-in rounded-4xl bg-white border border-olive-700/8 shadow-card p-5 sm:p-7 mb-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
           <h2 className="font-semibold text-olive-700 text-sm uppercase tracking-widest">Ingrediënten</h2>
-          {heeftAanpassingen && (
-            <button
-              onClick={() => setAanpassingMultipliers({})}
-              className="text-xs text-olive-700/40 hover:text-terracotta-600 underline underline-offset-2 transition-colors"
-            >
-              reset aanpassingen
-            </button>
-          )}
+          <div className="flex items-center gap-3">
+            {heeftAanpassingen && (
+              <button
+                onClick={() => setAanpassingMultipliers({})}
+                className="text-xs text-olive-700/55 hover:text-terracotta-600 underline underline-offset-2 transition-colors py-1"
+              >
+                reset aanpassingen
+              </button>
+            )}
+            {recept.ingredienten.some(i => i.macros_referentie) && (
+              <button
+                onClick={() => setToonReferentie(v => !v)}
+                aria-pressed={toonReferentie}
+                className={`sm:hidden text-xs font-semibold px-2.5 py-1 rounded-full border transition-colors ${toonReferentie ? 'bg-olive-700 text-cream border-olive-700' : 'border-olive-700/15 text-olive-700/60'}`}
+              >
+                per 100 g
+              </button>
+            )}
+          </div>
         </div>
         {heeftGroepen ? (
           /* Recept met secties (bijv. Burgers / Slaw / Saus) */
@@ -410,7 +433,7 @@ export default function ReceptDetail() {
                 {groep.naam && (
                   <p className="text-xs font-bold uppercase tracking-widest text-terracotta-700 mb-2 mt-5 first:mt-0">{groep.naam}</p>
                 )}
-                <ul className="space-y-1.5">
+                <ul className="space-y-2.5 sm:space-y-1.5">
                   {groep.items.map(ing => ingredientItem(ing, ing.voorraadkast, ing.voorraadkast))}
                 </ul>
               </div>
@@ -422,13 +445,13 @@ export default function ReceptDetail() {
             {ingredientenMetIndex.some(i => i.voorraadkast) && (
               <>
                 <p className="text-[10px] text-olive-700/40 uppercase tracking-widest mb-2 font-semibold">Voorraadkast</p>
-                <ul className="mb-4 space-y-1.5">
+                <ul className="mb-4 space-y-2.5 sm:space-y-1.5">
                   {ingredientenMetIndex.filter(i => i.voorraadkast).map(ing => ingredientItem(ing, true, false))}
                 </ul>
               </>
             )}
             <p className="text-[10px] text-olive-700/40 uppercase tracking-widest mb-2 font-semibold">Boodschappen</p>
-            <ul className="space-y-1.5">
+            <ul className="space-y-2.5 sm:space-y-1.5">
               {ingredientenMetIndex.filter(i => !i.voorraadkast).map(ing => ingredientItem(ing, false, false))}
             </ul>
           </>
@@ -437,7 +460,7 @@ export default function ReceptDetail() {
 
       {/* Onderdelen */}
       {recept.onderdelen && recept.onderdelen.length > 0 && (
-        <div className="anim-in rounded-4xl bg-white border border-olive-700/8 shadow-card p-7 mb-4">
+        <div className="anim-in rounded-4xl bg-white border border-olive-700/8 shadow-card p-5 sm:p-7 mb-4">
           <h2 className="font-semibold text-olive-700 mb-4 text-sm uppercase tracking-widest">Onderdelen</h2>
           <ul className="space-y-2.5">
             {recept.onderdelen.map((od, idx) => {
@@ -470,7 +493,7 @@ export default function ReceptDetail() {
       )}
 
       {/* Bereiding */}
-      <div className="anim-in rounded-4xl bg-white border border-olive-700/8 shadow-card p-7 mb-4">
+      <div className="anim-in rounded-4xl bg-white border border-olive-700/8 shadow-card p-5 sm:p-7 mb-4">
         <h2 className="font-semibold text-olive-700 mb-4 text-sm uppercase tracking-widest">Bereiding</h2>
         <ol className="space-y-4">
           {recept.bereiding.map((stap, idx) => (
@@ -485,7 +508,7 @@ export default function ReceptDetail() {
       </div>
 
       {/* Voedingswaarden */}
-      <div className="anim-in rounded-4xl bg-white border border-olive-700/8 shadow-card p-7">
+      <div className="anim-in rounded-4xl bg-white border border-olive-700/8 shadow-card p-5 sm:p-7">
         <h2 className="font-semibold text-olive-700 mb-1 text-sm uppercase tracking-widest">Voedingswaarden</h2>
         {berekendeTotalen ? (
           <p className="text-[11px] text-olive-700/40 mb-4">

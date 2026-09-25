@@ -9,6 +9,9 @@ interface Props {
   onChange: (recept_id: string) => void
   excludeIds?: string[]
   placeholder?: string
+  /** Ook recepten met eigen onderdelen tonen (niet bij het kiezen van een onderdeel). */
+  metOnderdelen?: boolean
+  autoFocus?: boolean
 }
 
 export default function ReceptKiezer({
@@ -16,6 +19,8 @@ export default function ReceptKiezer({
   onChange,
   excludeIds = [],
   placeholder = 'Kies een recept…',
+  metOnderdelen = false,
+  autoFocus = false,
 }: Props) {
   const { alleRecepten } = useRecepten()
   const [open, setOpen]   = useState(false)
@@ -26,14 +31,14 @@ export default function ReceptKiezer({
 
   const { matches, verborgen } = useMemo(() => {
     const zonderExcl = alleRecepten.filter(r => !excludeIds.includes(r.id))
-    const verborgen  = zonderExcl.filter(r => r.onderdelen && r.onderdelen.length > 0).length
-    let pool = zonderExcl.filter(r => !r.onderdelen || r.onderdelen.length === 0)
+    const verborgen  = metOnderdelen ? 0 : zonderExcl.filter(r => r.onderdelen && r.onderdelen.length > 0).length
+    let pool = metOnderdelen ? zonderExcl : zonderExcl.filter(r => !r.onderdelen || r.onderdelen.length === 0)
     if (zoek.trim()) {
       const z = zoek.toLowerCase()
       pool = pool.filter(r => r.titel.toLowerCase().includes(z))
     }
     return { matches: pool.slice(0, 10), verborgen }
-  }, [alleRecepten, excludeIds, zoek])
+  }, [alleRecepten, excludeIds, zoek, metOnderdelen])
 
   useClickOutside(containerRef, open, () => setOpen(false))
 
@@ -49,7 +54,7 @@ export default function ReceptKiezer({
   }
 
   return (
-    <div ref={containerRef} className="relative flex-1">
+    <div ref={containerRef} className="relative flex-1 min-w-0">
       {huidig ? (
         <div className="flex items-center gap-2 px-3 py-2 rounded-2xl border border-olive-700/10 bg-cream text-sm text-olive-700">
           <Afbeelding src={huidig.afbeelding_url} alt="" className="w-7 h-7 rounded-lg flex-shrink-0" imgClassName="object-cover" fallbackClassName="text-xs" />
@@ -72,9 +77,11 @@ export default function ReceptKiezer({
               type="text"
               value={zoek}
               placeholder={placeholder}
+              autoFocus={autoFocus}
+              aria-label={placeholder}
               onFocus={() => setOpen(true)}
               onChange={e => { setZoek(e.target.value); setOpen(true) }}
-              className="w-full pl-8 pr-3 py-2 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 placeholder:text-olive-700/50 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25"
+              className="w-full pl-8 pr-3 py-2 rounded-2xl border border-olive-700/10 bg-white text-base sm:text-sm text-olive-700 placeholder:text-olive-700/50 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25"
             />
           </div>
           {open && (
@@ -87,7 +94,7 @@ export default function ReceptKiezer({
                     key={r.id}
                     type="button"
                     onClick={() => kies(r.id)}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-olive-700 hover:bg-cream transition-colors"
+                    className="w-full flex items-center gap-2 px-3 py-2.5 text-left text-sm text-olive-700 hover:bg-cream transition-colors"
                   >
                     <Afbeelding src={r.afbeelding_url} alt="" className="w-7 h-7 rounded-lg flex-shrink-0" imgClassName="object-cover" fallbackClassName="text-xs" />
                     <span className="truncate">{r.titel}</span>

@@ -49,7 +49,7 @@ export default function TagBeheer() {
         {opties.map(o => (
           <span
             key={o.id}
-            className={`group inline-flex items-center gap-1.5 text-[11px] px-3 py-1 rounded-full border font-semibold tracking-wide ${kleur}`}
+            className={`group inline-flex items-center gap-1.5 text-xs pl-3 pr-0.5 py-0.5 rounded-full border font-semibold tracking-wide ${kleur}`}
           >
             {o.naam.replace(/_/g, ' ')}
             <span className="tabular-nums opacity-50 font-normal">{o.gebruikt}</span>
@@ -57,9 +57,9 @@ export default function TagBeheer() {
               type="button"
               onClick={() => setTeVerwijderen({ optie: o, soort })}
               aria-label={`Verwijder ${o.naam}`}
-              className="opacity-40 hover:opacity-100 hover:text-terracotta-600 transition-opacity"
+              className="w-7 h-7 -my-1 rounded-full flex items-center justify-center opacity-55 hover:opacity-100 hover:text-terracotta-600 hover:bg-white/70 transition-opacity"
             >
-              <X size={12} aria-hidden="true" />
+              <X size={14} aria-hidden="true" />
             </button>
           </span>
         ))}
@@ -105,13 +105,13 @@ export default function TagBeheer() {
       )}
 
       <div className="mb-6">
-        <p className="text-[10px] font-bold text-olive-700/40 uppercase tracking-widest mb-2">Maaltijdtypes</p>
+        <p className="text-[11px] font-bold text-olive-700/55 uppercase tracking-widest mb-2">Maaltijdtypes</p>
         {lijst(maaltijden, 'maaltijd', 'bg-terracotta-50 text-terracotta-700 border-terracotta-200')}
         {invoer(nieuwMaaltijd, setNieuwMaaltijd, 'maaltijd', 'Bijv. brunch')}
       </div>
 
       <div>
-        <p className="text-[10px] font-bold text-olive-700/40 uppercase tracking-widest mb-2">Tags</p>
+        <p className="text-[11px] font-bold text-olive-700/55 uppercase tracking-widest mb-2">Tags</p>
         {lijst(tags, 'tag', 'bg-olive-50 text-olive-600 border-olive-100')}
         {invoer(nieuwTag, setNieuwTag, 'tag', 'Bijv. bbq of eenpansgerecht')}
       </div>

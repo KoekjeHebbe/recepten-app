@@ -17,12 +17,12 @@ export default function PageHeader({ titel, terug, acties, ondertitel }: Props) 
       {terug && (
         <button
           onClick={() => navigate(-1)}
-          className="text-sm text-olive-700/50 hover:text-olive-700 mb-4 flex items-center gap-1 transition-colors btn-magnetic"
+          className="text-sm text-olive-700/60 hover:text-olive-700 mb-2 -ml-1 py-2 pr-3 flex items-center gap-1 transition-colors btn-magnetic"
         >
           <ChevronLeft size={16} aria-hidden="true" /> Terug
         </button>
       )}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
         <div className="min-w-0">
           <h1 className="font-serif text-2xl font-bold text-olive-700 tracking-tight leading-tight">{titel}</h1>
           {ondertitel && <p className="text-sm text-olive-700/55 mt-1">{ondertitel}</p>}

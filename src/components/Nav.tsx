@@ -20,7 +20,7 @@ export default function Nav() {
     { to: '/boodschappen', label: 'Boodschappen', icon: ShoppingCart },
     ...(isIngelogd
       ? [{ to: '/recept/nieuw', label: 'Recept', icon: Plus } as Bestemming,
-         { to: '/extras', label: 'Cache', icon: SlidersHorizontal } as Bestemming]
+         { to: '/extras', label: 'Extras', icon: SlidersHorizontal } as Bestemming]
       : [{ to: '/login', label: 'Inloggen', icon: LogIn } as Bestemming]),
   ]
 

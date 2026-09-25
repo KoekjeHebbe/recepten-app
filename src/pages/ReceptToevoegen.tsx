@@ -111,7 +111,7 @@ function DragHandle({ attributes, listeners }: HandleProps) {
       tabIndex={-1}
       title="Versleep om te herordenen"
       aria-label="Versleep om te herordenen"
-      className="self-center w-7 h-9 flex items-center justify-center text-olive-700/20 hover:text-olive-700/50 cursor-grab active:cursor-grabbing touch-none flex-shrink-0"
+      className="self-center w-7 h-9 flex items-center justify-center text-olive-700/35 hover:text-olive-700/60 cursor-grab active:cursor-grabbing touch-none flex-shrink-0"
     >
       <GripVertical size={16} aria-hidden="true" />
     </button>
@@ -468,7 +468,9 @@ export default function ReceptToevoegen() {
             hoeveelheid: rij.hoeveelheid !== null && rij.hoeveelheid !== undefined ? Number(rij.hoeveelheid) : null,
             eenheid: rij.eenheid ?? 'g',
             voorraadkast: rij.voorraadkast,
-            categorie: rij.categorie || categoriseer(rij.naam.trim()),
+            // Alleen een zelf gekozen categorie bewaren; de automatische wordt
+            // live berekend zodat verbeteringen aan categoriseer() doorwerken.
+            ...(rij._manuelleCategorie && rij.categorie ? { categorie: rij.categorie } : {}),
             ...(huidigeGroep ? { groep: huidigeGroep } : {}),
           })
         }
@@ -499,8 +501,8 @@ export default function ReceptToevoegen() {
   }
 
   const inputCls = "w-full px-4 py-2.5 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 placeholder:text-olive-700/50 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25 transition-all"
-  const sectionCls = "rounded-4xl bg-white border border-olive-700/8 shadow-card p-7 mb-4"
-  const labelCls = "block text-[10px] font-bold text-olive-700/40 uppercase tracking-widest mb-1.5"
+  const sectionCls = "rounded-4xl bg-white border border-olive-700/8 shadow-card p-5 sm:p-7 mb-4"
+  const labelCls = "block text-[11px] font-bold text-olive-700/55 uppercase tracking-widest mb-1.5"
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -676,7 +678,7 @@ export default function ReceptToevoegen() {
                 const file = afbeeldingUitPaste(e)
                 if (file) { e.preventDefault(); e.stopPropagation(); uploadAfbeelding(file) }
               }}
-              placeholder="https://... — upload, of plak een screenshot (Ctrl+V)" className={inputCls + ' flex-1 min-w-0'} />
+              placeholder="Link, upload of plak (Ctrl+V)" className={inputCls + ' flex-1 min-w-0'} />
             <label className={`btn btn-outline btn-md cursor-pointer flex-shrink-0 ${uploadLaden ? 'opacity-50 pointer-events-none' : ''}`}>
               {uploadLaden
                 ? <Loader2 size={14} className="animate-spin" aria-hidden="true" />
@@ -756,12 +758,12 @@ export default function ReceptToevoegen() {
               onChange={e => setNieuwTag(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), voegCustomTagToe())}
               placeholder="Eigen tag toevoegen…"
-              className="flex-1 px-3 py-2 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 placeholder:text-olive-700/50 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25"
+              className="flex-1 min-w-0 px-3 py-2 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 placeholder:text-olive-700/50 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25"
             />
             <button type="button" onClick={voegCustomTagToe}
               disabled={!nieuwTag.trim()}
-              className="px-3 py-2 rounded-2xl border border-olive-700/10 text-sm text-olive-700/50 hover:text-olive-700 hover:border-olive-700/20 transition-all disabled:opacity-30">
-              +
+              className="px-4 py-2 rounded-2xl border border-olive-700/15 bg-olive-50 text-sm font-semibold text-olive-700 hover:border-olive-700/30 transition-all disabled:opacity-50 disabled:bg-white">
+              Toevoegen
             </button>
           </div>
         </div>
@@ -784,18 +786,20 @@ export default function ReceptToevoegen() {
                         className="flex-1 min-w-0 px-3 py-2 rounded-2xl border border-terracotta-600/20 bg-terracotta-50/50 text-sm font-bold uppercase tracking-widest text-terracotta-700 placeholder:text-terracotta-600/40 placeholder:font-normal placeholder:normal-case placeholder:tracking-normal focus:outline-none focus:ring-2 focus:ring-terracotta-600/25" />
                       <button type="button" onClick={() => setIngredienten(prev => prev.filter((_, i) => i !== idx))}
                         aria-label="Verwijder sectie"
-                        className="w-9 h-9 rounded-xl border border-olive-700/8 text-olive-700/25 hover:text-terracotta-600 hover:border-terracotta-200 text-sm transition-all btn-magnetic flex-shrink-0 flex items-center justify-center">
+                        className="w-9 h-9 rounded-xl border border-olive-700/10 text-olive-700/45 hover:text-terracotta-600 hover:border-terracotta-200 text-sm transition-all btn-magnetic flex-shrink-0 flex items-center justify-center">
                         ✕
                       </button>
                     </div>
                   ) : (
                     <div className="space-y-1">
-                      <div className="flex gap-2 items-center">
+                      <div className="flex flex-wrap sm:flex-nowrap gap-2 items-center">
                         <DragHandle {...handle} />
                         <input type="text" value={ing.naam}
                           onChange={e => updateIngredient(idx, 'naam', e.target.value)}
-                          placeholder="Naam"
-                          className="flex-1 min-w-0 px-3 py-2 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 placeholder:text-olive-700/50 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25" />
+                          placeholder="Ingrediënt"
+                          aria-label={`Naam ingrediënt ${idx + 1}`}
+                          className="flex-1 min-w-0 basis-[calc(100%-2.75rem)] sm:basis-auto px-3 py-2 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 placeholder:text-olive-700/50 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25" />
+                        <span className="w-7 flex-shrink-0 sm:hidden" aria-hidden="true" />
                         <input
                           type="number"
                           min={0}
@@ -803,11 +807,13 @@ export default function ReceptToevoegen() {
                           value={ing.hoeveelheid ?? ''}
                           onChange={e => updateIngredient(idx, 'hoeveelheid', e.target.value === '' ? null : parseFloat(e.target.value))}
                           placeholder="0"
-                          className="w-20 px-3 py-2 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 text-right tabular-nums placeholder:text-olive-700/50 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25" />
+                          aria-label={`Hoeveelheid ingrediënt ${idx + 1}`}
+                          className="flex-1 min-w-0 sm:flex-none sm:w-20 px-3 py-2 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 text-right tabular-nums placeholder:text-olive-700/50 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25" />
                         <select
                           value={ing.eenheid ?? 'g'}
                           onChange={e => updateEenheid(idx, e.target.value as Eenheid)}
-                          className="w-24 px-2 py-2 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25 cursor-pointer"
+                          aria-label={`Eenheid ingrediënt ${idx + 1}`}
+                          className="w-24 flex-shrink-0 px-2 py-2 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25 cursor-pointer"
                         >
                           {EENHEID_GROEPEN.map(groep => (
                             <optgroup key={groep.label} label={groep.label}>
@@ -828,14 +834,14 @@ export default function ReceptToevoegen() {
                         {ingredienten.length > 1 && (
                           <button type="button" onClick={() => setIngredienten(prev => prev.filter((_, i) => i !== idx))}
                             aria-label={`Verwijder ingrediënt ${idx + 1}`}
-                            className="w-9 h-9 rounded-xl border border-olive-700/8 text-olive-700/25 hover:text-terracotta-600 hover:border-terracotta-200 text-sm transition-all btn-magnetic flex-shrink-0 flex items-center justify-center">
+                            className="w-9 h-9 rounded-xl border border-olive-700/10 text-olive-700/45 hover:text-terracotta-600 hover:border-terracotta-200 text-sm transition-all btn-magnetic flex-shrink-0 flex items-center justify-center">
                             ✕
                           </button>
                         )}
                       </div>
                       {ing.naam.trim() && (
                         <div className="pl-9 flex items-center gap-1.5">
-                          <span className="text-[10px] text-olive-700/30 uppercase tracking-widest font-semibold">Categorie:</span>
+                          <span className="text-[11px] text-olive-700/45 uppercase tracking-widest font-semibold">Categorie:</span>
                           <select
                             value={ing.categorie || 'Overig'}
                             onChange={e => setIngredientCategorie(idx, e.target.value)}
@@ -874,14 +880,16 @@ export default function ReceptToevoegen() {
         </p>
         <div className="space-y-2">
           {onderdelen.map((od, idx) => (
-            <div key={idx} className="flex gap-2 items-center">
-              <ReceptKiezer
-                value={od.recept_id}
-                excludeIds={isBewerkModus && id ? [id] : []}
-                onChange={recept_id =>
-                  setOnderdelen(prev => prev.map((o, i) => i === idx ? { ...o, recept_id } : o))
-                }
-              />
+            <div key={idx} className="flex flex-wrap sm:flex-nowrap gap-2 items-center">
+              <div className="flex basis-full sm:basis-auto sm:flex-1 min-w-0">
+                <ReceptKiezer
+                  value={od.recept_id}
+                  excludeIds={isBewerkModus && id ? [id] : []}
+                  onChange={recept_id =>
+                    setOnderdelen(prev => prev.map((o, i) => i === idx ? { ...o, recept_id } : o))
+                  }
+                />
+              </div>
               <input
                 type="number"
                 min={0}
@@ -893,7 +901,7 @@ export default function ReceptToevoegen() {
               <span className="text-xs text-olive-700/50 font-medium whitespace-nowrap">porties</span>
               <button type="button" onClick={() => setOnderdelen(prev => prev.filter((_, i) => i !== idx))}
                 aria-label={`Verwijder onderdeel ${idx + 1}`}
-                className="w-9 h-9 rounded-xl border border-olive-700/8 text-olive-700/25 hover:text-terracotta-600 hover:border-terracotta-200 text-sm transition-all btn-magnetic flex-shrink-0 flex items-center justify-center">
+                className="w-9 h-9 rounded-xl border border-olive-700/10 text-olive-700/45 hover:text-terracotta-600 hover:border-terracotta-200 text-sm transition-all btn-magnetic flex-shrink-0 flex items-center justify-center">
                 ✕
               </button>
             </div>
@@ -925,7 +933,7 @@ export default function ReceptToevoegen() {
                       {bereiding.length > 1 && (
                         <button type="button" onClick={() => setBereiding(prev => prev.filter(s => s._key !== stap._key))}
                           aria-label={`Verwijder stap ${idx + 1}`}
-                          className="w-9 h-9 mt-1 rounded-xl border border-olive-700/8 text-olive-700/25 hover:text-terracotta-600 hover:border-terracotta-200 text-sm transition-all btn-magnetic flex-shrink-0 flex items-center justify-center">
+                          className="w-9 h-9 mt-1 rounded-xl border border-olive-700/10 text-olive-700/45 hover:text-terracotta-600 hover:border-terracotta-200 text-sm transition-all btn-magnetic flex-shrink-0 flex items-center justify-center">
                           ✕
                         </button>
                       )}

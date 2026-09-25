@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { useGSAP } from '@gsap/react'
 import gsap from 'gsap'
 import type { Recept, Dag, WeekmenuItem } from '../types'
@@ -8,14 +8,18 @@ import { useWeekMenu } from '../store/weekmenu'
 import { useRecepten } from '../store/aangepaste-recepten'
 import { verminderBeweging } from '../lib/motion'
 import PageHeader from '../components/PageHeader'
+import ReceptKiezer from '../components/ReceptKiezer'
 
 gsap.registerPlugin()
 
 export default function Weekmenu() {
-  const { menu, removeFromDay, setPorties, clearAll } = useWeekMenu()
+  const { menu, addToDay, removeFromDay, setPorties, clearAll } = useWeekMenu()
   const { alleRecepten } = useRecepten()
   const containerRef = useRef<HTMLDivElement>(null)
+  const [kiesDag, setKiesDag] = useState<Dag | null>(null)
   const totalItems = DAGEN.reduce((sum, dag) => sum + menu[dag].length, 0)
+  // Nieuw gerecht krijgt hetzelfde aantal personen als wat al gepland staat
+  const standaardPorties = DAGEN.flatMap(d => menu[d]).slice(-1)[0]?.porties
 
   function getRecept(id: string): Recept | undefined {
     return alleRecepten.find(r => r.id === id)
@@ -41,11 +45,11 @@ export default function Weekmenu() {
       />
 
       {totalItems === 0 && (
-        <div className="text-center py-20 text-olive-700/55">
+        <div className="text-center py-10 text-olive-700/55">
           <p className="text-4xl mb-4">📅</p>
           <p className="mb-2 text-sm">Nog niets op het menu deze week.</p>
           <p className="text-xs mb-5 max-w-xs mx-auto leading-relaxed">
-            Open een recept en gebruik de <strong className="font-semibold text-olive-700/60">Voeg toe</strong> knop om het aan een dag te koppelen.
+            Tik hieronder bij een dag op <strong className="font-semibold text-olive-700/70">+ Recept kiezen</strong>, of gebruik <strong className="font-semibold text-olive-700/70">Plan in</strong> op een recept.
           </p>
           <Link to="/" className="inline-block text-terracotta-600 text-sm font-medium underline underline-offset-2">
             Naar recepten →
@@ -67,28 +71,31 @@ export default function Weekmenu() {
             (sum, { item, recept }) => sum + (recept.voedingswaarden?.per_portie?.calorieen ?? 0) * item.porties,
             0
           )
+          // Per persoon = som van één portie van elk gerecht die dag
+          const kcalPerPersoon = dagItems.reduce(
+            (sum, { recept }) => sum + (recept.voedingswaarden?.per_portie?.calorieen ?? 0),
+            0
+          )
           const heeftRecepten = dagItems.length > 0
 
           return (
-            <div key={dag} className="dag-rij rounded-3xl bg-white border border-olive-700/8 shadow-card overflow-hidden">
-              <div className={`px-5 py-3 flex items-center justify-between border-b ${heeftRecepten ? 'border-olive-700/6 bg-cream/60' : 'border-transparent'}`}>
+            <div key={dag} className="dag-rij rounded-3xl bg-white border border-olive-700/8 shadow-card">
+              <div className={`px-5 py-3 flex items-center justify-between rounded-t-3xl border-b ${heeftRecepten ? 'border-olive-700/6 bg-cream/60' : 'border-transparent'}`}>
                 <h2 className="font-semibold text-olive-700 capitalize text-sm tracking-wide">{dag}</h2>
                 {heeftRecepten && (
-                  <span className="text-[11px] font-semibold text-olive-700/40 tabular-nums">
-                    {Math.round(kcalTotaal)} kcal
+                  <span className="text-xs font-semibold text-olive-700/55 tabular-nums" title={`${Math.round(kcalTotaal)} kcal voor iedereen samen`}>
+                    {Math.round(kcalPerPersoon)} kcal p.p.
                   </span>
                 )}
               </div>
 
-              {!heeftRecepten ? (
-                <div className="px-5 py-3.5 text-xs text-olive-700/25 italic">Nog niets gepland</div>
-              ) : (
+              {heeftRecepten && (
                 <ul className="divide-y divide-olive-700/4">
                   {dagItems.map(({ item, recept }) => (
                     <li key={recept.id} className="flex items-center justify-between px-5 py-3">
                       <Link
                         to={`/recept/${recept.id}`}
-                        className="text-sm font-medium text-olive-700 hover:text-terracotta-600 transition-colors flex-1 truncate"
+                        className="text-sm font-medium text-olive-700 hover:text-terracotta-600 transition-colors flex-1 min-w-0 line-clamp-2 leading-snug"
                       >
                         {recept.titel}
                       </Link>
@@ -125,7 +132,7 @@ export default function Weekmenu() {
                         </div>
                         <button
                           onClick={() => removeFromDay(dag as Dag, recept.id)}
-                          className="text-olive-700/30 hover:text-terracotta-600 transition-colors text-base btn-magnetic leading-none w-7 h-7 flex items-center justify-center"
+                          className="text-olive-700/45 hover:text-terracotta-600 transition-colors text-lg btn-magnetic leading-none w-8 h-8 -mr-2 flex items-center justify-center"
                           title="Verwijder"
                           aria-label={`Verwijder ${recept.titel} van ${dag}`}
                         >
@@ -136,6 +143,31 @@ export default function Weekmenu() {
                   ))}
                 </ul>
               )}
+
+              <div className={`px-5 ${heeftRecepten ? 'pb-3 pt-1' : 'pb-3.5'}`}>
+                {kiesDag === dag ? (
+                  <div className="flex items-center gap-2">
+                    <ReceptKiezer
+                      value=""
+                      metOnderdelen
+                      autoFocus
+                      excludeIds={items.map(it => it.recept_id)}
+                      placeholder={`Recept voor ${dag}…`}
+                      onChange={id => { if (id) addToDay(dag as Dag, id, standaardPorties); setKiesDag(null) }}
+                    />
+                    <button onClick={() => setKiesDag(null)} className="text-xs text-olive-700/60 hover:text-olive-700 px-2 py-2">
+                      Annuleer
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setKiesDag(dag as Dag)}
+                    className={`text-sm font-medium py-1.5 transition-colors ${heeftRecepten ? 'text-olive-700/45 hover:text-terracotta-600' : 'text-terracotta-600 hover:text-terracotta-700'}`}
+                  >
+                    {heeftRecepten ? '+ Nog een recept' : '+ Recept kiezen'}
+                  </button>
+                )}
+              </div>
             </div>
           )
         })}

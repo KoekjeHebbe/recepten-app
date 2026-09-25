@@ -35,7 +35,7 @@ export default function Login() {
   }
 
   const inputCls = "w-full px-4 py-3 rounded-2xl border border-olive-700/10 bg-white text-sm text-olive-700 placeholder:text-olive-700/50 focus:outline-none focus:ring-2 focus:ring-terracotta-600/25 transition-all"
-  const labelCls = "block text-[10px] font-bold text-olive-700/40 uppercase tracking-widest mb-1.5"
+  const labelCls = "block text-[11px] font-bold text-olive-700/55 uppercase tracking-widest mb-1.5"
 
   return (
     <div className="max-w-sm mx-auto pt-8">
@@ -89,7 +89,7 @@ export default function Login() {
         <div className="mt-6 text-center">
           <button
             onClick={() => { setModus(m => m === 'login' ? 'registreer' : 'login'); setFout('') }}
-            className="text-sm text-olive-700/40 hover:text-olive-700 transition-colors underline underline-offset-2"
+            className="text-sm text-olive-700/60 hover:text-olive-700 transition-colors underline underline-offset-2 py-2 px-2"
           >
             {modus === 'login' ? 'Nog geen account? Registreer hier' : 'Al een account? Log in'}
           </button>

@@ -123,7 +123,7 @@ export default function ReceptenLijst() {
     )
   }, { scope: gridRef, dependencies: [gesorteerd.length, sortering, alleenFavorieten, actieveTags.join(), zoek] })
 
-  const selectCls = "appearance-none text-base sm:text-xs font-semibold text-olive-700/70 bg-white border border-olive-700/10 rounded-full pl-8 pr-7 py-2 shadow-card cursor-pointer focus:outline-none focus:ring-2 focus:ring-terracotta-600/25 hover:border-olive-700/20 transition-all"
+  const selectCls = "w-full sm:w-auto truncate appearance-none text-base sm:text-xs font-semibold text-olive-700/70 bg-white border border-olive-700/10 rounded-full pl-8 pr-7 py-1.5 sm:py-2 shadow-card cursor-pointer focus:outline-none focus:ring-2 focus:ring-terracotta-600/25 hover:border-olive-700/20 transition-all"
 
   return (
     <div>
@@ -139,7 +139,7 @@ export default function ReceptenLijst() {
             className="w-full pl-9 pr-4 py-2.5 rounded-full border border-olive-700/10 bg-white shadow-card focus:outline-none focus:ring-2 focus:ring-terracotta-600/30 text-sm text-olive-700 placeholder:text-olive-700/50"
           />
         </div>
-        <Link to="/recept/nieuw" className="btn btn-primary btn-md">
+        <Link to="/recept/nieuw" className="btn btn-primary btn-md hidden sm:inline-flex">
           + Recept
         </Link>
       </div>
@@ -155,7 +155,7 @@ export default function ReceptenLijst() {
               : 'bg-white border-olive-700/10 text-olive-700/60 hover:border-olive-700/20'
           }`}
         >
-          <span aria-hidden="true">❤️</span> Favorieten {favorieten.length > 0 && `(${favorieten.length})`}
+          <span aria-hidden="true">❤️</span><span className="sr-only sm:not-sr-only"> Favorieten</span>{favorieten.length > 0 && ` (${favorieten.length})`}
         </button>
 
         <button
@@ -174,14 +174,14 @@ export default function ReceptenLijst() {
         {aantalActief > 0 && (
           <button
             onClick={() => { setActieveTags([]); setAlleenFavorieten(false) }}
-            className="text-xs px-2 py-1 rounded-full text-olive-700/40 hover:text-olive-700 underline underline-offset-2 transition-colors"
+            className="text-xs px-2 py-1.5 rounded-full text-olive-700/60 hover:text-olive-700 underline underline-offset-2 transition-colors"
           >
             wis filters
           </button>
         )}
 
         {/* Sortering — rechts uitgelijnd */}
-        <div className="relative ml-auto">
+        <div className="relative ml-auto flex-1 min-w-0 max-w-[15rem] sm:flex-none sm:max-w-none">
           <ArrowUpDown size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-olive-700/40 pointer-events-none" />
           <select
             value={sortering}
@@ -200,7 +200,7 @@ export default function ReceptenLijst() {
         <div id="filterpaneel" className="rounded-3xl bg-white border border-olive-700/8 shadow-card p-4 mb-5 space-y-3">
           {zichtbareGroepen.map(groep => (
             <div key={groep.id} className="flex flex-wrap items-center gap-2">
-              <span className="text-[10px] font-bold text-olive-700/35 uppercase tracking-widest w-full sm:w-24 sm:shrink-0">
+              <span className="text-[11px] font-bold text-olive-700/55 uppercase tracking-widest w-full sm:w-24 sm:shrink-0">
                 {groep.label}
               </span>
               {groep.tags.map(tag => (
@@ -213,6 +213,19 @@ export default function ReceptenLijst() {
               ))}
             </div>
           ))}
+          <div className="flex items-center justify-end gap-3 pt-2 border-t border-olive-700/6">
+            {actieveTags.length > 0 && (
+              <button onClick={() => setActieveTags([])} className="text-xs text-olive-700/60 hover:text-olive-700 underline underline-offset-2 py-2">
+                wis selectie
+              </button>
+            )}
+            <button
+              onClick={() => { setToonFilters(false); gridRef.current?.scrollIntoView({ behavior: verminderBeweging() ? 'auto' : 'smooth', block: 'start' }) }}
+              className="btn btn-secondary btn-sm"
+            >
+              Toon {gesorteerd.length} {gesorteerd.length === 1 ? 'recept' : 'recepten'}
+            </button>
+          </div>
         </div>
       )}
 

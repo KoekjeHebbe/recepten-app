@@ -98,12 +98,56 @@ export const WINKELINDELING: { naam: string; keywords: string[] }[] = [
   },
 ]
 
+const EXTRA_KEYWORDS: Record<string, string[]> = {
+  'Vlees': ['ham', 'boerenham', 'hamburger', 'salami', 'prosciutto', 'rund', 'rundvlees', 'kalfsvlees', 'merguez', 'gyros', 'kippendij', 'kipdij'],
+  'Vis & Zeevruchten': ['zalmfilet', 'visfilet', 'forelfilet', 'kabeljauwfilet', 'tonijnsteak', 'zalmsteak', 'sardien', 'ansjovisreepjes', 'ansjovisfilet'],
+  'Groenten & Fruit': ['sjalot', 'uitjes', 'uien', 'bleekselderij', 'spitskool', 'kool', 'rode kool', 'boontjes', 'sperziebonen', 'gember', 'lente ui', 'bosui', 'jalapeño', 'jalapeno', 'paksoi', 'taugé', 'bloemkoolrijst', 'tomaten', 'tomaatjes', 'kerstomaat', 'koolrabi', 'kers', 'tuinkers', 'waterkers', 'framboos', 'frambozen', 'bessen', 'mandarijn', 'sinaasappel', 'vijg', 'dadel', 'pomelo'],
+  'Zuivel': ['roomkaas', 'philadelphia', 'kwark', 'skyr', 'kookroom', 'parmigiano', 'reggiano', 'grana padano', 'eiwit', 'eidooier', 'burrata', 'manchego', 'cheddar'],
+  'Droge voeding': ['meel', 'amandelmeel', 'psyllium', 'psylliumvezels', 'bakpoeder', 'maizena', 'augurk', 'noedels', 'lasagne', 'broodkruim', 'chiazaad', 'sesamzaad', 'tomatenstukjes', 'knackebrod', 'knäckebröd', 'stevia', 'cannellini'],
+  'Kruiden & Specerijen': ['zout', 'zwarte peper', 'witte peper', 'peper en zout', 'zout en peper', 'uienpoeder', 'knoflookpoeder', 'gemberpoeder', 'kerriepoeder', 'currypoeder', 'chilivlokken', 'chilipoeder', 'gochugaru', 'kruiden', 'kruidenmix', 'gerookte paprika', 'paprikapoeder'],
+  'Sauzen & Condimenten': ['dijon', 'dijonmosterd', 'mayo', 'chipotle', 'salsa', 'dressing', 'pili-pili'],
+  'Olie & Azijn': ['witte wijnazijn', 'rode wijnazijn', 'rodewijnazijn'],
+  'Drank & Bouillon': ['bouillonblokje'],
+}
+for (const cat of WINKELINDELING) cat.keywords.push(...(EXTRA_KEYWORDS[cat.naam] ?? []))
+
 export const CATEGORIE_NAMEN = WINKELINDELING.map(c => c.naam).concat(['Overig'])
 
+// Korte trefwoorden ("ui", "ei", "kip", "ham") tellen alleen aan het begin of
+// einde van een woord: anders valt "kruiden" onder Groenten (ui) en
+// "champignon" onder Vlees (ham).
+function komtVoor(tekst: string, kw: string): boolean {
+  if (kw.length > 3) return tekst.includes(kw)
+  const esc = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return new RegExp(`(^|[^a-zà-ÿ])${esc}|${esc}($|[^a-zà-ÿ])`).test(tekst)
+}
+
 export function categoriseer(naam: string): string {
+  // Bereidingswijze telt niet mee: "ui, gehakt" en "gehakte peterselie" zijn geen vlees.
   const lower = naam.toLowerCase()
+    .split(',')[0]
+    .replace(/(^|\s)(fijn)?gehakte(\s|$)/g, ' ')
+    .replace(/fijngehakt/g, ' ')
+    .trim()
+  // "gedroogd" is zwak: "Salie gedroogd" is een kruid, pas zonder beter trefwoord droge voeding.
+  const zonderGedroogd = lower.replace(/gedroogde?/g, ' ')
+  const beste = besteCategorie(zonderGedroogd)
+  if (beste === 'Overig' && zonderGedroogd !== lower) return 'Droge voeding'
+  return beste
+}
+
+// Het langste (meest specifieke) trefwoord wint: "kippenbouillon" is bouillon,
+// geen kip; "dijonmosterd" is mosterd; "kabeljauwfilet" is vis.
+function besteCategorie(lower: string): string {
+  let beste = 'Overig'
+  let besteLengte = 0
   for (const cat of WINKELINDELING) {
-    if (cat.keywords.some(kw => lower.includes(kw))) return cat.naam
+    for (const kw of cat.keywords) {
+      if (kw.length > besteLengte && komtVoor(lower, kw)) {
+        beste = cat.naam
+        besteLengte = kw.length
+      }
+    }
   }
-  return 'Overig'
+  return beste
 }

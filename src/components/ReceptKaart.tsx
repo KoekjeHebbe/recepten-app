@@ -43,7 +43,7 @@ export default function ReceptKaart({ recept }: Props) {
           <h2 className="font-serif font-bold text-olive-700 leading-snug group-hover:text-terracotta-600 transition-colors line-clamp-2 mb-2 text-base">
             {recept.titel}
           </h2>
-          <div className="flex flex-wrap gap-1 mb-3 min-h-[20px]">
+          <div className={`flex-wrap gap-1 mb-3 sm:min-h-[20px] ${overigeTags.length > 0 ? 'flex' : 'hidden sm:flex'}`}>
             {overigeTags.slice(0, 3).map(tag => (
               <TagBadge key={tag} tag={tag} />
             ))}
