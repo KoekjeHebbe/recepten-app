@@ -102,8 +102,19 @@
     opties.headers = Object.assign({ 'x-cg-apikey': APIKEY, Accept: 'application/json' }, opties.headers || {})
     return fetch(url, opties).then(function (r) {
       if (r.status === 401 || r.status === 403) throw new Error('niet-ingelogd')
-      if (!r.ok) throw new Error('Colruyt antwoordde met ' + r.status)
-      return r.status === 204 ? null : r.json()
+      if (!r.ok) {
+        return r.text().then(function (tekst) {
+          var detail = tekst
+          try {
+            var j = JSON.parse(tekst)
+            detail = j.message || j.error || j.detail || (j.errors && JSON.stringify(j.errors)) || tekst
+          } catch (e) { /* geen JSON */ }
+          var err = new Error('Colruyt antwoordde met ' + r.status + (detail ? ': ' + String(detail).slice(0, 200) : ''))
+          err.status = r.status
+          throw err
+        })
+      }
+      return r.status === 204 ? null : r.json().catch(function () { return null })
     })
   }
 
@@ -297,18 +308,56 @@
     var gekozen = items.filter(function (i) { return i.mee && i.gekozen }).map(function (it) {
       return { item: it, product: it.opties.filter(function (o) { return o.technicalArticleNumber === it.gekozen })[0] }
     })
-    var nu = new Date().toISOString()
-    var body = { items: gekozen.map(function (g) {
+    // Zelfde vorm als de Colruyt-site zelf verstuurt; 'eenvoudig' = 1 stuk, eenheid P.
+    function lijstItem(g, eenvoudig) {
+      var nu = new Date().toISOString()
       return {
         id: crypto.randomUUID(), createdAt: nu, updatedAt: nu, completedAt: null,
-        description: g.product.LongName || ((g.product.brand ? g.product.brand + ' ' : '') + (g.product.name || '')),
-        productData: { productId: g.product.technicalArticleNumber, quantity: g.item.aantal, unitCode: g.product.OrderUnit || 'P' },
+        description: (g.product.LongName || ((g.product.brand ? g.product.brand + ' ' : '') + (g.product.name || ''))).slice(0, 100),
+        productData: {
+          productId: String(g.product.technicalArticleNumber),
+          quantity: eenvoudig ? 1 : Math.max(1, Math.round(g.item.aantal)),
+          unitCode: eenvoudig ? 'P' : (g.product.OrderUnit || 'P'),
+        },
       }
-    }) }
+    }
+    function stuur(lijst) {
+      return colruytFetch(BFF + '/add-items-to-list', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items: lijst }) })
+    }
+    // Eén voor één, zodat één afgekeurd product de rest niet tegenhoudt.
+    // Bij een weigering nog één poging als "1 stuk"; lukt dat, dan melden we het aangepaste aantal.
+    function eenVoorEen() {
+      var gelukt = [], aangepast = [], mislukt = []
+      return gekozen.reduce(function (keten, g) {
+        return keten.then(function () {
+          return stuur([lijstItem(g, false)]).then(function () { gelukt.push(g) }, function (err) {
+            if (err.message === 'niet-ingelogd') throw err
+            return stuur([lijstItem(g, true)]).then(function () { gelukt.push(g); aangepast.push(g) }, function (err2) {
+              if (err2.message === 'niet-ingelogd') throw err2
+              mislukt.push({ g: g, reden: err2.message })
+            })
+          })
+        })
+      }, Promise.resolve()).then(function () { return { gelukt: gelukt, aangepast: aangepast, mislukt: mislukt } })
+    }
+
     knop.disabled = true; knop.textContent = 'Bezig…'
-    colruytFetch(BFF + '/add-items-to-list', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-      .then(function () {
-        melding('✓ ' + gekozen.length + ' producten staan op je Xtra-boodschappenlijst.', 'ok')
+    stuur(gekozen.map(function (g) { return lijstItem(g, false) }))
+      .then(function () { return { gelukt: gekozen, aangepast: [], mislukt: [] } }, function (err) {
+        if (err.message === 'niet-ingelogd' || (err.status && err.status >= 500)) throw err
+        knop.textContent = 'Eén voor één…'
+        return eenVoorEen()
+      })
+      .then(function (res) {
+        if (res.gelukt.length) melding('✓ ' + res.gelukt.length + ' producten staan op je Xtra-boodschappenlijst.', 'ok')
+        if (res.aangepast.length) melding('Bij ' + res.aangepast.length + ' product(en) aanvaardde Colruyt het aantal niet; die staan er als 1 stuk op — pas ze aan in je lijst: ' +
+          res.aangepast.map(function (g) { return g.item.naam }).join(', '), 'fout')
+        if (res.mislukt.length) melding('Niet gelukt voor ' + res.mislukt.length + ' product(en): ' +
+          res.mislukt.map(function (m) { return m.g.item.naam }).join(', ') + '. ' + res.mislukt[0].reden, 'fout')
+        // Vinkje weg bij wat gelukt is, zodat een tweede klik geen dubbels maakt
+        res.gelukt.forEach(function (g) { g.item.mee = false })
+        gekozen = res.gelukt
+        if (!gekozen.length) return
         // Keuzes onthouden + macro's laten ophalen (fouten hier zijn niet erg)
         return fetch(API + '/koppelingen?k=' + encodeURIComponent(sleutel), {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
