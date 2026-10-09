@@ -352,7 +352,8 @@
       gekocht = {}
       res[1].forEach(function (p) { if (p && p.technicalArticleNumber) gekocht[p.technicalArticleNumber] = true })
       items = (data.items || []).map(function (it) {
-        return { naam: it.naam, hoeveelheden: it.hoeveelheden || [], voorraadkast: !!it.voorraadkast, mee: !it.voorraadkast, opties: [], gekozen: null, aantal: 1 }
+        var leidingwater = /^(koud|warm|heet|lauw|kokend)?\s*water$/i.test(it.naam.trim())
+        return { naam: it.naam, hoeveelheden: it.hoeveelheden || [], voorraadkast: !!it.voorraadkast || leidingwater, mee: !it.voorraadkast && !leidingwater, opties: [], gekozen: null, aantal: 1 }
       })
       var wanneer = data.bijgewerkt_op ? ' (bijgewerkt ' + data.bijgewerkt_op.slice(0, 16).replace('T', ' ') + ')' : ''
       $('#status').textContent = items.length ? items.length + ' ingrediënten van je weekmenu' + wanneer : 'Je boodschappenlijst is leeg — open hem eerst in de app.'
