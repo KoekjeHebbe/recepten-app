@@ -22,6 +22,7 @@ match($endpoint) {
     'cache'      => require __DIR__ . '/cache.php',
     'tags'       => require __DIR__ . '/tags.php',
     'afbeeldingen' => require __DIR__ . '/afbeeldingen.php',
+    'colruyt'    => require __DIR__ . '/colruyt.php',
     'weekmenu'   => require __DIR__ . '/weekmenu.php',
     'nevo'       => require __DIR__ . '/importeer-nevo.php',
     ''           => json(['status' => 'ok', 'versie' => '1.0']),

@@ -7,6 +7,7 @@ import { verminderBeweging } from '../lib/motion'
 import Bevestiging from '../components/Bevestiging'
 import PageHeader from '../components/PageHeader'
 import TagBeheer from '../components/TagBeheer'
+import ColruytKoppelingen from '../components/ColruytKoppelingen'
 import type { Macros } from '../types'
 
 interface CacheEntry {
@@ -291,6 +292,7 @@ export default function Extras() {
       <PageHeader titel="Extras" ondertitel="Beheer je tags en de macro-database." />
 
       <TagBeheer />
+      <ColruytKoppelingen />
 
       <div className="anim-in mb-4">
         <h2 className="font-semibold text-olive-700 text-sm uppercase tracking-widest mb-1">Macro-cache</h2>

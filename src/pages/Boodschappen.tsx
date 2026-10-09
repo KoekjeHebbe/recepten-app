@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   DndContext,
@@ -25,6 +25,9 @@ import { CATEGORIE_NAMEN, categoriseer } from '../lib/categorieen'
 import { formateerHoeveelheid, NAAR_CANONICAL } from '../lib/eenheden'
 import type { Eenheid } from '../lib/eenheden'
 import PageHeader from '../components/PageHeader'
+import ColruytBladwijzer from '../components/ColruytBladwijzer'
+import { useAuth } from '../store/auth'
+import { api } from '../api/client'
 
 interface GegroepeerdeIngredient {
   naam: string
@@ -265,6 +268,22 @@ export default function Boodschappen() {
   }, [menu])
 
   const items = useMemo(() => groepeerIngredienten(alleItems, alleRecepten), [alleItems, alleRecepten])
+  const { isIngelogd } = useAuth()
+
+  // Hou de lijst op de server actueel voor de Colruyt-bladwijzer (die draait op colruyt.be)
+  const lijstVoorServer = useMemo(() => JSON.stringify(items.map(i => ({
+    naam: i.naam,
+    hoeveelheden: [...i._perEenheid.entries()].map(([eenheid, hoeveelheid]) => ({ hoeveelheid, eenheid })),
+    voorraadkast: i.voorraadkast,
+    categorie: i.categorie,
+  }))), [items])
+  useEffect(() => {
+    if (!isIngelogd || items.length === 0) return
+    const t = setTimeout(() => {
+      api.put('/colruyt/lijst', { items: JSON.parse(lijstVoorServer) }).catch(() => { /* niet kritisch */ })
+    }, 800)
+    return () => clearTimeout(t)
+  }, [lijstVoorServer, isIngelogd, items.length])
   const boodschappen = items.filter(i => !i.voorraadkast)
   const voorraad = items.filter(i => i.voorraadkast)
   const aantalAfgevinkt = boodschappen.filter(i => afgevinkt.has(i.naam.toLowerCase())).length
@@ -395,6 +414,8 @@ export default function Boodschappen() {
           </SortableContext>
         </DndContext>
       </div>
+
+      {isIngelogd && <ColruytBladwijzer />}
 
       {/* Voorraadkast toggle */}
       <button
