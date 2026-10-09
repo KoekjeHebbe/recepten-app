@@ -75,17 +75,31 @@
     return { hoeveelheid: n, eenheid: 'stuk' }
   }
 
+  // Los verkochte groenten/fruit (gewichtsartikels) gaan per stuk op de lijst.
+  function isGewichtsartikel(product) {
+    return !!product && (product.IsWeightArticle === true || product.IsWeightArticle === 'true' ||
+      (!!product.OrderUnit && product.OrderUnit !== 'P'))
+  }
+
   function aantalPakken(item, product) {
     var n = nodig(item.hoeveelheden)
     var inh = parseInhoud(product && (product.content || product.inhoud))
-    var p = 1
-    if (inh && inh.eenheid === 'stuk' && n.stuk > 0) p = Math.ceil(n.stuk / inh.hoeveelheid)
-    else if (inh && inh.eenheid !== 'stuk') {
-      // g en ml als ongeveer gelijk beschouwen (water, melk, room, …)
-      var gewicht = n.g + n.ml
-      if (gewicht > 0) p = Math.ceil(gewicht / inh.hoeveelheid - 0.05)
-    } else if (n.stuk > 0 && !inh) p = Math.ceil(n.stuk)
-    return Math.max(1, Math.min(20, p || 1))
+    // g en ml als ongeveer gelijk beschouwen (water, melk, room, …)
+    var gewicht = n.g + n.ml
+    var p
+    if (isGewichtsartikel(product)) {
+      // Stukgewicht (kg) als Colruyt het geeft; anders de vermelde inhoud
+      var stukGram = parseFloat(product.WeightconversionFactor) * 1000
+      var perStuk = stukGram > 10 && stukGram < 5000 ? stukGram : (inh && inh.eenheid !== 'stuk' ? inh.hoeveelheid : 0)
+      p = n.stuk + (gewicht > 0 ? (perStuk ? gewicht / perStuk : 1) : 0)
+    } else if (inh && inh.eenheid === 'stuk') {
+      p = n.stuk > 0 ? n.stuk / inh.hoeveelheid : 1
+    } else if (inh) {
+      p = gewicht > 0 ? gewicht / inh.hoeveelheid - 0.05 : (n.stuk > 0 ? n.stuk : 1)
+    } else {
+      p = n.stuk > 0 ? n.stuk : 1
+    }
+    return Math.max(1, Math.min(20, Math.ceil(p) || 1))
   }
 
   function formatNodig(item) {
@@ -308,41 +322,49 @@
     var gekozen = items.filter(function (i) { return i.mee && i.gekozen }).map(function (it) {
       return { item: it, product: it.opties.filter(function (o) { return o.technicalArticleNumber === it.gekozen })[0] }
     })
-    // Zelfde vorm als de Colruyt-site zelf verstuurt; 'eenvoudig' = 1 stuk, eenheid P.
-    function lijstItem(g, eenvoudig) {
+    // Zelfde vorm als de Colruyt-site zelf verstuurt: eenheid P (stuks/pakken).
+    function lijstItem(g, eenheid, aantal) {
       var nu = new Date().toISOString()
       return {
         id: crypto.randomUUID(), createdAt: nu, updatedAt: nu, completedAt: null,
         description: (g.product.LongName || ((g.product.brand ? g.product.brand + ' ' : '') + (g.product.name || ''))).slice(0, 100),
-        productData: {
-          productId: String(g.product.technicalArticleNumber),
-          quantity: eenvoudig ? 1 : Math.max(1, Math.round(g.item.aantal)),
-          unitCode: eenvoudig ? 'P' : (g.product.OrderUnit || 'P'),
-        },
+        productData: { productId: String(g.product.technicalArticleNumber), quantity: aantal, unitCode: eenheid },
       }
+    }
+    // Pogingen per product: P × aantal, dan de eigen bestel-eenheid van het product, dan P × 1
+    function pogingen(g) {
+      var aantal = Math.max(1, Math.round(g.item.aantal))
+      var lijst = [['P', aantal]]
+      if (g.product.OrderUnit && g.product.OrderUnit !== 'P') lijst.push([g.product.OrderUnit, aantal])
+      if (aantal > 1) lijst.push(['P', 1])
+      return lijst
     }
     function stuur(lijst) {
       return colruytFetch(BFF + '/add-items-to-list', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items: lijst }) })
     }
     // Eén voor één, zodat één afgekeurd product de rest niet tegenhoudt.
-    // Bij een weigering nog één poging als "1 stuk"; lukt dat, dan melden we het aangepaste aantal.
     function eenVoorEen() {
       var gelukt = [], aangepast = [], mislukt = []
       return gekozen.reduce(function (keten, g) {
         return keten.then(function () {
-          return stuur([lijstItem(g, false)]).then(function () { gelukt.push(g) }, function (err) {
-            if (err.message === 'niet-ingelogd') throw err
-            return stuur([lijstItem(g, true)]).then(function () { gelukt.push(g); aangepast.push(g) }, function (err2) {
-              if (err2.message === 'niet-ingelogd') throw err2
-              mislukt.push({ g: g, reden: err2.message })
+          var opties = pogingen(g)
+          function probeer(i) {
+            return stuur([lijstItem(g, opties[i][0], opties[i][1])]).then(function () {
+              gelukt.push(g)
+              if (opties[i][1] === 1 && g.item.aantal > 1) aangepast.push(g)
+            }, function (err) {
+              if (err.message === 'niet-ingelogd') throw err
+              if (i + 1 < opties.length) return probeer(i + 1)
+              mislukt.push({ g: g, reden: err.message })
             })
-          })
+          }
+          return probeer(0)
         })
       }, Promise.resolve()).then(function () { return { gelukt: gelukt, aangepast: aangepast, mislukt: mislukt } })
     }
 
     knop.disabled = true; knop.textContent = 'Bezig…'
-    stuur(gekozen.map(function (g) { return lijstItem(g, false) }))
+    stuur(gekozen.map(function (g) { var o = pogingen(g)[0]; return lijstItem(g, o[0], o[1]) }))
       .then(function () { return { gelukt: gekozen, aangepast: [], mislukt: [] } }, function (err) {
         if (err.message === 'niet-ingelogd' || (err.status && err.status >= 500)) throw err
         knop.textContent = 'Eén voor één…'
