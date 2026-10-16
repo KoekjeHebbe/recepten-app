@@ -1,9 +1,8 @@
 Options -Indexes
 
-<Files "config.php">
-    Order allow,deny
-    Deny from all
-</Files>
+<FilesMatch "^(config|secrets|voeding|eenheden|recept-helpers)\.php$">
+    Require all denied
+</FilesMatch>
 
 RewriteEngine On
 RewriteCond %{REQUEST_FILENAME} !-f
