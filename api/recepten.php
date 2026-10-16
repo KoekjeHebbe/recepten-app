@@ -189,7 +189,7 @@ function haalMacrosViaGemini(array $ingredienten): array {
     $e = strrpos($tekst, ']');
     if ($s === false || $e <= $s) return $leeg;
 
-    $parsed = json_decode(substr($tekst, $s, $e - $s + 1), true);
+    $parsed = json_decode(preg_replace('/[\x00-\x1F]+/', ' ', substr($tekst, $s, $e - $s + 1)), true);
     if (!is_array($parsed)) return $leeg;
 
     // Sla op per referentiehoeveelheid (100g/ml of 1 stuk) — NIET delen

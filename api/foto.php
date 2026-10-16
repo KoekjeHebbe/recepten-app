@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/ai-json.php';
 cors();
 vereisLogin();
 
@@ -125,7 +126,7 @@ if ($start !== false && $einde !== false && $einde > $start) {
     $tekst = preg_replace('/\s*```$/i', '', $tekst);
 }
 
-$recept = json_decode(trim($tekst), true);
+$recept = aiJsonObject($tekst);
 if (!$recept || empty($recept['titel'])) error('Kon geen recept herkennen in de afbeelding. Probeer een duidelijkere foto.', 422);
 
 // Vangnet: eenheid terugbrengen naar een canonieke code die de frontend kent.

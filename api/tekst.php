@@ -8,6 +8,7 @@
  */
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/recept-helpers.php';
+require_once __DIR__ . '/ai-json.php';
 cors();
 vereisLogin();
 
@@ -44,16 +45,17 @@ $payload = json_encode([
     'generationConfig' => ['temperature' => 0.1, 'maxOutputTokens' => 8192, 'responseMimeType' => 'application/json'],
 ]);
 
-$resp = geminiGenerateChain($payload);
-if (!$resp) error('De AI-service is even overbelast. Probeer het zo dadelijk opnieuw.', 503);
-
-$antwoordTekst = geminiTekstUitAntwoord($resp);
-$s = strpos($antwoordTekst, '{');
-$e = strrpos($antwoordTekst, '}');
-if ($s === false || $e <= $s) error('Kon het recept niet uit de tekst halen. Probeer meer context mee te plakken.', 422);
-
-$parsed = json_decode(substr($antwoordTekst, $s, $e - $s + 1), true);
-if (!$parsed || !is_array($parsed)) error('Kon het recept niet uit de tekst halen.', 422);
+// flash-lite ontspoort soms (herhaalt fragmenten): dan opnieuw, en de derde keer met flash.
+$parsed = null; $bereikt = false;
+foreach ([['gemini-2.5-flash-lite', 'gemini-2.5-flash'], ['gemini-2.5-flash-lite'], ['gemini-2.5-flash']] as $keten) {
+    $resp = geminiGenerateChain($payload, $keten);
+    if (!$resp) continue;
+    $bereikt = true;
+    $parsed = aiJsonObject(geminiTekstUitAntwoord($resp));
+    if ($parsed) break;
+}
+if (!$bereikt) error('De AI-service is even overbelast. Probeer het zo dadelijk opnieuw.', 503);
+if (!$parsed) error('Kon het recept niet uit de tekst halen. Probeer meer context mee te plakken.', 422);
 if (!empty($parsed['geen_recept']) || empty($parsed['titel'])) {
     error('Geen recept herkend in deze tekst. Plak de ingrediënten én de bereiding mee.', 422);
 }

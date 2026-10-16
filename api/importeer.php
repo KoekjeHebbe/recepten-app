@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/ai-json.php';
 cors();
 vereisLogin();
 
@@ -131,7 +132,7 @@ if (preg_match('/tiktok\.com/i', $url)) {
     $e = strrpos($tekst, '}');
     if ($s === false || $e <= $s) error('Kon het recept niet structureren uit de beschrijving.', 422);
 
-    $parsed = json_decode(substr($tekst, $s, $e - $s + 1), true);
+    $parsed = aiJsonObject($tekst);
     if (!$parsed || empty($parsed['titel'])) error('Kon het recept niet structureren uit de beschrijving.', 422);
 
     $personen     = max(1, (int)($parsed['personen'] ?? 4));
@@ -168,7 +169,7 @@ if (preg_match('/tiktok\.com/i', $url)) {
             }
             $ms = strpos($macroTekst, '{'); $me = strrpos($macroTekst, '}');
             if ($ms !== false && $me > $ms) {
-                $macros = json_decode(substr($macroTekst, $ms, $me - $ms + 1), true);
+                $macros = aiJsonObject($macroTekst);
                 if ($macros) {
                     $cal = (int)($macros['calorieen'] ?? 0);
                     $kh  = (int)($macros['koolhydraten'] ?? 0);
@@ -313,7 +314,7 @@ if ($normalisatieGeprobeerd) {
         }
         $s = strpos($tekst, '{'); $e = strrpos($tekst, '}');
         if ($s !== false && $e > $s) {
-            $parsed = json_decode(substr($tekst, $s, $e - $s + 1), true);
+            $parsed = aiJsonObject($tekst);
             if ($parsed && is_array($parsed)) {
                 $genormaliseerdOk = true;
                 if (!empty($parsed['titel'])) {
@@ -390,7 +391,7 @@ if (!$heeftMacros && defined('GOOGLE_API_KEY') && GOOGLE_API_KEY) {
         }
         $s = strpos($tekst, '{'); $e = strrpos($tekst, '}');
         if ($s !== false && $e > $s) {
-            $macros = json_decode(substr($tekst, $s, $e - $s + 1), true);
+            $macros = aiJsonObject($tekst);
             if ($macros) {
                 $cal = parseMacro($macros['calorieen'] ?? 0);
                 $kh  = parseMacro($macros['koolhydraten'] ?? 0);
