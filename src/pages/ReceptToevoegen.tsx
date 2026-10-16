@@ -30,6 +30,7 @@ import type { Eenheid } from '../lib/eenheden'
 import ReceptKiezer from '../components/ReceptKiezer'
 import PageHeader from '../components/PageHeader'
 import Afbeelding from '../components/Afbeelding'
+import ReceptBladwijzer from '../components/ReceptBladwijzer'
 import { useTags } from '../store/tags'
 
 // Maaltijdtypes en tags komen uit de gedeelde woordenlijst (beheerbaar via Extras).
@@ -235,6 +236,25 @@ export default function ReceptToevoegen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isBewerkModus, toonImport])
 
+  // Recept dat via de bladwijzer "TNP → Recept" binnenkwam (zie App.tsx): importeer meteen.
+  useEffect(() => {
+    if (isBewerkModus || !isIngelogd) return
+    let ruw: string | null = null
+    try { ruw = sessionStorage.getItem('tnp-import'); sessionStorage.removeItem('tnp-import') } catch { /* privémodus */ }
+    if (!ruw) return
+    try {
+      const data = JSON.parse(ruw) as { url?: string; recept?: unknown }
+      if (!data.url || !data.recept) return
+      setToonImport(true)
+      setImportUrl(data.url)
+      importeerViaUrl(undefined, { url: data.url, jsonld: JSON.stringify(data.recept) })
+    } catch {
+      setToonImport(true)
+      setImportFout('De gegevens van de bladwijzer waren onleesbaar. Probeer opnieuw of plak de tekst.')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isIngelogd, isBewerkModus])
+
   if (!isIngelogd) {
     return (
       <div className="text-center py-20 text-olive-700/40">
@@ -360,13 +380,15 @@ export default function ReceptToevoegen() {
     }
   }
 
-  async function importeerViaUrl(beschrijving?: string) {
-    if (!importUrl.trim()) return
+  async function importeerViaUrl(beschrijving?: string, vanBladwijzer?: { url: string; jsonld: string }) {
+    const url = vanBladwijzer?.url ?? importUrl.trim()
+    if (!url) return
     setImportFout('')
     setImportLaden(true)
     try {
-      const body: Record<string, string> = { url: importUrl.trim() }
+      const body: Record<string, string> = { url }
       if (beschrijving) body.beschrijving = beschrijving
+      if (vanBladwijzer) body.jsonld = vanBladwijzer.jsonld
 
       const res = await api.post<Recept & { voedingswaarden: Recept['voedingswaarden']; tiktok?: boolean; waarschuwing?: string | null }>('/importeer', body)
 
@@ -377,7 +399,7 @@ export default function ReceptToevoegen() {
         return
       }
 
-      pasImportToe(res, { bronUrl: res.bron_url ?? importUrl.trim() })
+      pasImportToe(res, { bronUrl: res.bron_url ?? url })
       setImportUrl('')
       setTiktokModus(false)
       setTiktokBeschrijving('')
@@ -549,6 +571,7 @@ export default function ReceptToevoegen() {
               </button>
             </div>
             {importFout && <p className="mt-2 text-xs text-terracotta-600">{importFout}</p>}
+            <ReceptBladwijzer />
 
             {/* TikTok: beschrijving plakken */}
             {tiktokModus && (

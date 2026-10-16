@@ -1,4 +1,5 @@
-import { Routes, Route, Navigate, useLocation, Link } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation, useNavigate, Link } from 'react-router-dom'
+import { useEffect } from 'react'
 import type { ReactNode } from 'react'
 import { AuthProvider, useAuth } from './store/auth'
 import { WeekMenuProvider } from './store/weekmenu'
@@ -45,6 +46,18 @@ function RequireAuth({ children }: { children: ReactNode }) {
 
 function Shell() {
   const { laden } = useAuth()
+  const navigate = useNavigate()
+
+  // Bladwijzer "TNP → Recept" opent de app met #tnp-import=<recept>; bewaar dat
+  // kort en ga naar het invoerscherm, dat de import uitvoert.
+  useEffect(() => {
+    const prefix = '#tnp-import='
+    if (!window.location.hash.startsWith(prefix)) return
+    try { sessionStorage.setItem('tnp-import', decodeURIComponent(window.location.hash.slice(prefix.length))) } catch { /* privémodus */ }
+    window.history.replaceState(null, '', window.location.pathname + window.location.search)
+    navigate('/recept/nieuw', { replace: true })
+  }, [navigate])
+
   if (laden) return <Splash />
 
   return (

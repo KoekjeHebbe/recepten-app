@@ -196,6 +196,14 @@ if (preg_match('/tiktok\.com/i', $url)) {
     ]);
 }
 
+// Receptgegevens kunnen ook uit de browser komen (bladwijzer "TNP → Recept"),
+// voor sites die onze server blokkeren (bv. HelloFresh via Cloudflare).
+$jsonldVanBrowser = is_string($data['jsonld'] ?? null) ? trim($data['jsonld']) : '';
+if ($jsonldVanBrowser !== '') {
+    if (strlen($jsonldVanBrowser) > 500000) error('Receptgegevens zijn te groot.', 413);
+    $matches = [1 => [$jsonldVanBrowser]];
+} else {
+
 // Haal de pagina op
 $context = stream_context_create([
     'http' => [
@@ -209,10 +217,11 @@ $context = stream_context_create([
 ]);
 
 $html = @file_get_contents($url, false, $context);
-if (!$html) error('Kon de pagina niet laden. Controleer de URL.', 422);
+if (!$html) error('Kon de pagina niet laden. Klopt de link, dan blokkeert deze site onze server (zoals HelloFresh): open het recept en klik op de bladwijzer "TNP → Recept".', 422);
 
 // Zoek JSON-LD Recipe schema
 preg_match_all('/<script[^>]+type=["\']?application\/ld\+json["\']?[^>]*>(.*?)<\/script>/si', $html, $matches);
+}
 
 $schemaRecept = null;
 foreach ($matches[1] as $jsonString) {
